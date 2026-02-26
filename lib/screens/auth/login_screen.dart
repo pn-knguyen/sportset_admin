@@ -37,28 +37,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Logo Section
                 Column(
                   children: [
-                    // Stylized Ball Logo
-                    Container(
-                      height: 96,
-                      width: 96,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFFFF9800), Color(0xFFF44336)],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.orange.withValues(alpha: 0.2),
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
+                    // Gradient Icon Logo
+                    ShaderMask(
+                      shaderCallback: (bounds) => const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFFFF9800), Color(0xFFF44336)],
+                      ).createShader(bounds),
                       child: const Icon(
                         Icons.sports_soccer,
-                        size: 56,
+                        size: 80,
                         color: Colors.white,
                       ),
                     ),

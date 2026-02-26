@@ -86,27 +86,15 @@ class _HomeScreenState extends State<HomeScreen> {
             // Logo Section
             Row(
               children: [
-                Container(
-                  height: 40,
-                  width: 40,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFFFF9800), Color(0xFFF44336)],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.orange.withValues(alpha: 0.2),
-                        blurRadius: 8,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
+                ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFFF9800), Color(0xFFF44336)],
+                  ).createShader(bounds),
                   child: const Icon(
                     Icons.sports_soccer,
-                    size: 24,
+                    size: 32,
                     color: Colors.white,
                   ),
                 ),
