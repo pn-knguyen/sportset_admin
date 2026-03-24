@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:sportset_admin/models/court.dart';
 import 'package:sportset_admin/routes/app_routes.dart';
+import 'package:sportset_admin/services/court_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 // 3.2. Trang danh sách sân
@@ -15,39 +17,15 @@ class _CourtListScreenState extends State<CourtListScreen> {
   final int _currentNavIndex = 1;
   final Color _navyColor = const Color(0xFF0C1C46);
   final Color _orangeColor = const Color(0xFFFF5722);
+  final CourtService _courtService = CourtService();
 
-  final List<Map<String, dynamic>> _courts = [
-    {
-      'name': 'Sân A1 - Sân 7 người',
-      'type': 'Bóng đá',
-      'icon': Icons.sports_soccer,
-      'address': '123 Nguyễn Văn Cừ, Q.5, TP.HCM',
-      'price': '300k',
-      'status': 'available',
-      'image':
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuAt287fpn5BUVFSybt22A3j-SkxGUiMqLflxOoBb-9LEllMmly88fOIxzN3SmcYRKTNYiSN9CQM0Ngmy8uaMn26spP67zQqbvCZmr1E0rCiD-Hdak4teppD2YJVWuKagzCt4yt6E3MohEhA5mZFspMJ5Ba-SQ9W4ihoGj_1wxFPK4h_7dABGpO_EfyKA09XGH1EIv6ZaWOYGzIJ2TtooraqqiVQFA8eUNfrRkNjCTdNoTqs10AEb7VLrW6EoFLrJJSg-r0O7qRbDwo0',
-    },
-    {
-      'name': 'Sân B2 - Cầu lông VIP',
-      'type': 'Cầu lông',
-      'icon': Icons.sports_tennis,
-      'address': 'Tầng 3, Nhà thi đấu đa năng',
-      'price': '150k',
-      'status': 'maintenance',
-      'image':
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuCkMdSij_pqfT09o_6jxRDDXq48Rv7c1WhU0yRf2h-kAccwbWwk5176oljN6fx4C_XBbafgoTPQ3sCa00ttH8lZaZleJaA-e_Taw6EiGrhYJFMMmEQSDEZEsrkKuLdsznouACFy937mP8JyId1O6ev2kqPPsqImoMBTJFcSGgV8zQwchoMXbfU_jLtl5lrgs5VAMKIlrQhMzLGZzUjs2yCB0_MGW2fvLDKSJvGgjY_FNqf5hduoC1YTT3ZqqDXCZ94YXK1Fab0DpanT',
-    },
-    {
-      'name': 'Sân C1 - Tennis 01',
-      'type': 'Tennis',
-      'icon': Icons.sports_baseball,
-      'address': 'Khu C, Trung tâm thể thao Quận 7',
-      'price': '450k',
-      'status': 'available',
-      'image':
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuA5gHliSyC9i7T9AMRiKMZDNtkqhEYImPAUQYiTiiJ4d-3NREDQLD4NkeCUS4BAHjW76t3xbYu_MpOzyNBpsOuNQyGrnJflDLS1N1Tz7absq1gc9raj70KEmTMhQj7G4zVMDJwcbmAc3S9wwF_bSQos6K-ZqMWKOyEPfQdWkE5liZ4iDMTwhyhUxS7EuYKFrUxOhVNnBlxibk8Qb0mUHNQNrMBfgGq-wbKQPSsQ8vdUTaMG6QCi3oDyJnMT05X9aPkD13GyZTggGBmH',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {});
+    });
+  }
 
   @override
   void dispose() {
@@ -64,13 +42,49 @@ class _CourtListScreenState extends State<CourtListScreen> {
           _buildHeader(),
           _buildSearchBar(),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              itemCount: _courts.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: _buildCourtCard(_courts[index]),
+            child: StreamBuilder<List<Court>>(
+              stream: _courtService.getAllCourtsStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Color(0xFFFF5722)),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Lỗi tải dữ liệu sân',
+                      style: TextStyle(color: _navyColor),
+                    ),
+                  );
+                }
+
+                final courts = snapshot.data ?? <Court>[];
+                final query = _searchController.text.trim().toLowerCase();
+                final filtered = query.isEmpty
+                    ? courts
+                    : courts
+                          .where(
+                            (court) =>
+                                court.name.toLowerCase().contains(query) ||
+                                court.address.toLowerCase().contains(query),
+                          )
+                          .toList();
+
+                if (filtered.isEmpty) {
+                  return const Center(child: Text('Chưa có sân nào'));
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: _buildCourtCard(filtered[index]),
+                    );
+                  },
                 );
               },
             ),
@@ -179,19 +193,26 @@ class _CourtListScreenState extends State<CourtListScreen> {
               borderRadius: BorderRadius.circular(25),
               borderSide: BorderSide(color: _orangeColor, width: 2),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildCourtCard(Map<String, dynamic> court) {
-    final isAvailable = court['status'] == 'available';
+  Widget _buildCourtCard(Court court) {
+    final isAvailable = court.status == 'available';
 
     return GestureDetector(
       onTap: () {
-        Navigator.pushNamed(context, AppRoutes.courtDetail);
+        Navigator.pushNamed(
+          context,
+          AppRoutes.courtDetail,
+          arguments: {'id': court.id},
+        );
       },
       child: Container(
         decoration: BoxDecoration(
@@ -211,28 +232,46 @@ class _CourtListScreenState extends State<CourtListScreen> {
             Stack(
               children: [
                 ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
                   child: Container(
                     height: 176,
                     width: double.infinity,
                     color: Colors.grey[100],
-                    child: Image.network(
-                      court['image'],
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.image, size: 50, color: Colors.grey),
-                        );
-                      },
-                    ),
+                    child: court.imageUrl == null || court.imageUrl!.isEmpty
+                        ? Container(
+                            color: Colors.grey[200],
+                            child: const Icon(
+                              Icons.image,
+                              size: 50,
+                              color: Colors.grey,
+                            ),
+                          )
+                        : Image.network(
+                            court.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey[200],
+                                child: const Icon(
+                                  Icons.image,
+                                  size: 50,
+                                  color: Colors.grey,
+                                ),
+                              );
+                            },
+                          ),
                   ),
                 ),
                 Positioned(
                   top: 12,
                   right: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.95),
                       borderRadius: BorderRadius.circular(8),
@@ -255,7 +294,9 @@ class _CourtListScreenState extends State<CourtListScreen> {
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color: isAvailable ? Colors.green[500] : Colors.red[500],
+                            color: isAvailable
+                                ? Colors.green[500]
+                                : Colors.red[500],
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -265,7 +306,9 @@ class _CourtListScreenState extends State<CourtListScreen> {
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: isAvailable ? Colors.green[600] : Colors.red[600],
+                            color: isAvailable
+                                ? Colors.green[600]
+                                : Colors.red[600],
                           ),
                         ),
                       ],
@@ -276,7 +319,10 @@ class _CourtListScreenState extends State<CourtListScreen> {
                   bottom: 12,
                   left: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: _navyColor.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(8),
@@ -285,13 +331,13 @@ class _CourtListScreenState extends State<CourtListScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          court['icon'] as IconData,
+                          _iconForSport(court.sportType),
                           size: 14,
                           color: Colors.white,
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          court['type'],
+                          court.sportType,
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -314,7 +360,7 @@ class _CourtListScreenState extends State<CourtListScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          court['name'],
+                          court.name,
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -329,7 +375,7 @@ class _CourtListScreenState extends State<CourtListScreen> {
                         text: TextSpan(
                           children: [
                             TextSpan(
-                              text: court['price'],
+                              text: _formatPrice(court.pricePerHour),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -359,7 +405,7 @@ class _CourtListScreenState extends State<CourtListScreen> {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          court['address'],
+                          court.address,
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[500],
@@ -376,7 +422,11 @@ class _CourtListScreenState extends State<CourtListScreen> {
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            Navigator.pushNamed(context, AppRoutes.courtEdit);
+                            Navigator.pushNamed(
+                              context,
+                              AppRoutes.courtEdit,
+                              arguments: {'id': court.id},
+                            );
                           },
                           icon: const Icon(Icons.edit, size: 20),
                           label: const Text(
@@ -393,7 +443,9 @@ class _CourtListScreenState extends State<CourtListScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
+                              side: BorderSide(
+                                color: Colors.grey.withValues(alpha: 0.1),
+                              ),
                             ),
                           ),
                         ),
@@ -404,7 +456,7 @@ class _CourtListScreenState extends State<CourtListScreen> {
                         height: 40,
                         child: ElevatedButton(
                           onPressed: () {
-                            _showDeleteDialog(court['name']);
+                            _showDeleteDialog(court.id, court.name);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red.withValues(alpha: 0.05),
@@ -413,7 +465,9 @@ class _CourtListScreenState extends State<CourtListScreen> {
                             padding: EdgeInsets.zero,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(color: Colors.red.withValues(alpha: 0.05)),
+                              side: BorderSide(
+                                color: Colors.red.withValues(alpha: 0.05),
+                              ),
                             ),
                           ),
                           child: const Icon(Icons.delete, size: 20),
@@ -430,7 +484,7 @@ class _CourtListScreenState extends State<CourtListScreen> {
     );
   }
 
-  void _showDeleteDialog(String courtName) {
+  void _showDeleteDialog(String courtId, String courtName) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -449,14 +503,30 @@ class _CourtListScreenState extends State<CourtListScreen> {
               child: Text('Hủy', style: TextStyle(color: Colors.grey[600])),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Đã xóa "$courtName"'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                try {
+                  await _courtService.deleteCourt(courtId);
+                  if (!mounted) {
+                    return;
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Đã xóa "$courtName"'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } catch (_) {
+                  if (!mounted) {
+                    return;
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Xóa sân thất bại'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -471,7 +541,22 @@ class _CourtListScreenState extends State<CourtListScreen> {
       },
     );
   }
+
+  IconData _iconForSport(String sport) {
+    final lower = sport.toLowerCase();
+    if (lower.contains('cầu lông')) {
+      return Icons.sports_tennis;
+    }
+    if (lower.contains('tennis')) {
+      return Icons.sports_baseball;
+    }
+    return Icons.sports_soccer;
+  }
+
+  String _formatPrice(int value) {
+    if (value <= 0) {
+      return '0';
+    }
+    return '${(value / 1000).round()}k';
+  }
 }
-
-
-

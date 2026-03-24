@@ -1,4 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:sportset_admin/models/court.dart';
+import 'package:sportset_admin/models/facility.dart';
+import 'package:sportset_admin/services/court_service.dart';
+import 'package:sportset_admin/services/facility_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 // Trang chỉnh sửa sân
@@ -10,38 +16,200 @@ class CourtEditScreen extends StatefulWidget {
 }
 
 class _CourtEditScreenState extends State<CourtEditScreen> {
-  final TextEditingController _courtNameController = TextEditingController(text: 'Sân Bóng Đá K300');
+  final TextEditingController _courtNameController = TextEditingController(
+    text: 'Sân Bóng Đá K300',
+  );
   final TextEditingController _descriptionController = TextEditingController(
-    text: 'Sân mới nâng cấp mặt cỏ, hệ thống đèn chiếu sáng tiêu chuẩn. Có canteen phục vụ nước giải khát.',
+    text:
+        'Sân mới nâng cấp mặt cỏ, hệ thống đèn chiếu sáng tiêu chuẩn. Có canteen phục vụ nước giải khát.',
   );
   final TextEditingController _subCourtNameController = TextEditingController();
-  
+
   final Color _navyColor = const Color(0xFF0C1C46);
   final Color _orangeColor = const Color(0xFFFF5722);
   final int _currentNavIndex = 1;
-  
-  String _selectedFacility = 'SPORTSET Tân Bình';
+  final CourtService _courtService = CourtService();
+  final FacilityService _facilityService = FacilityService();
+  String? _courtId;
+  bool _didLoadInitialData = false;
+  bool _isSaving = false;
+  bool _isLoadingFacilities = true;
+
+  List<Facility> _facilities = <Facility>[];
+  String? _selectedFacilityId;
+
+  String _selectedFacility = '';
   String _selectedSport = 'Bóng đá (Sân 5)';
-  
+
   final List<Map<String, dynamic>> _subCourts = [
     {'name': 'Sân A1', 'isActive': true},
     {'name': 'Sân A2', 'isActive': true},
     {'name': 'Sân A3', 'isActive': false},
     {'name': 'Sân A4', 'isActive': true},
   ];
-  
+
   final List<String> _selectedAmenities = ['Wifi', 'Gửi xe', 'Canteen'];
-  
-  final String _existingImage = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBimKqI_K3ErU0fFiygQjiFvtQuimeAaux_Cg2sGwexIKAmqiz6rjscATpgV0yUpnAE0hqg_UBnBirUkOn2dyeAw_WNKTL490x7sbdkiwYtiGQTBdNz3lzzlw_vY_5yIDTkWigcdfjnlZnhEfA_4c8PztUf70ixOUCk2o_md8bggUsKef12TEtfnJGe1kWRUYaxtyc9T3Za6A-XllgsL76O26pfZ_1n5_6-D3da3HGP5RNTTVEjitmGnQJWXLLwAZ-_LCUtr5IP3tHy';
-  
+
+  String _existingImage =
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuBimKqI_K3ErU0fFiygQjiFvtQuimeAaux_Cg2sGwexIKAmqiz6rjscATpgV0yUpnAE0hqg_UBnBirUkOn2dyeAw_WNKTL490x7sbdkiwYtiGQTBdNz3lzzlw_vY_5yIDTkWigcdfjnlZnhEfA_4c8PztUf70ixOUCk2o_md8bggUsKef12TEtfnJGe1kWRUYaxtyc9T3Za6A-XllgsL76O26pfZ_1n5_6-D3da3HGP5RNTTVEjitmGnQJWXLLwAZ-_LCUtr5IP3tHy';
+
   final List<Map<String, dynamic>> _weekdayPricing = [
     {'startTime': '05:00', 'endTime': '16:00', 'price': 150000},
     {'startTime': '17:00', 'endTime': '22:00', 'price': 250000},
   ];
-  
+
   final List<Map<String, dynamic>> _weekendPricing = [
     {'startTime': '05:00', 'endTime': '22:00', 'price': 300000},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFacilities();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didLoadInitialData) {
+      return;
+    }
+
+    final routeArgs = ModalRoute.of(context)?.settings.arguments;
+    if (routeArgs is Map && routeArgs['id'] is String) {
+      final id = routeArgs['id'] as String;
+      if (id.isNotEmpty) {
+        _courtId = id;
+        _didLoadInitialData = true;
+        _loadCourtData(id);
+      }
+    }
+  }
+
+  Future<void> _loadCourtData(String id) async {
+    try {
+      final Court? court = await _courtService
+          .getCourtById(id)
+          .timeout(const Duration(seconds: 10));
+      if (!mounted || court == null) {
+        return;
+      }
+
+      setState(() {
+        _courtNameController.text = court.name;
+        _descriptionController.text = court.description;
+        _selectedFacilityId = court.facilityId;
+        _selectedFacility = court.facilityName.isNotEmpty
+            ? court.facilityName
+            : _selectedFacility;
+        _selectedSport = court.sportType.isNotEmpty
+            ? court.sportType
+            : _selectedSport;
+        _existingImage = court.imageUrl ?? _existingImage;
+
+        _selectedAmenities
+          ..clear()
+          ..addAll(court.amenities);
+
+        _subCourts
+          ..clear()
+          ..addAll(
+            court.subCourts.map(
+              (item) => {
+                'name': item['name'] ?? '',
+                'isActive': (item['status'] ?? 'available') == 'available',
+              },
+            ),
+          );
+
+        _weekdayPricing
+          ..clear()
+          ..addAll(court.weekdayPricing);
+
+        _weekendPricing
+          ..clear()
+          ..addAll(court.weekendPricing);
+      });
+
+      _syncSelectedFacilityFromList();
+    } on TimeoutException {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Kết nối quá chậm, vui lòng thử lại'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không thể tải dữ liệu sân'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _loadFacilities() async {
+    try {
+      final facilities = await _facilityService.getAllFacilities();
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _facilities = facilities;
+        if (_selectedFacilityId == null && _facilities.isNotEmpty) {
+          _selectedFacilityId = _facilities.first.id;
+          _selectedFacility = _facilities.first.name;
+        }
+      });
+
+      _syncSelectedFacilityFromList();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingFacilities = false;
+        });
+      }
+    }
+  }
+
+  void _syncSelectedFacilityFromList() {
+    if (_selectedFacilityId == null || _facilities.isEmpty) {
+      return;
+    }
+
+    for (final facility in _facilities) {
+      if (facility.id == _selectedFacilityId) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _selectedFacility = facility.name;
+        });
+        return;
+      }
+    }
+  }
+
+  Facility? _currentFacility() {
+    if (_selectedFacilityId == null) {
+      return null;
+    }
+
+    for (final facility in _facilities) {
+      if (facility.id == _selectedFacilityId) {
+        return facility;
+      }
+    }
+    return null;
+  }
 
   @override
   void dispose() {
@@ -108,7 +276,11 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
               onTap: () => Navigator.pop(context),
               child: Padding(
                 padding: const EdgeInsets.all(8),
-                child: Icon(Icons.arrow_back_ios_new, size: 24, color: _navyColor),
+                child: Icon(
+                  Icons.arrow_back_ios_new,
+                  size: 24,
+                  color: _navyColor,
+                ),
               ),
             ),
             Expanded(
@@ -131,6 +303,15 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
   }
 
   Widget _buildFacilitySelector() {
+    if (_isLoadingFacilities) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 12),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -159,9 +340,12 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
             ],
           ),
           child: DropdownButtonFormField<String>(
-            initialValue: _selectedFacility,
+            initialValue: _selectedFacilityId,
             decoration: const InputDecoration(
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
               border: InputBorder.none,
             ),
             style: const TextStyle(
@@ -171,21 +355,24 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
             ),
             icon: const Icon(Icons.expand_more, color: Colors.grey),
             dropdownColor: Colors.white,
-            items: [
-              'SPORTSET Tân Bình',
-              'SPORTSET Quận 7',
-              'SPORTSET Thủ Đức',
-            ].map((facility) {
-              return DropdownMenuItem(
-                value: facility,
-                child: Text(facility),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                _selectedFacility = value!;
-              });
-            },
+            items: _facilities.map((facility) {
+                  return DropdownMenuItem(
+                    value: facility.id,
+                    child: Text(facility.name),
+                  );
+                })
+                .toList(),
+            onChanged: _facilities.isEmpty
+                ? null
+                : (value) {
+                    final selected = _facilities.firstWhere(
+                      (facility) => facility.id == value,
+                    );
+                    setState(() {
+                      _selectedFacilityId = selected.id;
+                      _selectedFacility = selected.name;
+                    });
+                  },
           ),
         ),
       ],
@@ -225,7 +412,11 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
                         color: Colors.grey[200],
-                        child: const Icon(Icons.image, size: 50, color: Colors.grey),
+                        child: const Icon(
+                          Icons.image,
+                          size: 50,
+                          color: Colors.grey,
+                        ),
                       );
                     },
                   ),
@@ -318,7 +509,10 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                 decoration: InputDecoration(
                   hintText: 'Ví dụ: Khu sân cỏ nhân tạo',
                   hintStyle: TextStyle(color: Colors.grey[400]),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   border: InputBorder.none,
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -363,7 +557,10 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                 initialValue: _selectedSport,
                 decoration: InputDecoration(
                   prefixIcon: Icon(Icons.sports_soccer, color: _orangeColor),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   border: InputBorder.none,
                 ),
                 style: const TextStyle(
@@ -373,18 +570,16 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                 ),
                 icon: const Icon(Icons.expand_more, color: Colors.grey),
                 dropdownColor: Colors.white,
-                items: [
-                  'Bóng đá (Sân 5)',
-                  'Bóng đá (Sân 7)',
-                  'Cầu lông',
-                  'Pickleball',
-                  'Tennis',
-                ].map((sport) {
-                  return DropdownMenuItem(
-                    value: sport,
-                    child: Text(sport),
-                  );
-                }).toList(),
+                items:
+                    [
+                      'Bóng đá (Sân 5)',
+                      'Bóng đá (Sân 7)',
+                      'Cầu lông',
+                      'Pickleball',
+                      'Tennis',
+                    ].map((sport) {
+                      return DropdownMenuItem(value: sport, child: Text(sport));
+                    }).toList(),
                 onChanged: (value) {
                   setState(() {
                     _selectedSport = value!;
@@ -447,14 +642,21 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                   decoration: BoxDecoration(
                     color: Colors.grey[50],
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: Colors.grey.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: TextField(
                     controller: _subCourtNameController,
                     decoration: InputDecoration(
                       hintText: 'Nhập tên sân (A5, A6...)',
-                      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      hintStyle: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 14,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
                       border: InputBorder.none,
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -505,18 +707,20 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
             itemBuilder: (context, index) {
               final court = _subCourts[index];
               final isActive = court['isActive'] as bool;
-              
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isActive ? const Color(0xFFFFF8F6) : Colors.red.withValues(alpha: 0.05),
+                    color: isActive
+                        ? const Color(0xFFFFF8F6)
+                        : Colors.red.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isActive 
-                        ? Colors.grey.withValues(alpha: 0.2)
-                        : Colors.red.withValues(alpha: 0.1),
+                      color: isActive
+                          ? Colors.grey.withValues(alpha: 0.2)
+                          : Colors.red.withValues(alpha: 0.1),
                     ),
                   ),
                   child: Row(
@@ -547,16 +751,19 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                       const SizedBox(width: 8),
                       // Status badge
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: isActive 
-                            ? Colors.green.withValues(alpha: 0.1)
-                            : Colors.red.withValues(alpha: 0.1),
+                          color: isActive
+                              ? Colors.green.withValues(alpha: 0.1)
+                              : Colors.red.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: isActive 
-                              ? Colors.green.withValues(alpha: 0.2)
-                              : Colors.red.withValues(alpha: 0.2),
+                            color: isActive
+                                ? Colors.green.withValues(alpha: 0.2)
+                                : Colors.red.withValues(alpha: 0.2),
                           ),
                         ),
                         child: Text(
@@ -564,7 +771,9 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: isActive ? Colors.green[700] : Colors.red[600],
+                            color: isActive
+                                ? Colors.green[700]
+                                : Colors.red[600],
                           ),
                         ),
                       ),
@@ -610,7 +819,10 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                 Expanded(
                   child: RichText(
                     text: TextSpan(
-                      style: const TextStyle(fontSize: 12, color: Colors.black87),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black87,
+                      ),
                       children: [
                         const TextSpan(text: 'Cho phép '),
                         TextSpan(
@@ -706,7 +918,7 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
     required List<Map<String, dynamic>> pricingList,
   }) {
     final days = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -778,7 +990,9 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                       days[index],
                       style: TextStyle(
                         fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.w500,
                         color: isSelected ? Colors.white : Colors.grey[400],
                       ),
                     ),
@@ -791,7 +1005,7 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
           // Time slots
           ...pricingList.asMap().entries.map((entry) {
             final pricing = entry.value;
-            
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Container(
@@ -811,11 +1025,13 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Icon(Icons.arrow_forward, size: 20, color: Colors.grey[300]),
+                          child: Icon(
+                            Icons.arrow_forward,
+                            size: 20,
+                            color: Colors.grey[300],
+                          ),
                         ),
-                        Expanded(
-                          child: _buildTimeDropdown(pricing['endTime']),
-                        ),
+                        Expanded(child: _buildTimeDropdown(pricing['endTime'])),
                         const SizedBox(width: 8),
                         Container(
                           width: 40,
@@ -823,10 +1039,16 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                            border: Border.all(
+                              color: Colors.grey.withValues(alpha: 0.2),
+                            ),
                           ),
                           child: IconButton(
-                            icon: const Icon(Icons.close, size: 20, color: Colors.red),
+                            icon: const Icon(
+                              Icons.close,
+                              size: 20,
+                              color: Colors.red,
+                            ),
                             onPressed: () {
                               // TODO: Remove time slot
                             },
@@ -841,12 +1063,17 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                        border: Border.all(
+                          color: Colors.grey.withValues(alpha: 0.2),
+                        ),
                       ),
                       child: TextField(
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.payments, color: Colors.grey),
+                          prefixIcon: const Icon(
+                            Icons.payments,
+                            color: Colors.grey,
+                          ),
                           suffixText: 'VNĐ',
                           suffixStyle: const TextStyle(
                             fontSize: 14,
@@ -854,14 +1081,19 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                             color: Colors.black54,
                           ),
                           hintText: 'Nhập giá',
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           border: InputBorder.none,
                         ),
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
                         ),
-                        controller: TextEditingController(text: pricing['price'].toString()),
+                        controller: TextEditingController(
+                          text: pricing['price'].toString(),
+                        ),
                       ),
                     ),
                   ],
@@ -927,16 +1159,30 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
         ),
         icon: Icon(Icons.expand_more, size: 18, color: Colors.grey[400]),
         dropdownColor: Colors.white,
-        items: [
-          '05:00', '06:00', '07:00', '08:00', '09:00', '10:00',
-          '11:00', '12:00', '13:00', '14:00', '15:00', '16:00',
-          '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00',
-        ].map((time) {
-          return DropdownMenuItem(
-            value: time,
-            child: Text(time),
-          );
-        }).toList(),
+        items:
+            [
+              '05:00',
+              '06:00',
+              '07:00',
+              '08:00',
+              '09:00',
+              '10:00',
+              '11:00',
+              '12:00',
+              '13:00',
+              '14:00',
+              '15:00',
+              '16:00',
+              '17:00',
+              '18:00',
+              '19:00',
+              '20:00',
+              '21:00',
+              '22:00',
+              '23:00',
+            ].map((time) {
+              return DropdownMenuItem(value: time, child: Text(time));
+            }).toList(),
         onChanged: (value) {
           // TODO: Update time
         },
@@ -1043,10 +1289,14 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: isSelected ? _orangeColor.withValues(alpha: 0.1) : Colors.white,
+                  color: isSelected
+                      ? _orangeColor.withValues(alpha: 0.1)
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isSelected ? _orangeColor : Colors.grey.withValues(alpha: 0.2),
+                    color: isSelected
+                        ? _orangeColor
+                        : Colors.grey.withValues(alpha: 0.2),
                     width: isSelected ? 2 : 1,
                   ),
                   boxShadow: isSelected
@@ -1072,7 +1322,9 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                       amenity['name'] as String,
                       style: TextStyle(
                         fontSize: 10,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
                         color: isSelected ? _orangeColor : Colors.grey[600],
                       ),
                     ),
@@ -1104,10 +1356,7 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: () {
-          // TODO: Update court data
-          Navigator.pop(context);
-        },
+        onPressed: _isSaving ? null : _updateCourt,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -1117,12 +1366,22 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.save, color: Colors.white),
-            SizedBox(width: 8),
+          children: [
+            if (_isSaving)
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            else
+              const Icon(Icons.save, color: Colors.white),
+            const SizedBox(width: 8),
             Text(
-              'Cập nhật thông tin',
-              style: TextStyle(
+              _isSaving ? 'Đang cập nhật...' : 'Cập nhật thông tin',
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -1134,5 +1393,116 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
     );
   }
 
-}
+  Future<void> _updateCourt() async {
+    if (_courtId == null || _courtId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không tìm thấy mã sân để cập nhật'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
+    if (_courtNameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập tên cụm sân'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedFacilityId == null || _selectedFacilityId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng chọn cơ sở chủ quản'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final selectedFacility = _currentFacility();
+    if (selectedFacility == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không tìm thấy thông tin cơ sở đã chọn'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    final int price =
+        (_weekdayPricing.isNotEmpty
+                ? (_weekdayPricing.first['price'] as num?)
+                : 0)
+            ?.toInt() ??
+        0;
+
+    final hasActiveSubCourt = _subCourts.any(
+      (court) => court['isActive'] == true,
+    );
+
+    try {
+      await _courtService.updateCourt(
+        id: _courtId!,
+        facilityId: selectedFacility.id,
+        name: _courtNameController.text.trim(),
+        facilityName: selectedFacility.name,
+        sportType: _selectedSport,
+        address: selectedFacility.address,
+        pricePerHour: price,
+        status: hasActiveSubCourt ? 'available' : 'maintenance',
+        imageUrl: _existingImage,
+        description: _descriptionController.text.trim(),
+        amenities: List<String>.from(_selectedAmenities),
+        subCourts: _subCourts
+            .map(
+              (court) => {
+                'name': court['name'],
+                'status': (court['isActive'] == true)
+                    ? 'available'
+                    : 'maintenance',
+              },
+            )
+            .toList(),
+        weekdayPricing: _weekdayPricing,
+        weekendPricing: _weekendPricing,
+      );
+
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã cập nhật sân thành công'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cập nhật sân thất bại, vui lòng thử lại'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+}

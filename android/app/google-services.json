@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "792530044338",
+    "project_id": "sportset-d345c",
+    "storage_bucket": "sportset-d345c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:792530044338:android:f214c6ab5d22e04f4f50ab",
+        "android_client_info": {
+          "package_name": "com.example.sportset_admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "REMOVED_FIREBASE_ANDROID_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:792530044338:android:e17bb4eacf7e8cf14f50ab",
+        "android_client_info": {
+          "package_name": "com.example.sportset_customer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "REMOVED_FIREBASE_ANDROID_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

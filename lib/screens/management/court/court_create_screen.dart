@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:sportset_admin/models/facility.dart';
+import 'package:sportset_admin/services/court_service.dart';
+import 'package:sportset_admin/services/facility_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 // Trang thêm mới sân
@@ -13,31 +16,67 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
   final TextEditingController _courtNameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _subCourtNameController = TextEditingController();
-  
+
   final Color _navyColor = const Color(0xFF0C1C46);
   final Color _orangeColor = const Color(0xFFFF5722);
   final int _currentNavIndex = 1;
-  
-  String _selectedFacility = 'SPORTSET Tân Bình';
+  final CourtService _courtService = CourtService();
+  final FacilityService _facilityService = FacilityService();
+  bool _isSaving = false;
+  bool _isLoadingFacilities = true;
+
+  List<Facility> _facilities = <Facility>[];
+  String? _selectedFacilityId;
+
+  String _selectedFacility = '';
   String _selectedSport = 'Bóng đá (Sân 5)';
-  
+
   final List<Map<String, dynamic>> _subCourts = [
     {'name': 'Sân A1', 'isActive': true},
     {'name': 'Sân A2', 'isActive': true},
     {'name': 'Sân A3', 'isActive': false},
     {'name': 'Sân A4', 'isActive': true},
   ];
-  
+
   final List<String> _selectedAmenities = ['Wifi', 'Gửi xe'];
-  
+
   final List<Map<String, dynamic>> _weekdayPricing = [
     {'startTime': '05:00', 'endTime': '16:00', 'price': 150000},
     {'startTime': '17:00', 'endTime': '22:00', 'price': 250000},
   ];
-  
+
   final List<Map<String, dynamic>> _weekendPricing = [
     {'startTime': '05:00', 'endTime': '22:00', 'price': 300000},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFacilities();
+  }
+
+  Future<void> _loadFacilities() async {
+    try {
+      final facilities = await _facilityService.getAllFacilities();
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _facilities = facilities;
+        if (_facilities.isNotEmpty) {
+          _selectedFacilityId = _facilities.first.id;
+          _selectedFacility = _facilities.first.name;
+        }
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingFacilities = false;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -104,7 +143,11 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
               onTap: () => Navigator.pop(context),
               child: Padding(
                 padding: const EdgeInsets.all(8),
-                child: Icon(Icons.arrow_back_ios_new, size: 24, color: _navyColor),
+                child: Icon(
+                  Icons.arrow_back_ios_new,
+                  size: 24,
+                  color: _navyColor,
+                ),
               ),
             ),
             Expanded(
@@ -127,6 +170,15 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
   }
 
   Widget _buildFacilitySelector() {
+    if (_isLoadingFacilities) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 12),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -155,9 +207,12 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
             ],
           ),
           child: DropdownButtonFormField<String>(
-            initialValue: _selectedFacility,
+            initialValue: _selectedFacilityId,
             decoration: const InputDecoration(
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
               border: InputBorder.none,
             ),
             style: const TextStyle(
@@ -167,25 +222,41 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
             ),
             icon: const Icon(Icons.expand_more, color: Colors.grey),
             dropdownColor: Colors.white,
-            items: [
-              'SPORTSET Tân Bình',
-              'SPORTSET Quận 7',
-              'SPORTSET Thủ Đức',
-            ].map((facility) {
-              return DropdownMenuItem(
-                value: facility,
-                child: Text(facility),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                _selectedFacility = value!;
-              });
-            },
+            items: _facilities.map((facility) {
+                  return DropdownMenuItem(
+                    value: facility.id,
+                    child: Text(facility.name),
+                  );
+                })
+                .toList(),
+            onChanged: _facilities.isEmpty
+                ? null
+                : (value) {
+                    final selected = _facilities.firstWhere(
+                      (facility) => facility.id == value,
+                    );
+                    setState(() {
+                      _selectedFacilityId = selected.id;
+                      _selectedFacility = selected.name;
+                    });
+                  },
           ),
         ),
       ],
     );
+  }
+
+  Facility? _currentFacility() {
+    if (_selectedFacilityId == null) {
+      return null;
+    }
+
+    for (final facility in _facilities) {
+      if (facility.id == _selectedFacilityId) {
+        return facility;
+      }
+    }
+    return null;
   }
 
   Widget _buildImageUploadSection() {
@@ -222,11 +293,7 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                 color: _orangeColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.add_a_photo,
-                size: 32,
-                color: _orangeColor,
-              ),
+              child: Icon(Icons.add_a_photo, size: 32, color: _orangeColor),
             ),
             const SizedBox(height: 12),
             Text(
@@ -279,7 +346,10 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                 decoration: InputDecoration(
                   hintText: 'Ví dụ: Khu sân cỏ nhân tạo',
                   hintStyle: TextStyle(color: Colors.grey[400]),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   border: InputBorder.none,
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -323,7 +393,10 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                 initialValue: _selectedSport,
                 decoration: InputDecoration(
                   prefixIcon: Icon(Icons.sports_soccer, color: _orangeColor),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   border: InputBorder.none,
                 ),
                 style: const TextStyle(
@@ -333,18 +406,16 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                 ),
                 icon: const Icon(Icons.expand_more, color: Colors.grey),
                 dropdownColor: Colors.white,
-                items: [
-                  'Bóng đá (Sân 5)',
-                  'Bóng đá (Sân 7)',
-                  'Cầu lông',
-                  'Pickleball',
-                  'Tennis',
-                ].map((sport) {
-                  return DropdownMenuItem(
-                    value: sport,
-                    child: Text(sport),
-                  );
-                }).toList(),
+                items:
+                    [
+                      'Bóng đá (Sân 5)',
+                      'Bóng đá (Sân 7)',
+                      'Cầu lông',
+                      'Pickleball',
+                      'Tennis',
+                    ].map((sport) {
+                      return DropdownMenuItem(value: sport, child: Text(sport));
+                    }).toList(),
                 onChanged: (value) {
                   setState(() {
                     _selectedSport = value!;
@@ -407,14 +478,21 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                   decoration: BoxDecoration(
                     color: Colors.grey[50],
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: Colors.grey.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: TextField(
                     controller: _subCourtNameController,
                     decoration: InputDecoration(
                       hintText: 'Nhập tên sân (A1, A2...)',
-                      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      hintStyle: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 14,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
                       border: InputBorder.none,
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -465,18 +543,20 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
             itemBuilder: (context, index) {
               final court = _subCourts[index];
               final isActive = court['isActive'] as bool;
-              
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isActive ? const Color(0xFFFFF8F6) : Colors.red.withValues(alpha: 0.05),
+                    color: isActive
+                        ? const Color(0xFFFFF8F6)
+                        : Colors.red.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isActive 
-                        ? Colors.grey.withValues(alpha: 0.2)
-                        : Colors.red.withValues(alpha: 0.1),
+                      color: isActive
+                          ? Colors.grey.withValues(alpha: 0.2)
+                          : Colors.red.withValues(alpha: 0.1),
                     ),
                   ),
                   child: Row(
@@ -507,16 +587,19 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                       const SizedBox(width: 8),
                       // Status badge
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: isActive 
-                            ? Colors.green.withValues(alpha: 0.1)
-                            : Colors.red.withValues(alpha: 0.1),
+                          color: isActive
+                              ? Colors.green.withValues(alpha: 0.1)
+                              : Colors.red.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: isActive 
-                              ? Colors.green.withValues(alpha: 0.2)
-                              : Colors.red.withValues(alpha: 0.2),
+                            color: isActive
+                                ? Colors.green.withValues(alpha: 0.2)
+                                : Colors.red.withValues(alpha: 0.2),
                           ),
                         ),
                         child: Text(
@@ -524,7 +607,9 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: isActive ? Colors.green[700] : Colors.red[600],
+                            color: isActive
+                                ? Colors.green[700]
+                                : Colors.red[600],
                           ),
                         ),
                       ),
@@ -570,7 +655,10 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                 Expanded(
                   child: RichText(
                     text: TextSpan(
-                      style: const TextStyle(fontSize: 12, color: Colors.black87),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black87,
+                      ),
                       children: [
                         const TextSpan(text: 'Cho phép '),
                         TextSpan(
@@ -666,7 +754,7 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
     required List<Map<String, dynamic>> pricingList,
   }) {
     final days = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -738,7 +826,9 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                       days[index],
                       style: TextStyle(
                         fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.w500,
                         color: isSelected ? Colors.white : Colors.grey[400],
                       ),
                     ),
@@ -751,7 +841,7 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
           // Time slots
           ...pricingList.asMap().entries.map((entry) {
             final pricing = entry.value;
-            
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Container(
@@ -771,11 +861,13 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Icon(Icons.arrow_forward, size: 20, color: Colors.grey[300]),
+                          child: Icon(
+                            Icons.arrow_forward,
+                            size: 20,
+                            color: Colors.grey[300],
+                          ),
                         ),
-                        Expanded(
-                          child: _buildTimeDropdown(pricing['endTime']),
-                        ),
+                        Expanded(child: _buildTimeDropdown(pricing['endTime'])),
                         const SizedBox(width: 8),
                         Container(
                           width: 40,
@@ -783,10 +875,16 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                            border: Border.all(
+                              color: Colors.grey.withValues(alpha: 0.2),
+                            ),
                           ),
                           child: IconButton(
-                            icon: const Icon(Icons.close, size: 20, color: Colors.red),
+                            icon: const Icon(
+                              Icons.close,
+                              size: 20,
+                              color: Colors.red,
+                            ),
                             onPressed: () {
                               // TODO: Remove time slot
                             },
@@ -801,12 +899,17 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                        border: Border.all(
+                          color: Colors.grey.withValues(alpha: 0.2),
+                        ),
                       ),
                       child: TextField(
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.payments, color: Colors.grey),
+                          prefixIcon: const Icon(
+                            Icons.payments,
+                            color: Colors.grey,
+                          ),
                           suffixText: 'VNĐ',
                           suffixStyle: const TextStyle(
                             fontSize: 14,
@@ -814,14 +917,19 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                             color: Colors.black54,
                           ),
                           hintText: 'Nhập giá',
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           border: InputBorder.none,
                         ),
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
                         ),
-                        controller: TextEditingController(text: pricing['price'].toString()),
+                        controller: TextEditingController(
+                          text: pricing['price'].toString(),
+                        ),
                       ),
                     ),
                   ],
@@ -887,16 +995,30 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
         ),
         icon: Icon(Icons.expand_more, size: 18, color: Colors.grey[400]),
         dropdownColor: Colors.white,
-        items: [
-          '05:00', '06:00', '07:00', '08:00', '09:00', '10:00',
-          '11:00', '12:00', '13:00', '14:00', '15:00', '16:00',
-          '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00',
-        ].map((time) {
-          return DropdownMenuItem(
-            value: time,
-            child: Text(time),
-          );
-        }).toList(),
+        items:
+            [
+              '05:00',
+              '06:00',
+              '07:00',
+              '08:00',
+              '09:00',
+              '10:00',
+              '11:00',
+              '12:00',
+              '13:00',
+              '14:00',
+              '15:00',
+              '16:00',
+              '17:00',
+              '18:00',
+              '19:00',
+              '20:00',
+              '21:00',
+              '22:00',
+              '23:00',
+            ].map((time) {
+              return DropdownMenuItem(value: time, child: Text(time));
+            }).toList(),
         onChanged: (value) {
           // TODO: Update time
         },
@@ -1003,10 +1125,14 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: isSelected ? _orangeColor.withValues(alpha: 0.1) : Colors.white,
+                  color: isSelected
+                      ? _orangeColor.withValues(alpha: 0.1)
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isSelected ? _orangeColor : Colors.grey.withValues(alpha: 0.2),
+                    color: isSelected
+                        ? _orangeColor
+                        : Colors.grey.withValues(alpha: 0.2),
                     width: isSelected ? 2 : 1,
                   ),
                   boxShadow: isSelected
@@ -1032,7 +1158,9 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                       amenity['name'] as String,
                       style: TextStyle(
                         fontSize: 10,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
                         color: isSelected ? _orangeColor : Colors.grey[600],
                       ),
                     ),
@@ -1064,10 +1192,7 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: () {
-          // TODO: Save court data
-          Navigator.pop(context);
-        },
+        onPressed: _isSaving ? null : _saveCourt,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -1077,12 +1202,22 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.save, color: Colors.white),
-            SizedBox(width: 8),
+          children: [
+            if (_isSaving)
+              const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            else
+              const Icon(Icons.save, color: Colors.white),
+            const SizedBox(width: 8),
             Text(
-              'Lưu Thông Tin',
-              style: TextStyle(
+              _isSaving ? 'Đang lưu...' : 'Lưu Thông Tin',
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -1094,6 +1229,121 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
     );
   }
 
+  Future<void> _saveCourt() async {
+    if (_selectedFacilityId == null || _selectedFacilityId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng chọn cơ sở chủ quản'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
+    if (_courtNameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập tên cụm sân'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final selectedFacility = _currentFacility();
+    if (selectedFacility == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không tìm thấy thông tin cơ sở đã chọn'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    final int price =
+        (_weekdayPricing.isNotEmpty
+                ? (_weekdayPricing.first['price'] as num?)
+                : 0)
+            ?.toInt() ??
+        0;
+
+    final hasActiveSubCourt = _subCourts.any(
+      (court) => court['isActive'] == true,
+    );
+
+    try {
+      await _courtService.createCourt(
+        facilityId: selectedFacility.id,
+        name: _courtNameController.text.trim(),
+        facilityName: selectedFacility.name,
+        sportType: _selectedSport,
+        address: selectedFacility.address,
+        pricePerHour: price,
+        status: hasActiveSubCourt ? 'available' : 'maintenance',
+        description: _descriptionController.text.trim(),
+        amenities: List<String>.from(_selectedAmenities),
+        subCourts: _subCourts
+            .map(
+              (court) => {
+                'name': court['name'],
+                'status': (court['isActive'] == true)
+                    ? 'available'
+                    : 'maintenance',
+              },
+            )
+            .toList(),
+        weekdayPricing: _weekdayPricing
+            .map(
+              (item) => {
+                'startTime': item['startTime'],
+                'endTime': item['endTime'],
+                'price': item['price'],
+              },
+            )
+            .toList(),
+        weekendPricing: _weekendPricing
+            .map(
+              (item) => {
+                'startTime': item['startTime'],
+                'endTime': item['endTime'],
+                'price': item['price'],
+              },
+            )
+            .toList(),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã tạo sân thành công'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tạo sân thất bại, vui lòng thử lại'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
 }
-

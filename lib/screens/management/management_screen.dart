@@ -3,7 +3,7 @@ import 'package:sportset_admin/routes/app_routes.dart';
 
 class ManagementScreen extends StatefulWidget {
   final bool showBottomNav;
-  
+
   const ManagementScreen({super.key, this.showBottomNav = true});
 
   @override
@@ -11,32 +11,37 @@ class ManagementScreen extends StatefulWidget {
 }
 
 class _ManagementScreenState extends State<ManagementScreen> {
-  final int _currentNavIndex = 1; // Active on Management tab
-  final Color _navyColor = const Color(0xFF0C1C46);
+  int _currentNavIndex = 1;
+
+  static const Color _bgColor = Color(0xFFFFF8F6);
+  static const Color _primaryColor = Color(0xFFFF9800);
+  static const Color _navyColor = Color(0xFF0C1C46);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
+      backgroundColor: _bgColor,
       body: Column(
         children: [
           _buildHeader(),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 16),
-                    _buildFacilitySection(),
-                    const SizedBox(height: 32),
-                    _buildOperationSection(),
-                    const SizedBox(height: 32),
-                    _buildCustomerSection(),
-                  ],
-                ),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionTitle('Cơ sở & Sân bãi'),
+                  const SizedBox(height: 12),
+                  _buildFacilityGrid(),
+                  const SizedBox(height: 28),
+                  _buildSectionTitle('Vận hành & Kinh doanh'),
+                  const SizedBox(height: 12),
+                  _buildOperationList(),
+                  const SizedBox(height: 28),
+                  _buildSectionTitle('Khách hàng & Phản hồi'),
+                  const SizedBox(height: 12),
+                  _buildCustomerList(),
+                ],
               ),
             ),
           ),
@@ -48,13 +53,11 @@ class _ManagementScreenState extends State<ManagementScreen> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
+        color: _bgColor.withValues(alpha: 0.95),
         border: Border(
-          bottom: BorderSide(
-            color: Colors.grey.withValues(alpha: 0.1),
-          ),
+          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
         ),
       ),
       child: SafeArea(
@@ -62,13 +65,13 @@ class _ManagementScreenState extends State<ManagementScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
+            const Text(
               'Trung Tâm Quản Lý',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 28,
                 fontWeight: FontWeight.w800,
                 color: _navyColor,
-                letterSpacing: -0.5,
+                letterSpacing: -0.6,
               ),
             ),
             Stack(
@@ -76,37 +79,35 @@ class _ManagementScreenState extends State<ManagementScreen> {
                 Container(
                   height: 40,
                   width: 40,
+                  padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.white,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withValues(alpha: 0.1),
-                        blurRadius: 4,
-                        spreadRadius: 1,
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                     border: Border.all(
                       color: Colors.grey.withValues(alpha: 0.1),
-                      width: 1,
                     ),
                   ),
                   child: ClipOval(
                     child: Image.network(
                       'https://lh3.googleusercontent.com/aida-public/AB6AXuC_nGxk6FqATlcNvKcHkDAtHATkFSkxmFa_VDMNFso2PcaoGfVyJ9y4Sdmg09mtC622TGXqondr8ksa7jQkx48wY0onUeL4o9W8c-R_o3KmeI3Vz-vKRmlQ81kC8RWjK7rwhyTVL_-SeqSc5A-2Gx3RdoFevBu7HBzsO3Pjg1oH2jaC1jkuaQYuawOJ5lT3tBEt9Q1qV8UUldpCmNdo7xNj7pIuyLx9oiFYW9Ndol_aFsow8upfeA-A5Hzm0XLPYWyYo3FNTAyseTJ6',
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.person, color: Colors.grey),
-                        );
-                      },
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.person, color: Colors.grey),
+                      ),
                     ),
                   ),
                 ),
                 Positioned(
-                  bottom: 0,
                   right: 0,
+                  bottom: 0,
                   child: Container(
                     height: 10,
                     width: 10,
@@ -133,15 +134,15 @@ class _ManagementScreenState extends State<ManagementScreen> {
           height: 20,
           decoration: BoxDecoration(
             color: _navyColor,
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(999),
           ),
         ),
         const SizedBox(width: 8),
         Text(
           title,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 18,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
             color: _navyColor,
           ),
         ),
@@ -149,211 +150,201 @@ class _ManagementScreenState extends State<ManagementScreen> {
     );
   }
 
-  Widget _buildFacilitySection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildFacilityGrid() {
+    return GridView.count(
+      shrinkWrap: true,
+      crossAxisCount: 2,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 1.15,
       children: [
-        _buildSectionTitle('Cơ sở & Sân bãi'),
-        const SizedBox(height: 2),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 1.1,
-          children: [
-            _buildGridButton(
-              icon: Icons.apartment,
-              label: 'Danh sách\ncơ sở',
-              route: AppRoutes.facilities,
-            ),
-            _buildGridButton(
-              icon: Icons.domain_add,
-              label: 'Thêm\ncơ sở mới',
-              route: AppRoutes.facilityCreate,
-            ),
-            _buildGridButton(
-              icon: Icons.stadium,
-              label: 'Danh sách\nsân',
-              route: AppRoutes.courts,
-            ),
-            _buildGridButton(
-              icon: Icons.add_location_alt,
-              label: 'Thêm\nsân mới',
-              route: AppRoutes.courtCreate,
-            ),
-          ],
+        _buildGridTile(
+          icon: Icons.apartment,
+          line1: 'Danh sách',
+          line2: 'cơ sở',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.facilities),
+        ),
+        _buildGridTile(
+          icon: Icons.domain_add,
+          line1: 'Thêm',
+          line2: 'cơ sở mới',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.facilityCreate),
+        ),
+        _buildGridTile(
+          icon: Icons.stadium,
+          line1: 'Danh sách',
+          line2: 'sân',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.courts),
+        ),
+        _buildGridTile(
+          icon: Icons.add_location_alt,
+          line1: 'Thêm',
+          line2: 'sân mới',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.courtCreate),
         ),
       ],
     );
   }
 
-  Widget _buildGridButton({
+  Widget _buildGridTile({
     required IconData icon,
-    required String label,
-    required String route,
+    required String line1,
+    required String line2,
+    required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(context, route);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              height: 56,
-              width: 56,
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
-              child: Icon(
-                icon,
-                size: 32,
-                color: const Color(0xFFFF9800),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                height: 56,
+                width: 56,
+                decoration: BoxDecoration(
+                  color: _primaryColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: _primaryColor, size: 32),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-                height: 1.3,
+              const SizedBox(height: 12),
+              Text(
+                '$line1\n$line2',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF4B5563),
+                  height: 1.2,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildOperationSection() {
+  Widget _buildOperationList() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Vận hành & Kinh doanh'),
-        const SizedBox(height: 16),
-        _buildListButton(
+        _buildListAction(
           icon: Icons.category,
-          label: 'Quản lý Danh mục môn thể thao',
-          route: AppRoutes.sports,
+          title: 'Quản lý Danh mục môn thể thao',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.sports),
         ),
-        const SizedBox(height: 12),
-        _buildListButton(
+        const SizedBox(height: 10),
+        _buildListAction(
           icon: Icons.confirmation_number,
-          label: 'Quản lý Voucher & Khuyến mãi',
-          route: AppRoutes.vouchers,
+          title: 'Quản lý Voucher & Khuyến mãi',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.vouchers),
         ),
-        const SizedBox(height: 12),
-        _buildListButton(
+        const SizedBox(height: 10),
+        _buildListAction(
           icon: Icons.badge,
-          label: 'Quản lý Nhân viên',
-          route: AppRoutes.staff,
+          title: 'Quản lý Nhân viên',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.staff),
         ),
-        const SizedBox(height: 12),
-        _buildListButton(
+        const SizedBox(height: 10),
+        _buildListAction(
           icon: Icons.bar_chart,
-          label: 'Báo cáo doanh thu chi tiết',
-          route: AppRoutes.revenue,
+          title: 'Báo cáo doanh thu chi tiết',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.revenue),
+        ),
+        const SizedBox(height: 10),
+        _buildListAction(
+          icon: Icons.shield,
+          title: 'Quản lý phân quyền',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.permissions),
         ),
       ],
     );
   }
 
-  Widget _buildCustomerSection() {
+  Widget _buildCustomerList() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Khách hàng & Phản hồi'),
-        const SizedBox(height: 16),
-        _buildListButton(
+        _buildListAction(
           icon: Icons.groups,
-          label: 'Danh sách khách hàng',
-          route: AppRoutes.customers,
+          title: 'Danh sách khách hàng',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.customers),
         ),
-        const SizedBox(height: 12),
-        _buildListButton(
+        const SizedBox(height: 10),
+        _buildListAction(
           icon: Icons.rate_review,
-          label: 'Quản lý đánh giá & nhận xét',
-          route: AppRoutes.reviews,
+          title: 'Quản lý đánh giá & nhận xét',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.reviews),
         ),
       ],
     );
   }
 
-  Widget _buildListButton({
+  Widget _buildListAction({
     required IconData icon,
-    required String label,
-    required String route,
+    required String title,
+    required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(context, route);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              height: 40,
-              width: 40,
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
-              child: Icon(
-                icon,
-                size: 24,
-                color: const Color(0xFFFF9800),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                height: 40,
+                width: 40,
+                decoration: BoxDecoration(
+                  color: _primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: _primaryColor, size: 24),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF4B5563),
+                  ),
                 ),
               ),
-            ),
-            Icon(
-              Icons.chevron_right,
-              color: Colors.grey[300],
-              size: 24,
-            ),
-          ],
+              Icon(Icons.chevron_right, color: Colors.grey[300], size: 24),
+            ],
+          ),
         ),
       ),
     );
@@ -361,6 +352,7 @@ class _ManagementScreenState extends State<ManagementScreen> {
 
   Widget _buildBottomNav() {
     return Container(
+      height: 64,
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(
@@ -374,53 +366,54 @@ class _ManagementScreenState extends State<ManagementScreen> {
           ),
         ],
       ),
-      child: SafeArea(
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildNavItem(0, Icons.home, 'Trang chủ', AppRoutes.home),
+          _buildNavItem(1, Icons.view_list, 'Quản lý', AppRoutes.management),
+          _buildNavItem(2, Icons.calendar_month, 'Đơn đặt', AppRoutes.bookings),
+          _buildNavItem(3, Icons.person, 'Tài khoản', AppRoutes.account),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String label, String route) {
+    final isActive = _currentNavIndex == index;
+    final color = isActive ? _primaryColor : Colors.grey[400];
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          if (isActive) {
+            return;
+          }
+
+          setState(() {
+            _currentNavIndex = index;
+          });
+
+          Navigator.pushNamedAndRemoveUntil(context, route, (r) => false);
+        },
+        child: Container(
+          color: Colors.transparent,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildNavItem(0, Icons.home, 'Trang chủ', AppRoutes.home),
-              _buildNavItem(1, Icons.view_list, 'Quản lý', null),
-              _buildNavItem(2, Icons.calendar_month, 'Đơn đặt', AppRoutes.bookings),
-              _buildNavItem(3, Icons.person, 'Tài khoản', AppRoutes.account),
+              Icon(icon, size: 26, color: color),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                  color: color,
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
   }
-
-  Widget _buildNavItem(int index, IconData icon, String label, String? route) {
-    final isActive = _currentNavIndex == index;
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          if (route != null) {
-            Navigator.pushNamed(context, route);
-          }
-        },
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 26,
-              color: isActive ? const Color(0xFFFF9800) : Colors.grey[400],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                color: isActive ? const Color(0xFFFF9800) : Colors.grey[400],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
-

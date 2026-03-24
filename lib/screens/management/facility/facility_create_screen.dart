@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
+import 'package:sportset_admin/services/facility_service.dart';
 
 // Trang thêm mới cơ sở
 class FacilityCreateScreen extends StatefulWidget {
@@ -16,11 +17,14 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
   final _openTimeController = TextEditingController(text: '06:00');
   final _closeTimeController = TextEditingController(text: '22:00');
   final _descriptionController = TextEditingController();
-  
+
   final int _currentNavIndex = 1; // Active on Management tab
   final Color _navyColor = const Color(0xFF0C1C46);
   final Color _orangeColor = const Color(0xFFFF9800);
   final Color _redColor = const Color(0xFFF44336);
+
+  final FacilityService _facilityService = FacilityService();
+  bool _isLoading = false;
 
   final List<Map<String, dynamic>> _amenities = [
     {'icon': Icons.local_parking, 'label': 'Gửi xe', 'selected': true},
@@ -99,11 +103,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
                 height: 40,
                 width: 40,
                 alignment: Alignment.centerLeft,
-                child: Icon(
-                  Icons.chevron_left,
-                  size: 28,
-                  color: _navyColor,
-                ),
+                child: Icon(Icons.chevron_left, size: 28, color: _navyColor),
               ),
             ),
             Text(
@@ -148,11 +148,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
                 color: _orangeColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.photo_camera,
-                size: 32,
-                color: _orangeColor,
-              ),
+              child: Icon(Icons.photo_camera, size: 32, color: _orangeColor),
             ),
             const SizedBox(height: 8),
             Text(
@@ -261,23 +257,12 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
             keyboardType: keyboardType,
             decoration: InputDecoration(
               hintText: placeholder,
-              hintStyle: TextStyle(
-                color: Colors.grey[400],
-                fontSize: 14,
-              ),
+              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
               prefixIcon: prefixIcon != null
-                  ? Icon(
-                      prefixIcon,
-                      size: 20,
-                      color: Colors.grey[400],
-                    )
+                  ? Icon(prefixIcon, size: 20, color: Colors.grey[400])
                   : null,
               suffixIcon: suffixIcon != null
-                  ? Icon(
-                      suffixIcon,
-                      size: 20,
-                      color: _orangeColor,
-                    )
+                  ? Icon(suffixIcon, size: 20, color: _orangeColor)
                   : null,
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
@@ -296,10 +281,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
                 borderSide: BorderSide.none,
               ),
             ),
-            style: TextStyle(
-              color: _navyColor,
-              fontSize: 14,
-            ),
+            style: TextStyle(color: _navyColor, fontSize: 14),
           ),
         ),
       ],
@@ -342,10 +324,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
             maxLines: 4,
             decoration: InputDecoration(
               hintText: placeholder,
-              hintStyle: TextStyle(
-                color: Colors.grey[400],
-                fontSize: 14,
-              ),
+              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.all(20),
               focusedBorder: OutlineInputBorder(
@@ -360,10 +339,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
                 borderSide: BorderSide.none,
               ),
             ),
-            style: TextStyle(
-              color: _navyColor,
-              fontSize: 14,
-            ),
+            style: TextStyle(color: _navyColor, fontSize: 14),
           ),
         ),
       ],
@@ -398,7 +374,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
           itemBuilder: (context, index) {
             final amenity = _amenities[index];
             final isSelected = amenity['selected'] as bool;
-            
+
             return GestureDetector(
               onTap: () {
                 setState(() {
@@ -454,9 +430,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_orangeColor, _redColor],
-        ),
+        gradient: LinearGradient(colors: [_orangeColor, _redColor]),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -470,18 +444,29 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            _saveFacility();
-          },
-          child: const Center(
-            child: Text(
-              'Lưu Cơ Sở',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+          onTap: _isLoading
+              ? null
+              : () {
+                  _saveFacility();
+                },
+          child: Center(
+            child: _isLoading
+                ? const SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text(
+                    'Lưu Cơ Sở',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
           ),
         ),
       ),
@@ -489,19 +474,84 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
   }
 
   void _saveFacility() {
-    // TODO: Implement save logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đã lưu cơ sở thành công!'),
-        backgroundColor: Colors.green,
-      ),
-    );
-    
-    // Navigate back after saving
-    Future.delayed(const Duration(seconds: 1), () {
-      Navigator.pop(context);
-    });
+    // Validation
+    if (_nameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập tên cơ sở'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_hotlineController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập hotline liên hệ'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_addressController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập địa chỉ chi tiết'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Get selected amenities
+    final amenitiesList = _amenities
+        .where((a) => a['selected'] as bool)
+        .map((a) => a['label'] as String)
+        .toList();
+
+    _createFacility(amenitiesList);
   }
 
-}
+  Future<void> _createFacility(List<String> amenities) async {
+    setState(() => _isLoading = true);
 
+    try {
+      await _facilityService.createFacility(
+        name: _nameController.text.trim(),
+        hotline: _hotlineController.text.trim(),
+        address: _addressController.text.trim(),
+        openTime: _openTimeController.text.trim(),
+        closeTime: _closeTimeController.text.trim(),
+        description: _descriptionController.text.trim(),
+        amenities: amenities,
+      );
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã lưu cơ sở thành công!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Navigate back after saving
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) Navigator.pop(context);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+}

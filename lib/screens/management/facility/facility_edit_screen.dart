@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
+import 'package:sportset_admin/services/facility_service.dart';
 
 // Trang chỉnh sửa cơ sở
 class FacilityEditScreen extends StatefulWidget {
@@ -10,19 +13,23 @@ class FacilityEditScreen extends StatefulWidget {
 }
 
 class _FacilityEditScreenState extends State<FacilityEditScreen> {
-  final TextEditingController _nameController = TextEditingController(text: 'SPORTSET Tân Bình');
-  final TextEditingController _hotlineController = TextEditingController(text: '0901 234 567');
-  final TextEditingController _addressController = TextEditingController(text: '123 Đường Cộng Hòa, Phường 12, Quận Tân Bình, TP.HCM');
-  final TextEditingController _openTimeController = TextEditingController(text: '06:00');
-  final TextEditingController _closeTimeController = TextEditingController(text: '22:00');
-  final TextEditingController _descriptionController = TextEditingController(
-      text: 'Cơ sở vật chất hiện đại với 8 sân bóng đá cỏ nhân tạo và 4 sân cầu lông đạt tiêu chuẩn thi đấu. Khu vực gửi xe rộng rãi, có căn tin phục vụ nước uống và thức ăn nhẹ.');
+  late TextEditingController _nameController;
+  late TextEditingController _hotlineController;
+  late TextEditingController _addressController;
+  late TextEditingController _openTimeController;
+  late TextEditingController _closeTimeController;
+  late TextEditingController _descriptionController;
+
+  String? _facilityId;
+  bool _didLoadInitialData = false;
+  final FacilityService _facilityService = FacilityService();
+  bool _isLoading = false;
 
   final int _currentNavIndex = 1; // Active on Management tab
   final Color _navyColor = const Color(0xFF0C1C46);
   final Color _orangeColor = const Color(0xFFFF9800);
 
-  final String _currentImage = 'https://lh3.googleusercontent.com/aida-public/AB6AXuB7w8fpVo5-tgNfEONPIXYfp_7vpzu1J022O3CRAKZsUIbhmPH6IVj2t9k6mM3SBUZB6pBsjwNO53mVGL6T6OYoUlKCwJ9IuymcbZBYixCZLdmklQekud8ACTzw0oRVC-NFiCb7dcNK-YXjqI2UumxfWOFttdVr52Nz1OIYvtCK3XjkUSWK6QAwytYlXxtexDFk5v3aMhHMxxmBvvgaovfBe2DncTqY7UI-4xYJsUzX8j3pV6Aa2jFk9jo945joEVY8vwYhWhLC74-0';
+  String _currentImage = '';
 
   final List<Map<String, dynamic>> _amenities = [
     {'icon': Icons.wifi, 'label': 'Wifi', 'selected': true},
@@ -32,6 +39,88 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     {'icon': Icons.medical_services, 'label': 'Y tế', 'selected': false},
     {'icon': Icons.ac_unit, 'label': 'Máy lạnh', 'selected': true},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+    _hotlineController = TextEditingController();
+    _addressController = TextEditingController();
+    _openTimeController = TextEditingController();
+    _closeTimeController = TextEditingController();
+    _descriptionController = TextEditingController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didLoadInitialData) {
+      return;
+    }
+
+    final routeArgs = ModalRoute.of(context)?.settings.arguments;
+    if (routeArgs is Map && routeArgs['id'] is String) {
+      final id = routeArgs['id'] as String;
+      if (id.isNotEmpty) {
+        _facilityId = id;
+        _didLoadInitialData = true;
+        _loadFacilityData(id);
+      }
+    }
+  }
+
+  Future<void> _loadFacilityData(String id) async {
+    try {
+      final facility = await _facilityService
+          .getFacilityById(id)
+          .timeout(const Duration(seconds: 10));
+      if (facility != null && mounted) {
+        setState(() {
+          _nameController.text = facility.name;
+          _hotlineController.text = facility.hotline;
+          _addressController.text = facility.address;
+          _openTimeController.text = facility.openTime;
+          _closeTimeController.text = facility.closeTime;
+          _descriptionController.text = facility.description;
+          _currentImage = facility.imageUrl ?? '';
+          _updateAmenities(facility.amenities);
+        });
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không tìm thấy dữ liệu cơ sở'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } on TimeoutException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Kết nối Firebase quá chậm, vui lòng thử lại'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi tải dữ liệu: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _updateAmenities(List<String> selectedAmenities) {
+    for (var i = 0; i < _amenities.length; i++) {
+      _amenities[i]['selected'] = selectedAmenities.contains(
+        _amenities[i]['label'],
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -89,14 +178,8 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
               child: Container(
                 height: 40,
                 width: 40,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.chevron_left,
-                  size: 28,
-                  color: _navyColor,
-                ),
+                decoration: const BoxDecoration(shape: BoxShape.circle),
+                child: Icon(Icons.chevron_left, size: 28, color: _navyColor),
               ),
             ),
             Text(
@@ -133,16 +216,29 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(24),
-            child: Image.network(
-              _currentImage,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: Colors.grey[200],
-                  child: const Icon(Icons.image, size: 50, color: Colors.grey),
-                );
-              },
-            ),
+            child: _currentImage.isEmpty
+                ? Container(
+                    color: Colors.grey[200],
+                    child: const Icon(
+                      Icons.image,
+                      size: 50,
+                      color: Colors.grey,
+                    ),
+                  )
+                : Image.network(
+                    _currentImage,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[200],
+                        child: const Icon(
+                          Icons.image,
+                          size: 50,
+                          color: Colors.grey,
+                        ),
+                      );
+                    },
+                  ),
           ),
         ),
         Positioned.fill(
@@ -156,21 +252,23 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                 onPressed: () {
                   // TODO: Implement image picker
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Chức năng chọn ảnh đang được phát triển')),
+                    const SnackBar(
+                      content: Text('Chức năng chọn ảnh đang được phát triển'),
+                    ),
                   );
                 },
                 icon: const Icon(Icons.photo_camera, size: 20),
                 label: const Text(
                   'Thay đổi ảnh',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _orangeColor,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -188,10 +286,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildTextField(
-          label: 'Họ tên cơ sở',
-          controller: _nameController,
-        ),
+        _buildTextField(label: 'Họ tên cơ sở', controller: _nameController),
         const SizedBox(height: 20),
         _buildTextField(
           label: 'Hotline',
@@ -286,12 +381,12 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(
-                  color: _orangeColor,
-                  width: 2,
-                ),
+                borderSide: BorderSide(color: _orangeColor, width: 2),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 16,
+              ),
               suffixIcon: suffixIcon != null
                   ? Icon(suffixIcon, color: Colors.grey[400], size: 20)
                   : null,
@@ -349,12 +444,12 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(
-                  color: _orangeColor,
-                  width: 2,
-                ),
+                borderSide: BorderSide(color: _orangeColor, width: 2),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 16,
+              ),
             ),
           ),
         ),
@@ -391,7 +486,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
           itemBuilder: (context, index) {
             final amenity = _amenities[index];
             final isSelected = amenity['selected'] as bool;
-            
+
             return GestureDetector(
               onTap: () {
                 setState(() {
@@ -400,8 +495,8 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: isSelected 
-                      ? _orangeColor.withValues(alpha: 0.1) 
+                  color: isSelected
+                      ? _orangeColor.withValues(alpha: 0.1)
                       : Colors.grey.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
@@ -457,18 +552,29 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            _updateFacility();
-          },
-          child: const Center(
-            child: Text(
-              'Cập nhật thay đổi',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+          onTap: _isLoading
+              ? null
+              : () {
+                  _updateFacility();
+                },
+          child: Center(
+            child: _isLoading
+                ? const SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text(
+                    'Cập nhật thay đổi',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
           ),
         ),
       ),
@@ -476,15 +582,95 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
   }
 
   void _updateFacility() {
-    // TODO: Implement update facility logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đã cập nhật cơ sở thành công'),
-        backgroundColor: Colors.green,
-      ),
-    );
-    Navigator.pop(context);
+    // Validation
+    if (_nameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập tên cơ sở'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_hotlineController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập hotline liên hệ'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_addressController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập địa chỉ chi tiết'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Get selected amenities
+    final amenitiesList = _amenities
+        .where((a) => a['selected'] as bool)
+        .map((a) => a['label'] as String)
+        .toList();
+
+    _submitUpdate(amenitiesList);
   }
 
-}
+  Future<void> _submitUpdate(List<String> amenities) async {
+    if (_facilityId == null || _facilityId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không tìm thấy mã cơ sở để cập nhật'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
+    setState(() => _isLoading = true);
+
+    try {
+      await _facilityService.updateFacility(
+        id: _facilityId!,
+        name: _nameController.text.trim(),
+        hotline: _hotlineController.text.trim(),
+        address: _addressController.text.trim(),
+        openTime: _openTimeController.text.trim(),
+        closeTime: _closeTimeController.text.trim(),
+        description: _descriptionController.text.trim(),
+        amenities: amenities,
+        imageUrl: _currentImage,
+      );
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã cập nhật cơ sở thành công'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) Navigator.pop(context);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+}
