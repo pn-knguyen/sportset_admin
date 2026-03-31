@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:sportset_admin/models/sport.dart';
+import 'package:sportset_admin/screens/management/sport/sport_icon_mapper.dart';
+import 'package:sportset_admin/services/sport_service.dart';
+import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 // Trang chỉnh sửa môn thể thao
@@ -15,28 +19,82 @@ class _SportEditScreenState extends State<SportEditScreen> {
   final int _currentNavIndex = 1;
   final Color _navyColor = const Color(0xFF0C1C46);
   final Color _orangeColor = const Color(0xFFFF9800);
+  final SportService _sportService = SportService();
+  final AccessControlService _accessControlService = AccessControlService();
 
   int _selectedIconIndex = 0;
-
-  final List<Map<String, dynamic>> _icons = [
-    {'icon': Icons.sports_soccer, 'name': 'Bóng đá'},
-    {'icon': Icons.sports_tennis, 'name': 'Cầu lông'},
-    {'icon': Icons.sports_basketball, 'name': 'Bóng rổ'},
-    {'icon': Icons.sports_volleyball, 'name': 'Bóng chuyền'},
-    {'icon': Icons.pool, 'name': 'Bơi lội'},
-    {'icon': Icons.fitness_center, 'name': 'Gym'},
-    {'icon': Icons.directions_run, 'name': 'Chạy bộ'},
-    {'icon': Icons.sports_golf, 'name': 'Golf'},
-  ];
+  bool _isVisible = true;
+  bool _isSaving = false;
+  bool _didLoadInitialData = false;
+  String? _sportId;
+  int _itemCount = 0;
 
   @override
   void initState() {
     super.initState();
-    // Pre-filled data
-    _nameController = TextEditingController(text: 'Bóng đá');
-    _descriptionController = TextEditingController(
-      text: 'Môn thể thao đồng đội chơi với quả bóng hình cầu giữa hai đội gồm 11 cầu thủ.',
-    );
+    _nameController = TextEditingController();
+    _descriptionController = TextEditingController();
+    _checkEditPermission();
+  }
+  
+  Future<void> _checkEditPermission() async {
+    final permissionMap = await _accessControlService.getCurrentPermissionMap();
+    final hasPermission = _accessControlService.can(permissionMap, 'sports', 'update');
+    
+    if (!hasPermission && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bạn không có quyền chỉnh sửa môn thể thao'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      Navigator.pop(context);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didLoadInitialData) {
+      return;
+    }
+
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map && args['id'] is String) {
+      final id = args['id'] as String;
+      if (id.isNotEmpty) {
+        _sportId = id;
+        _didLoadInitialData = true;
+        _loadSportData(id);
+      }
+    }
+  }
+
+  Future<void> _loadSportData(String id) async {
+    try {
+      final Sport? sport = await _sportService.getSportById(id);
+      if (!mounted || sport == null) {
+        return;
+      }
+
+      setState(() {
+        _nameController.text = sport.name;
+        _descriptionController.text = sport.description;
+        _selectedIconIndex = SportIconMapper.indexFromKey(sport.iconKey);
+        _isVisible = sport.isVisible;
+        _itemCount = sport.itemCount;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không thể tải dữ liệu danh mục'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -64,6 +122,8 @@ class _SportEditScreenState extends State<SportEditScreen> {
                   _buildNameField(),
                   const SizedBox(height: 24),
                   _buildDescriptionField(),
+                  const SizedBox(height: 24),
+                  _buildVisibilityToggle(),
                   const SizedBox(height: 40),
                   _buildSaveButton(),
                   const SizedBox(height: 24),
@@ -152,7 +212,7 @@ class _SportEditScreenState extends State<SportEditScreen> {
             mainAxisSpacing: 16,
             childAspectRatio: 1,
           ),
-          itemCount: _icons.length,
+          itemCount: SportIconMapper.iconOptions.length,
           itemBuilder: (context, index) {
             final isSelected = _selectedIconIndex == index;
             return GestureDetector(
@@ -198,7 +258,7 @@ class _SportEditScreenState extends State<SportEditScreen> {
                         ).createShader(bounds);
                       },
                       child: Icon(
-                        _icons[index]['icon'] as IconData,
+                        SportIconMapper.iconOptions[index]['icon'] as IconData,
                         size: 32,
                         color: isSelected
                             ? Colors.white
@@ -316,6 +376,61 @@ class _SportEditScreenState extends State<SportEditScreen> {
     );
   }
 
+  Widget _buildVisibilityToggle() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hiển thị trên ứng dụng',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: _navyColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Người dùng sẽ nhìn thấy danh mục này',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: _isVisible,
+            onChanged: (value) {
+              setState(() {
+                _isVisible = value;
+              });
+            },
+            activeThumbColor: _orangeColor,
+            activeTrackColor: _orangeColor.withValues(alpha: 0.5),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSaveButton() {
     return Container(
       width: double.infinity,
@@ -334,35 +449,89 @@ class _SportEditScreenState extends State<SportEditScreen> {
         ],
       ),
       child: TextButton(
-        onPressed: () {
-          if (_nameController.text.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Vui lòng nhập tên môn thể thao')),
-            );
-            return;
-          }
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Đã cập nhật "${_nameController.text}"')),
-          );
-        },
+        onPressed: _isSaving
+            ? null
+            : () async {
+                if (_sportId == null || _sportId!.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Không tìm thấy mã danh mục để cập nhật'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                if (_nameController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Vui lòng nhập tên môn thể thao'),
+                    ),
+                  );
+                  return;
+                }
+
+                setState(() {
+                  _isSaving = true;
+                });
+
+                try {
+                  await _sportService.updateSport(
+                    id: _sportId!,
+                    name: _nameController.text.trim(),
+                    description: _descriptionController.text.trim(),
+                    iconKey: SportIconMapper
+                        .iconOptions[_selectedIconIndex]['key'] as String,
+                    isVisible: _isVisible,
+                    itemCount: _itemCount,
+                  );
+
+                  if (!mounted) {
+                    return;
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Đã cập nhật "${_nameController.text.trim()}"',
+                      ),
+                    ),
+                  );
+                  Navigator.pop(context);
+                } catch (_) {
+                  if (!mounted) {
+                    return;
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Cập nhật danh mục thất bại, vui lòng thử lại'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } finally {
+                  if (mounted) {
+                    setState(() {
+                      _isSaving = false;
+                    });
+                  }
+                }
+              },
         style: TextButton.styleFrom(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.save,
               color: Colors.white,
               size: 24,
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Text(
-              'Lưu Thông Tin',
-              style: TextStyle(
+              _isSaving ? 'Đang lưu...' : 'Lưu Thông Tin',
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,

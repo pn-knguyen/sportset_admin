@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 import 'package:sportset_admin/services/facility_service.dart';
+import 'package:sportset_admin/services/access_control_service.dart';
 
 // Trang thêm mới cơ sở
 class FacilityCreateScreen extends StatefulWidget {
@@ -24,7 +28,11 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
   final Color _redColor = const Color(0xFFF44336);
 
   final FacilityService _facilityService = FacilityService();
+  final AccessControlService _accessControlService = AccessControlService();
   bool _isLoading = false;
+  bool _isUploadingImage = false;
+  File? _selectedImageFile;
+  String? _uploadedImageUrl;
 
   final List<Map<String, dynamic>> _amenities = [
     {'icon': Icons.local_parking, 'label': 'Gửi xe', 'selected': true},
@@ -38,6 +46,71 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
     {'icon': Icons.medical_services, 'label': 'Y tế', 'selected': false},
   ];
 
+  Future<void> _uploadImageToFirebase() async {
+    if (_selectedImageFile == null) {
+      return;
+    }
+
+    try {
+      setState(() {
+        _isUploadingImage = true;
+      });
+
+      final fileName = 'facilities/${DateTime.now().millisecondsSinceEpoch}_${_selectedImageFile!.path.split('/').last}';
+      final Reference ref = FirebaseStorage.instance.ref().child(fileName);
+
+      final UploadTask uploadTask = ref.putFile(_selectedImageFile!);
+      final TaskSnapshot taskSnapshot = await uploadTask;
+
+      final String downloadUrl = await taskSnapshot.ref.getDownloadURL();
+      setState(() {
+        _uploadedImageUrl = downloadUrl;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi tải ảnh: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingImage = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+        maxWidth: 1920,
+        maxHeight: 1440,
+      );
+
+      if (image != null) {
+        setState(() {
+          _selectedImageFile = File(image.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -47,6 +120,27 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
     _closeTimeController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _checkCreatePermission();
+  }
+  
+  Future<void> _checkCreatePermission() async {
+    final permissionMap = await _accessControlService.getCurrentPermissionMap();
+    final hasPermission = _accessControlService.can(permissionMap, 'facilities', 'create');
+    
+    if (!hasPermission && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bạn không có quyền tạo cơ sở'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -123,14 +217,12 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
 
   Widget _buildImageUpload() {
     return GestureDetector(
-      onTap: () {
-        // TODO: Implement image picker
-      },
+      onTap: _isUploadingImage ? null : _pickImage,
       child: Container(
         width: double.infinity,
         height: 200,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: _selectedImageFile != null ? Colors.transparent : Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: Colors.grey.withValues(alpha: 0.2),
@@ -138,29 +230,76 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
             style: BorderStyle.solid,
           ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              height: 56,
-              width: 56,
-              decoration: BoxDecoration(
-                color: _orangeColor.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+        child: _selectedImageFile != null
+            ? Stack(
+                alignment: Alignment.center,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: Image.file(
+                      _selectedImageFile!,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 200,
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                  ),
+                  if (_isUploadingImage)
+                    const CircularProgressIndicator(color: Colors.white)
+                  else
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          height: 56,
+                          width: 56,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.photo_camera, size: 32, color: _orangeColor),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Chọn ảnh khác',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    height: 56,
+                    width: 56,
+                    decoration: BoxDecoration(
+                      color: _orangeColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.photo_camera, size: 32, color: _orangeColor),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Tải ảnh thực tế',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                ],
               ),
-              child: Icon(Icons.photo_camera, size: 32, color: _orangeColor),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Tải ảnh thực tế',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[500],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -518,6 +657,11 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // Upload image if selected
+      if (_selectedImageFile != null) {
+        await _uploadImageToFirebase();
+      }
+
       await _facilityService.createFacility(
         name: _nameController.text.trim(),
         hotline: _hotlineController.text.trim(),
@@ -526,6 +670,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
         closeTime: _closeTimeController.text.trim(),
         description: _descriptionController.text.trim(),
         amenities: amenities,
+        imageUrl: _uploadedImageUrl,
       );
 
       if (mounted) {

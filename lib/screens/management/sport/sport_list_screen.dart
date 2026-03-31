@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:sportset_admin/models/sport.dart';
 import 'package:sportset_admin/routes/app_routes.dart';
+import 'package:sportset_admin/screens/management/sport/sport_icon_mapper.dart';
+import 'package:sportset_admin/services/sport_service.dart';
+import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 // Trang quản lý môn thể thao
@@ -15,39 +19,40 @@ class _SportListScreenState extends State<SportListScreen> {
   final int _currentNavIndex = 1;
   final Color _navyColor = const Color(0xFF0C1C46);
   final Color _orangeColor = const Color(0xFFFF9800);
+  final SportService _sportService = SportService();
+  final AccessControlService _accessControlService = AccessControlService();
+  String _searchQuery = '';
+  
+  bool _canCreate = false;
+  bool _canEdit = false;
+  bool _canDelete = false;
 
-  final List<Map<String, dynamic>> _sports = [
-    {
-      'name': 'Bóng đá',
-      'icon': Icons.sports_soccer,
-      'count': '12 sân hiện có',
-    },
-    {
-      'name': 'Cầu lông',
-      'icon': Icons.sports_tennis,
-      'count': '8 sân hiện có',
-    },
-    {
-      'name': 'Quần vợt',
-      'icon': Icons.sports_tennis,
-      'count': '6 sân hiện có',
-    },
-    {
-      'name': 'Bóng rổ',
-      'icon': Icons.sports_basketball,
-      'count': '4 sân hiện có',
-    },
-    {
-      'name': 'Bơi lội',
-      'icon': Icons.pool,
-      'count': '2 bể hiện có',
-    },
-    {
-      'name': 'Pickleball',
-      'icon': Icons.sports_handball,
-      'count': '4 sân hiện có',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _checkPermissions();
+  }
+  
+  Future<void> _checkPermissions() async {
+    final permissionMap = await _accessControlService.getCurrentPermissionMap();
+    setState(() {
+      _canCreate = _accessControlService.can(permissionMap, 'sports', 'create');
+      _canEdit = _accessControlService.can(permissionMap, 'sports', 'update');
+      _canDelete = _accessControlService.can(permissionMap, 'sports', 'delete');
+    });
+  }
+
+  List<Sport> _filterSports(List<Sport> sports) {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) {
+      return sports;
+    }
+
+    return sports.where((sport) {
+      return sport.name.toLowerCase().contains(query) ||
+          sport.description.toLowerCase().contains(query);
+    }).toList();
+  }
 
   @override
   void dispose() {
@@ -150,6 +155,11 @@ class _SportListScreenState extends State<SportListScreen> {
       ),
       child: TextField(
         controller: _searchController,
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
         decoration: InputDecoration(
           hintText: 'Tìm kiếm môn thể thao...',
           hintStyle: TextStyle(
@@ -175,12 +185,50 @@ class _SportListScreenState extends State<SportListScreen> {
   }
 
   Widget _buildSportsList() {
-    return Column(
-      children: _sports.map((sport) => _buildSportCard(sport)).toList(),
+    return StreamBuilder<List<Sport>>(
+      stream: _sportService.getAllSportsStream(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Text(
+            'Không thể tải danh mục môn thể thao',
+            style: TextStyle(color: Colors.red[400]),
+          );
+        }
+
+        final sports = _filterSports(snapshot.data ?? <Sport>[]);
+        if (sports.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+            ),
+            child: Text(
+              _searchQuery.isEmpty
+                  ? 'Chưa có danh mục môn thể thao nào'
+                  : 'Không tìm thấy danh mục phù hợp',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          );
+        }
+
+        return Column(
+          children: sports.map((sport) => _buildSportCard(sport)).toList(),
+        );
+      },
     );
   }
 
-  Widget _buildSportCard(Map<String, dynamic> sport) {
+  Widget _buildSportCard(Sport sport) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -206,7 +254,7 @@ class _SportListScreenState extends State<SportListScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              sport['icon'] as IconData,
+              SportIconMapper.iconFromKey(sport.iconKey),
               size: 28,
               color: _orangeColor,
             ),
@@ -217,7 +265,7 @@ class _SportListScreenState extends State<SportListScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  sport['name'] as String,
+                  sport.name,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -226,11 +274,20 @@ class _SportListScreenState extends State<SportListScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  sport['count'] as String,
+                  '${sport.itemCount} sân hiện có',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: Colors.grey[500],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  sport.isVisible ? 'Đang hiển thị' : 'Đang ẩn',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: sport.isVisible ? Colors.green : Colors.red,
                   ),
                 ),
               ],
@@ -240,8 +297,36 @@ class _SportListScreenState extends State<SportListScreen> {
             children: [
               GestureDetector(
                 onTap: () {
-                  Navigator.pushNamed(context, AppRoutes.sportEdit);
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.sportDetail,
+                    arguments: {'id': sport.id},
+                  );
                 },
+                child: Container(
+                  height: 40,
+                  width: 40,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.transparent,
+                  ),
+                  child: Icon(
+                    Icons.visibility,
+                    size: 22,
+                    color: _orangeColor,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: _canEdit
+                    ? () {
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.sportEdit,
+                          arguments: {'id': sport.id},
+                        );
+                      }
+                    : null,
                 child: Container(
                   height: 40,
                   width: 40,
@@ -252,15 +337,17 @@ class _SportListScreenState extends State<SportListScreen> {
                   child: Icon(
                     Icons.edit,
                     size: 22,
-                    color: _navyColor,
+                    color: _canEdit ? _navyColor : Colors.grey,
                   ),
                 ),
               ),
               const SizedBox(width: 4),
               GestureDetector(
-                onTap: () {
-                  _showDeleteDialog(sport['name'] as String);
-                },
+                onTap: _canDelete
+                    ? () {
+                        _showDeleteDialog(sport);
+                      }
+                    : null,
                 child: Container(
                   height: 40,
                   width: 40,
@@ -268,10 +355,10 @@ class _SportListScreenState extends State<SportListScreen> {
                     shape: BoxShape.circle,
                     color: Colors.transparent,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.delete,
                     size: 22,
-                    color: Colors.red,
+                    color: _canDelete ? Colors.red : Colors.grey,
                   ),
                 ),
               ),
@@ -283,41 +370,67 @@ class _SportListScreenState extends State<SportListScreen> {
   }
 
   Widget _buildFAB() {
-    return Container(
-      height: 56,
-      width: 56,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_orangeColor, const Color(0xFFFF5722)],
-        ),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: _orangeColor.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, AppRoutes.sportCreate);
-        },
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: const Icon(
-          Icons.add,
-          size: 32,
-          color: Colors.white,
-        ),
-      ),
-    );
+    return _canCreate
+        ? Container(
+            height: 56,
+            width: 56,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [_orangeColor, const Color(0xFFFF5722)],
+              ),
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: _orangeColor.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: FloatingActionButton(
+              onPressed: () {
+                Navigator.pushNamed(context, AppRoutes.sportCreate);
+              },
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              child: const Icon(
+                Icons.add,
+                size: 32,
+                color: Colors.white,
+              ),
+            ),
+          )
+        : Container(
+            height: 56,
+            width: 56,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.grey.withValues(alpha: 0.5),
+                  Colors.grey.withValues(alpha: 0.5),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: FloatingActionButton(
+              onPressed: null,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              child: Icon(
+                Icons.add,
+                size: 32,
+                color: Colors.grey[400],
+              ),
+            ),
+          );
   }
 
-  void _showDeleteDialog(String sportName) {
+  void _showDeleteDialog(Sport sport) {
+    final messenger = ScaffoldMessenger.of(context);
+
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -326,18 +439,34 @@ class _SportListScreenState extends State<SportListScreen> {
             'Xóa môn thể thao',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
-          content: Text('Bạn có chắc chắn muốn xóa môn "$sportName" không?'),
+          content: Text('Bạn có chắc chắn muốn xóa môn "${sport.name}" không?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Hủy'),
             ),
             TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Đã xóa "$sportName"')),
-                );
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                try {
+                  await _sportService.deleteSport(sport.id);
+                  if (!mounted) {
+                    return;
+                  }
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('Đã xóa "${sport.name}"')),
+                  );
+                } catch (_) {
+                  if (!mounted) {
+                    return;
+                  }
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Xóa danh mục thất bại, vui lòng thử lại'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
               child: const Text(
                 'Xóa',

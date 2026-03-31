@@ -1,8 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 import 'package:sportset_admin/services/facility_service.dart';
+import 'package:sportset_admin/services/access_control_service.dart';
 
 // Trang chỉnh sửa cơ sở
 class FacilityEditScreen extends StatefulWidget {
@@ -23,7 +27,10 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
   String? _facilityId;
   bool _didLoadInitialData = false;
   final FacilityService _facilityService = FacilityService();
+  final AccessControlService _accessControlService = AccessControlService();
   bool _isLoading = false;
+  bool _isUploadingImage = false;
+  File? _selectedImageFile;
 
   final int _currentNavIndex = 1; // Active on Management tab
   final Color _navyColor = const Color(0xFF0C1C46);
@@ -49,6 +56,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     _openTimeController = TextEditingController();
     _closeTimeController = TextEditingController();
     _descriptionController = TextEditingController();
+    _checkEditPermission();
   }
 
   @override
@@ -132,6 +140,21 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     _descriptionController.dispose();
     super.dispose();
   }
+  
+  Future<void> _checkEditPermission() async {
+    final permissionMap = await _accessControlService.getCurrentPermissionMap();
+    final hasPermission = _accessControlService.can(permissionMap, 'facilities', 'update');
+    
+    if (!hasPermission && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bạn không có quyền chỉnh sửa cơ sở'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      Navigator.pop(context);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -198,6 +221,70 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     );
   }
 
+  Future<void> _pickImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+        maxWidth: 1920,
+        maxHeight: 1440,
+      );
+
+      if (image != null) {
+        setState(() {
+          _selectedImageFile = File(image.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<String?> _uploadImageToFirebase() async {
+    if (_selectedImageFile == null) {
+      return null;
+    }
+
+    try {
+      setState(() {
+        _isUploadingImage = true;
+      });
+
+      final fileName = 'facilities/${DateTime.now().millisecondsSinceEpoch}_${_selectedImageFile!.path.split('/').last}';
+      final Reference ref = FirebaseStorage.instance.ref().child(fileName);
+
+      final UploadTask uploadTask = ref.putFile(_selectedImageFile!);
+      final TaskSnapshot taskSnapshot = await uploadTask;
+
+      final String downloadUrl = await taskSnapshot.ref.getDownloadURL();
+      return downloadUrl;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi tải ảnh: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return null;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingImage = false;
+        });
+      }
+    }
+  }
+
   Widget _buildImageSection() {
     return Stack(
       children: [
@@ -216,29 +303,34 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(24),
-            child: _currentImage.isEmpty
-                ? Container(
-                    color: Colors.grey[200],
-                    child: const Icon(
-                      Icons.image,
-                      size: 50,
-                      color: Colors.grey,
-                    ),
-                  )
-                : Image.network(
-                    _currentImage,
+            child: _selectedImageFile != null
+                ? Image.file(
+                    _selectedImageFile!,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
+                  )
+                : (_currentImage.isEmpty
+                    ? Container(
                         color: Colors.grey[200],
                         child: const Icon(
                           Icons.image,
                           size: 50,
                           color: Colors.grey,
                         ),
-                      );
-                    },
-                  ),
+                      )
+                    : Image.network(
+                        _currentImage,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey[200],
+                            child: const Icon(
+                              Icons.image,
+                              size: 50,
+                              color: Colors.grey,
+                            ),
+                          );
+                        },
+                      )),
           ),
         ),
         Positioned.fill(
@@ -249,14 +341,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
             ),
             child: Center(
               child: ElevatedButton.icon(
-                onPressed: () {
-                  // TODO: Implement image picker
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Chức năng chọn ảnh đang được phát triển'),
-                    ),
-                  );
-                },
+                onPressed: _isUploadingImage ? null : _pickImage,
                 icon: const Icon(Icons.photo_camera, size: 20),
                 label: const Text(
                   'Thay đổi ảnh',
@@ -636,6 +721,16 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // Upload image if selected
+      if (_selectedImageFile != null) {
+        final imageUrl = await _uploadImageToFirebase();
+        if (imageUrl != null) {
+          setState(() {
+            _currentImage = imageUrl;
+          });
+        }
+      }
+
       await _facilityService.updateFacility(
         id: _facilityId!,
         name: _nameController.text.trim(),

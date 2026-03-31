@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:sportset_admin/models/permission.dart';
+import 'package:sportset_admin/services/permission_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 class PermissionCreateScreen extends StatefulWidget {
@@ -11,8 +13,19 @@ class PermissionCreateScreen extends StatefulWidget {
 class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  final PermissionService _permissionService = PermissionService();
 
   final int _currentNavIndex = 1;
+  bool _isLoading = false;
+
+  late Map<String, dynamic> _permissions;
+
+  @override
+  void initState() {
+    super.initState();
+    _permissions = PermissionService.getDefaultPermissionsTemplate();
+    _syncSectionsFromPermissions();
+  }
 
   final List<Map<String, dynamic>> _sections = [
     {
@@ -38,17 +51,31 @@ class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
       'title': 'Quản lý Voucher',
       'icon': Icons.local_activity,
       'items': [
-        {'label': 'Tạo mã', 'enabled': false},
+        {'label': 'Xem danh sách', 'enabled': false},
+        {'label': 'Thêm mới', 'enabled': false},
         {'label': 'Chỉnh sửa', 'enabled': false},
-        {'label': 'Xem lịch sử dùng', 'enabled': true},
+        {'label': 'Xóa', 'enabled': false},
       ],
     },
     {
-      'title': 'Quản lý Nhân sự',
+      'title': 'Quản lý Nhân viên',
       'icon': Icons.group,
       'items': [
         {'label': 'Xem danh sách', 'enabled': false},
+        {'label': 'Thêm mới', 'enabled': false},
+        {'label': 'Chỉnh sửa', 'enabled': false},
+        {'label': 'Xóa', 'enabled': false},
         {'label': 'Phân quyền', 'enabled': false},
+      ],
+    },
+    {
+      'title': 'Quản lý Danh mục Môn thể thao',
+      'icon': Icons.sports_basketball,
+      'items': [
+        {'label': 'Xem danh sách', 'enabled': false},
+        {'label': 'Thêm mới', 'enabled': false},
+        {'label': 'Chỉnh sửa', 'enabled': false},
+        {'label': 'Xóa', 'enabled': false},
       ],
     },
     {
@@ -353,6 +380,11 @@ class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
                         (_sections[sectionIndex]['items']
                                 as List<dynamic>)[itemIndex]['enabled'] =
                             value;
+                        _applySectionToggleToPermissions(
+                          sectionIndex,
+                          itemIndex,
+                          value,
+                        );
                       });
                     },
                   ),
@@ -384,7 +416,7 @@ class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
           ],
         ),
         child: ElevatedButton(
-          onPressed: _handleCreate,
+          onPressed: _isLoading ? null : _handleCreate,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
@@ -392,20 +424,29 @@ class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child: const Text(
-            'Tạo Nhóm Quyền',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Text(
+                  'Tạo Nhóm Quyền',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
         ),
       ),
     );
   }
 
-  void _handleCreate() {
+  Future<void> _handleCreate() async {
     if (_nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng nhập tên nhóm quyền')),
@@ -413,10 +454,249 @@ class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Đã tạo nhóm quyền mới')));
+    setState(() => _isLoading = true);
 
-    Navigator.pop(context);
+    try {
+      final now = DateTime.now();
+      final newPermission = Permission(
+        id: '',
+        name: _nameController.text,
+        description: _descriptionController.text,
+        permissions: _permissions,
+        assignedCount: 0,
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await _permissionService.createPermission(newPermission);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã tạo nhóm quyền mới'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _syncSectionsFromPermissions() {
+    for (var sectionIndex = 0; sectionIndex < _sections.length; sectionIndex++) {
+      final items = _sections[sectionIndex]['items'] as List<dynamic>;
+      for (var itemIndex = 0; itemIndex < items.length; itemIndex++) {
+        items[itemIndex]['enabled'] = _isPermissionEnabled(sectionIndex, itemIndex);
+      }
+    }
+  }
+
+  bool _isPermissionEnabled(int sectionIndex, int itemIndex) {
+    switch (sectionIndex) {
+      case 0:
+        switch (itemIndex) {
+          case 0:
+            return _getPermissionValue('facilities', 'view') &&
+                _getPermissionValue('courts', 'view');
+          case 1:
+            return _getPermissionValue('facilities', 'create') &&
+                _getPermissionValue('courts', 'create');
+          case 2:
+            return _getPermissionValue('facilities', 'update') &&
+                _getPermissionValue('courts', 'update');
+          case 3:
+            return _getPermissionValue('facilities', 'delete') &&
+                _getPermissionValue('courts', 'delete');
+        }
+        break;
+      case 1:
+        switch (itemIndex) {
+          case 0:
+            return _getPermissionValue('bookings', 'approve');
+          case 1:
+            return _getPermissionValue('bookings', 'cancel');
+          case 2:
+            return _getPermissionValue('bookings', 'check_in');
+        }
+        break;
+      case 2:
+        switch (itemIndex) {
+          case 0:
+            return _getPermissionValue('vouchers', 'view');
+          case 1:
+            return _getPermissionValue('vouchers', 'create');
+          case 2:
+            return _getPermissionValue('vouchers', 'update');
+          case 3:
+            return _getPermissionValue('vouchers', 'delete');
+        }
+        break;
+      case 3:
+        switch (itemIndex) {
+          case 0:
+            return _getPermissionValue('staff', 'view');
+          case 1:
+            return _getPermissionValue('staff', 'create');
+          case 2:
+            return _getPermissionValue('staff', 'update');
+          case 3:
+            return _getPermissionValue('staff', 'delete');
+          case 4:
+            return _getPermissionValue('staff', 'assign_permissions');
+        }
+        break;
+      case 4:
+        switch (itemIndex) {
+          case 0:
+            return _getPermissionValue('sports', 'view');
+          case 1:
+            return _getPermissionValue('sports', 'create');
+          case 2:
+            return _getPermissionValue('sports', 'update');
+          case 3:
+            return _getPermissionValue('sports', 'delete');
+        }
+        break;
+      case 5:
+        switch (itemIndex) {
+          case 0:
+            return _getPermissionValue('reports', 'view');
+          case 1:
+            return _getPermissionValue('reports', 'export');
+        }
+        break;
+    }
+
+    return false;
+  }
+
+  void _applySectionToggleToPermissions(
+    int sectionIndex,
+    int itemIndex,
+    bool value,
+  ) {
+    switch (sectionIndex) {
+      case 0:
+        switch (itemIndex) {
+          case 0:
+            _setPermissionValue('facilities', 'view', value);
+            _setPermissionValue('courts', 'view', value);
+            return;
+          case 1:
+            _setPermissionValue('facilities', 'create', value);
+            _setPermissionValue('courts', 'create', value);
+            return;
+          case 2:
+            _setPermissionValue('facilities', 'update', value);
+            _setPermissionValue('courts', 'update', value);
+            return;
+          case 3:
+            _setPermissionValue('facilities', 'delete', value);
+            _setPermissionValue('courts', 'delete', value);
+            return;
+        }
+        return;
+      case 1:
+        switch (itemIndex) {
+          case 0:
+            _setPermissionValue('bookings', 'approve', value);
+            return;
+          case 1:
+            _setPermissionValue('bookings', 'cancel', value);
+            return;
+          case 2:
+            _setPermissionValue('bookings', 'check_in', value);
+            return;
+        }
+        return;
+      case 2:
+        switch (itemIndex) {
+          case 0:
+            _setPermissionValue('vouchers', 'view', value);
+            return;
+          case 1:
+            _setPermissionValue('vouchers', 'create', value);
+            return;
+          case 2:
+            _setPermissionValue('vouchers', 'update', value);
+            return;
+          case 3:
+            _setPermissionValue('vouchers', 'delete', value);
+            return;
+        }
+        return;
+      case 3:
+        switch (itemIndex) {
+          case 0:
+            _setPermissionValue('staff', 'view', value);
+            return;
+          case 1:
+            _setPermissionValue('staff', 'create', value);
+            return;
+          case 2:
+            _setPermissionValue('staff', 'update', value);
+            return;
+          case 3:
+            _setPermissionValue('staff', 'delete', value);
+            return;
+          case 4:
+            _setPermissionValue('staff', 'assign_permissions', value);
+            return;
+        }
+        return;
+      case 4:
+        switch (itemIndex) {
+          case 0:
+            _setPermissionValue('sports', 'view', value);
+            return;
+          case 1:
+            _setPermissionValue('sports', 'create', value);
+            return;
+          case 2:
+            _setPermissionValue('sports', 'update', value);
+            return;
+          case 3:
+            _setPermissionValue('sports', 'delete', value);
+            return;
+        }
+        return;
+      case 5:
+        switch (itemIndex) {
+          case 0:
+            _setPermissionValue('reports', 'view', value);
+            return;
+          case 1:
+            _setPermissionValue('reports', 'export', value);
+            return;
+        }
+        return;
+    }
+  }
+
+  bool _getPermissionValue(String module, String action) {
+    final moduleData = _permissions[module] as Map<String, dynamic>?;
+    final value = moduleData?[action];
+    return value is bool ? value : false;
+  }
+
+  void _setPermissionValue(String module, String action, bool value) {
+    final moduleData =
+        (_permissions[module] as Map<String, dynamic>?) ?? <String, dynamic>{};
+    moduleData[action] = value;
+    _permissions[module] = moduleData;
   }
 }

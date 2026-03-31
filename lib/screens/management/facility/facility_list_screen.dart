@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sportset_admin/routes/app_routes.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 import 'package:sportset_admin/services/facility_service.dart';
+import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/models/facility.dart';
 
 // 3.1. Trang danh sách cơ sở
@@ -17,11 +18,26 @@ class _FacilityListScreenState extends State<FacilityListScreen> {
   final int _currentNavIndex = 1; // Active on Management tab
   final Color _navyColor = const Color(0xFF0C1C46);
   final FacilityService _facilityService = FacilityService();
+  final AccessControlService _accessControlService = AccessControlService();
+  
+  bool _canCreate = false;
+  bool _canEdit = false;
+  bool _canDelete = false;
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_filterFacilities);
+    _checkPermissions();
+  }
+  
+  Future<void> _checkPermissions() async {
+    final permissionMap = await _accessControlService.getCurrentPermissionMap();
+    setState(() {
+      _canCreate = _accessControlService.can(permissionMap, 'facilities', 'create');
+      _canEdit = _accessControlService.can(permissionMap, 'facilities', 'update');
+      _canDelete = _accessControlService.can(permissionMap, 'facilities', 'delete');
+    });
   }
 
   void _filterFacilities() {
@@ -139,7 +155,7 @@ class _FacilityListScreenState extends State<FacilityListScreen> {
           ),
         ],
       ),
-      floatingActionButton: Container(
+      floatingActionButton: _canCreate ? Container(
         margin: const EdgeInsets.only(bottom: 32),
         child: FloatingActionButton(
           onPressed: () {
@@ -168,7 +184,7 @@ class _FacilityListScreenState extends State<FacilityListScreen> {
             child: const Icon(Icons.add, size: 32, color: Colors.white),
           ),
         ),
-      ),
+      ) : null,
       bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
     );
   }
@@ -470,13 +486,13 @@ class _FacilityListScreenState extends State<FacilityListScreen> {
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () {
+                            onPressed: _canEdit ? () {
                               Navigator.pushNamed(
                                 context,
                                 AppRoutes.facilityEdit,
                                 arguments: {'id': facility.id},
                               );
-                            },
+                            } : null,
                             icon: const Icon(Icons.edit_square, size: 18),
                             label: const Text(
                               'Chỉnh sửa',
@@ -501,9 +517,9 @@ class _FacilityListScreenState extends State<FacilityListScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () {
+                            onPressed: _canDelete ? () {
                               _showDeleteDialog(facility.id, facility.name);
-                            },
+                            } : null,
                             icon: const Icon(Icons.delete, size: 18),
                             label: const Text(
                               'Xóa',

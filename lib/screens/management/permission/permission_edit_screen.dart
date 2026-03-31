@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:sportset_admin/models/permission.dart';
+import 'package:sportset_admin/services/permission_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 class PermissionEditScreen extends StatefulWidget {
@@ -11,6 +13,12 @@ class PermissionEditScreen extends StatefulWidget {
 class _PermissionEditScreenState extends State<PermissionEditScreen> {
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
+  final PermissionService _permissionService = PermissionService();
+
+  String? _permissionId;
+  bool _isLoading = false;
+
+  late Map<String, dynamic> _permissions;
 
   final List<Map<String, dynamic>> _sections = [
     {
@@ -62,21 +70,45 @@ class _PermissionEditScreenState extends State<PermissionEditScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: 'Quản lý sân');
-    _descriptionController = TextEditingController(
-      text: 'Toàn quyền quản lý sân và đơn đặt',
-    );
+    _nameController = TextEditingController();
+    _descriptionController = TextEditingController();
+    _permissions = PermissionService.getDefaultPermissionsTemplate();
+    _syncSectionsFromPermissions();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments as Map?;
-    if (args != null) {
-      setState(() {
-        _nameController.text = args['name'] ?? 'Quản lý sân';
-        _descriptionController.text = args['description'] ?? '';
-      });
+    _permissionId = args?['id'] as String?;
+    
+    if (_permissionId != null) {
+      _loadPermission();
+    }
+  }
+
+  Future<void> _loadPermission() async {
+    if (_permissionId == null) return;
+    
+    try {
+      final permission = await _permissionService.getPermissionByIdFuture(_permissionId!);
+      if (permission != null && mounted) {
+        setState(() {
+          _nameController.text = permission.name;
+          _descriptionController.text = permission.description;
+          _permissions = permission.permissions;
+          _syncSectionsFromPermissions();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -89,12 +121,14 @@ class _PermissionEditScreenState extends State<PermissionEditScreen> {
 
   void _togglePermission(int sectionIndex, int itemIndex) {
     setState(() {
-      _sections[sectionIndex]['items'][itemIndex]['enabled'] =
-          !_sections[sectionIndex]['items'][itemIndex]['enabled'];
+      final nextValue =
+          !(_sections[sectionIndex]['items'][itemIndex]['enabled'] as bool);
+      _sections[sectionIndex]['items'][itemIndex]['enabled'] = nextValue;
+      _applySectionToggleToPermissions(sectionIndex, itemIndex, nextValue);
     });
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_nameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -105,14 +139,40 @@ class _PermissionEditScreenState extends State<PermissionEditScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đã cập nhật nhóm quyền'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    if (_permissionId == null) return;
 
-    Navigator.pop(context);
+    setState(() => _isLoading = true);
+
+    try {
+      await _permissionService.updatePermission(_permissionId!, {
+        'name': _nameController.text,
+        'description': _descriptionController.text,
+        'permissions': _permissions,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã cập nhật nhóm quyền'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -421,5 +481,161 @@ class _PermissionEditScreenState extends State<PermissionEditScreen> {
         ),
       ),
     );
+  }
+
+  void _syncSectionsFromPermissions() {
+    for (var sectionIndex = 0; sectionIndex < _sections.length; sectionIndex++) {
+      final items = _sections[sectionIndex]['items'] as List<dynamic>;
+      for (var itemIndex = 0; itemIndex < items.length; itemIndex++) {
+        items[itemIndex]['enabled'] = _isPermissionEnabled(sectionIndex, itemIndex);
+      }
+    }
+  }
+
+  bool _isPermissionEnabled(int sectionIndex, int itemIndex) {
+    switch (sectionIndex) {
+      case 0:
+        switch (itemIndex) {
+          case 0:
+            return _getPermissionValue('facilities', 'view') &&
+                _getPermissionValue('courts', 'view');
+          case 1:
+            return _getPermissionValue('facilities', 'create') &&
+                _getPermissionValue('courts', 'create');
+          case 2:
+            return _getPermissionValue('facilities', 'update') &&
+                _getPermissionValue('courts', 'update');
+          case 3:
+            return _getPermissionValue('facilities', 'delete') &&
+                _getPermissionValue('courts', 'delete');
+        }
+        break;
+      case 1:
+        switch (itemIndex) {
+          case 0:
+            return _getPermissionValue('bookings', 'approve');
+          case 1:
+            return _getPermissionValue('bookings', 'cancel');
+          case 2:
+            return _getPermissionValue('bookings', 'check_in');
+        }
+        break;
+      case 2:
+        switch (itemIndex) {
+          case 0:
+            return _getPermissionValue('vouchers', 'create');
+          case 1:
+            return _getPermissionValue('vouchers', 'update');
+          case 2:
+            return _getPermissionValue('vouchers', 'view');
+        }
+        break;
+      case 3:
+        switch (itemIndex) {
+          case 0:
+            return _getPermissionValue('staff', 'view');
+          case 1:
+            return _getPermissionValue('staff', 'assign_permissions');
+        }
+        break;
+      case 4:
+        switch (itemIndex) {
+          case 0:
+            return _getPermissionValue('reports', 'view');
+          case 1:
+            return _getPermissionValue('reports', 'export');
+        }
+        break;
+    }
+
+    return false;
+  }
+
+  void _applySectionToggleToPermissions(
+    int sectionIndex,
+    int itemIndex,
+    bool value,
+  ) {
+    switch (sectionIndex) {
+      case 0:
+        switch (itemIndex) {
+          case 0:
+            _setPermissionValue('facilities', 'view', value);
+            _setPermissionValue('courts', 'view', value);
+            return;
+          case 1:
+            _setPermissionValue('facilities', 'create', value);
+            _setPermissionValue('courts', 'create', value);
+            return;
+          case 2:
+            _setPermissionValue('facilities', 'update', value);
+            _setPermissionValue('courts', 'update', value);
+            return;
+          case 3:
+            _setPermissionValue('facilities', 'delete', value);
+            _setPermissionValue('courts', 'delete', value);
+            return;
+        }
+        return;
+      case 1:
+        switch (itemIndex) {
+          case 0:
+            _setPermissionValue('bookings', 'approve', value);
+            return;
+          case 1:
+            _setPermissionValue('bookings', 'cancel', value);
+            return;
+          case 2:
+            _setPermissionValue('bookings', 'check_in', value);
+            return;
+        }
+        return;
+      case 2:
+        switch (itemIndex) {
+          case 0:
+            _setPermissionValue('vouchers', 'create', value);
+            return;
+          case 1:
+            _setPermissionValue('vouchers', 'update', value);
+            return;
+          case 2:
+            _setPermissionValue('vouchers', 'view', value);
+            return;
+        }
+        return;
+      case 3:
+        switch (itemIndex) {
+          case 0:
+            _setPermissionValue('staff', 'view', value);
+            return;
+          case 1:
+            _setPermissionValue('staff', 'assign_permissions', value);
+            return;
+        }
+        return;
+      case 4:
+        switch (itemIndex) {
+          case 0:
+            _setPermissionValue('reports', 'view', value);
+            return;
+          case 1:
+            _setPermissionValue('reports', 'export', value);
+            return;
+        }
+        return;
+    }
+  }
+
+  bool _getPermissionValue(String module, String action) {
+    final moduleData = _permissions[module] as Map<String, dynamic>?;
+    final value = moduleData?[action];
+    return value is bool ? value : false;
+  }
+
+  void _setPermissionValue(String module, String action, bool value) {
+    final moduleData =
+        (_permissions[module] as Map<String, dynamic>?) ?? <String, dynamic>{};
+    moduleData[action] = value;
+    _permissions[module] = moduleData;
   }
 }

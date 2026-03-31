@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:sportset_admin/models/staff.dart';
 import 'package:sportset_admin/routes/app_routes.dart';
+import 'package:sportset_admin/services/staff_service.dart';
+import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 class StaffListScreen extends StatefulWidget {
@@ -11,43 +14,34 @@ class StaffListScreen extends StatefulWidget {
 
 class _StaffListScreenState extends State<StaffListScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final StaffService _staffService = StaffService();
+  final AccessControlService _accessControlService = AccessControlService();
   final int _currentNavIndex = 1;
   final Color _navyColor = const Color(0xFF0C1C46);
   final Color _orangeColor = const Color(0xFFFF9800);
   final Color _statusGreen = const Color(0xFF22C55E);
   final Color _deleteRed = const Color(0xFFFFEBEE);
   final Color _deleteIconColor = const Color(0xFFEF4444);
+  String _searchQuery = '';
+  
+  bool _canCreate = false;
+  bool _canEdit = false;
+  bool _canDelete = false;
 
-  final List<Map<String, dynamic>> _staffList = [
-    {
-      'name': 'Trần Văn Hoàng',
-      'position': 'Quản lý sân',
-      'location': 'SPORTSET Tân Bình',
-      'status': 'Đang làm việc',
-      'avatar': 'https://i.pravatar.cc/150?img=12',
-    },
-    {
-      'name': 'Nguyễn Thị Mai',
-      'position': 'Lễ tân',
-      'location': 'SPORTSET Quận 7',
-      'status': 'Đang làm việc',
-      'avatar': 'https://i.pravatar.cc/150?img=5',
-    },
-    {
-      'name': 'Lê Minh Tuấn',
-      'position': 'Huấn luyện viên',
-      'location': 'SPORTSET Tân Bình',
-      'status': 'Đang làm việc',
-      'avatar': 'https://i.pravatar.cc/150?img=33',
-    },
-    {
-      'name': 'Phạm Hồng Nhung',
-      'position': 'Nhân viên kỹ thuật',
-      'location': 'SPORTSET Bình Thạnh',
-      'status': 'Đang làm việc',
-      'avatar': 'https://i.pravatar.cc/150?img=47',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _checkPermissions();
+  }
+  
+  Future<void> _checkPermissions() async {
+    final permissionMap = await _accessControlService.getCurrentPermissionMap();
+    setState(() {
+      _canCreate = _accessControlService.can(permissionMap, 'staff', 'create');
+      _canEdit = _accessControlService.can(permissionMap, 'staff', 'update');
+      _canDelete = _accessControlService.can(permissionMap, 'staff', 'delete');
+    });
+  }
 
   @override
   void dispose() {
@@ -63,18 +57,59 @@ class _StaffListScreenState extends State<StaffListScreen> {
         children: [
           _buildHeader(),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-              children: [
-                _buildSearchBar(),
-                const SizedBox(height: 24),
-                ..._staffList.map(
-                  (staff) => Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: _buildStaffCard(staff),
-                  ),
-                ),
-              ],
+            child: StreamBuilder<List<Staff>>(
+              stream: _staffService.getAllStaffStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: CircularProgressIndicator(color: _orangeColor),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text('Lỗi: ${snapshot.error}'),
+                  );
+                }
+
+                final allStaff = snapshot.data ?? [];
+                final filteredStaff = allStaff
+                    .where((staff) =>
+                        staff.name
+                            .toLowerCase()
+                            .contains(_searchQuery.toLowerCase()) ||
+                        staff.email
+                            .toLowerCase()
+                            .contains(_searchQuery.toLowerCase()))
+                    .toList();
+
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  children: [
+                    _buildSearchBar(),
+                    const SizedBox(height: 24),
+                    if (filteredStaff.isEmpty)
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Text(
+                            'Không tìm thấy nhân viên',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ...filteredStaff.map(
+                      (staff) => Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _buildStaffCard(staff),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -149,10 +184,26 @@ class _StaffListScreenState extends State<StaffListScreen> {
       ),
       child: TextField(
         controller: _searchController,
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
         decoration: InputDecoration(
           hintText: 'Tìm kiếm nhân viên...',
           hintStyle: TextStyle(fontSize: 14, color: Colors.grey[400]),
           prefixIcon: Icon(Icons.search, color: Colors.grey[400], size: 20),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? GestureDetector(
+                  onTap: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                  child: Icon(Icons.close, color: Colors.grey[400], size: 20),
+                )
+              : null,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
@@ -164,10 +215,47 @@ class _StaffListScreenState extends State<StaffListScreen> {
     );
   }
 
-  Widget _buildStaffCard(Map<String, dynamic> staff) {
+  String _getPositionLabel(String position) {
+    final positions = {
+      'admin': 'Quản trị viên',
+      'manager': 'Quản lý cơ sở',
+      'staff': 'Nhân viên vận hành',
+      'coach': 'Huấn luyện viên',
+      'receptionist': 'Lễ tân',
+    };
+    return positions[position] ?? position;
+  }
+
+  String _getStatusLabel(String status) {
+    final statuses = {
+      'active': 'Đang làm việc',
+      'inactive': 'Ngừng hoạt động',
+      'suspended': 'Tạm dừng',
+    };
+    return statuses[status] ?? status;
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'active':
+        return _statusGreen;
+      case 'inactive':
+        return Colors.grey;
+      case 'suspended':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Widget _buildStaffCard(Staff staff) {
     return GestureDetector(
       onTap: () {
-        Navigator.pushNamed(context, AppRoutes.staffDetail);
+        Navigator.pushNamed(
+          context,
+          AppRoutes.staffEdit,
+          arguments: {'id': staff.id},
+        );
       },
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -191,11 +279,27 @@ class _StaffListScreenState extends State<StaffListScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.orange[50]!, width: 2),
-                image: DecorationImage(
-                  image: NetworkImage(staff['avatar'] as String),
-                  fit: BoxFit.cover,
-                ),
+                color: Colors.grey[200],
               ),
+              child: staff.avatar != null
+                  ? ClipOval(
+                      child: Image.network(
+                        staff.avatar!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(
+                            Icons.person,
+                            size: 28,
+                            color: Colors.grey[400],
+                          );
+                        },
+                      ),
+                    )
+                  : Icon(
+                      Icons.person,
+                      size: 28,
+                      color: Colors.grey[400],
+                    ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -203,7 +307,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    staff['name'] as String,
+                    staff.name,
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
@@ -212,7 +316,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    staff['position'] as String,
+                    _getPositionLabel(staff.position),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -221,7 +325,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    staff['location'] as String,
+                    staff.facilityName,
                     style: TextStyle(fontSize: 12, color: Colors.grey[400]),
                   ),
                   const SizedBox(height: 6),
@@ -231,17 +335,17 @@ class _StaffListScreenState extends State<StaffListScreen> {
                         width: 6,
                         height: 6,
                         decoration: BoxDecoration(
-                          color: _statusGreen,
+                          color: _getStatusColor(staff.status),
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        staff['status'] as String,
+                        _getStatusLabel(staff.status),
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: _statusGreen,
+                          color: _getStatusColor(staff.status),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -253,35 +357,47 @@ class _StaffListScreenState extends State<StaffListScreen> {
             Column(
               children: [
                 GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(context, AppRoutes.staffEdit);
-                  },
+                  onTap: _canEdit
+                      ? () {
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.staffEdit,
+                            arguments: {'id': staff.id},
+                          );
+                        }
+                      : null,
                   child: Container(
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: Colors.grey[50],
+                      color: _canEdit ? Colors.grey[50] : Colors.grey[200],
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(Icons.edit, size: 20, color: _navyColor),
+                    child: Icon(
+                      Icons.edit,
+                      size: 20,
+                      color: _canEdit ? _navyColor : Colors.grey,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
                 GestureDetector(
-                  onTap: () {
-                    _showDeleteDialog(staff['name'] as String);
-                  },
+                  onTap: _canDelete
+                      ? () {
+                          _showDeleteDialog(staff.name, staff.id);
+                        }
+                      : null,
                   child: Container(
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: _deleteRed,
+                      color: _canDelete ? _deleteRed : Colors.grey[200],
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       Icons.delete,
                       size: 20,
-                      color: _deleteIconColor,
+                      color: _canDelete ? _deleteIconColor : Colors.grey,
                     ),
                   ),
                 ),
@@ -323,10 +439,11 @@ class _StaffListScreenState extends State<StaffListScreen> {
     );
   }
 
-  void _showDeleteDialog(String staffName) {
+  void _showDeleteDialog(String staffName, String staffId) {
+    final scaffoldContext = context; // Save outer context reference
     showDialog(
-      context: context,
-      builder: (BuildContext context) {
+      context: scaffoldContext,
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -340,15 +457,32 @@ class _StaffListScreenState extends State<StaffListScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Hủy'),
             ),
             TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('Đã xóa "$staffName"')));
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                try {
+                  await _staffService.deleteStaff(staffId);
+                  if (mounted) {
+                    ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                      SnackBar(
+                        content: Text('Đã xóa "$staffName"'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                      SnackBar(
+                        content: Text('Lỗi: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
               },
               child: const Text(
                 'Xóa',

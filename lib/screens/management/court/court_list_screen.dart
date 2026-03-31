@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sportset_admin/models/court.dart';
 import 'package:sportset_admin/routes/app_routes.dart';
 import 'package:sportset_admin/services/court_service.dart';
+import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 // 3.2. Trang danh sách sân
@@ -18,12 +19,28 @@ class _CourtListScreenState extends State<CourtListScreen> {
   final Color _navyColor = const Color(0xFF0C1C46);
   final Color _orangeColor = const Color(0xFFFF5722);
   final CourtService _courtService = CourtService();
+  final AccessControlService _accessControlService = AccessControlService();
+  
+  bool _canView = true;
+  bool _canCreate = false;
+  bool _canEdit = false;
+  bool _canDelete = false;
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(() {
       setState(() {});
+    });
+    _checkPermissions();
+  }
+  
+  Future<void> _checkPermissions() async {
+    final permissionMap = await _accessControlService.getCurrentPermissionMap();
+    setState(() {
+      _canCreate = _accessControlService.can(permissionMap, 'courts', 'create');
+      _canEdit = _accessControlService.can(permissionMap, 'courts', 'update');
+      _canDelete = _accessControlService.can(permissionMap, 'courts', 'delete');
     });
   }
 
@@ -91,7 +108,7 @@ class _CourtListScreenState extends State<CourtListScreen> {
           ),
         ],
       ),
-      floatingActionButton: Container(
+      floatingActionButton: _canCreate ? Container(
         margin: const EdgeInsets.only(bottom: 32),
         child: FloatingActionButton(
           onPressed: () {
@@ -118,7 +135,7 @@ class _CourtListScreenState extends State<CourtListScreen> {
             child: const Icon(Icons.add, size: 32, color: Colors.white),
           ),
         ),
-      ),
+      ) : null,
       bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
     );
   }
@@ -421,13 +438,13 @@ class _CourtListScreenState extends State<CourtListScreen> {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {
+                          onPressed: _canEdit ? () {
                             Navigator.pushNamed(
                               context,
                               AppRoutes.courtEdit,
                               arguments: {'id': court.id},
                             );
-                          },
+                          } : null,
                           icon: const Icon(Icons.edit, size: 20),
                           label: const Text(
                             'Chỉnh sửa',
@@ -455,9 +472,9 @@ class _CourtListScreenState extends State<CourtListScreen> {
                         width: 56,
                         height: 40,
                         child: ElevatedButton(
-                          onPressed: () {
+                          onPressed: _canDelete ? () {
                             _showDeleteDialog(court.id, court.name);
-                          },
+                          } : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red.withValues(alpha: 0.05),
                             foregroundColor: Colors.red[400],
@@ -485,9 +502,11 @@ class _CourtListScreenState extends State<CourtListScreen> {
   }
 
   void _showDeleteDialog(String courtId, String courtName) {
+    final messenger = ScaffoldMessenger.of(context);
+
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -499,18 +518,18 @@ class _CourtListScreenState extends State<CourtListScreen> {
           content: Text('Bạn có chắc chắn muốn xóa "$courtName"?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: Text('Hủy', style: TextStyle(color: Colors.grey[600])),
             ),
             ElevatedButton(
               onPressed: () async {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
                 try {
                   await _courtService.deleteCourt(courtId);
                   if (!mounted) {
                     return;
                   }
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text('Đã xóa "$courtName"'),
                       backgroundColor: Colors.green,
@@ -520,7 +539,7 @@ class _CourtListScreenState extends State<CourtListScreen> {
                   if (!mounted) {
                     return;
                   }
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text('Xóa sân thất bại'),
                       backgroundColor: Colors.red,

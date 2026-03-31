@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:sportset_admin/models/voucher.dart';
 import 'package:sportset_admin/routes/app_routes.dart';
+import 'package:sportset_admin/services/voucher_service.dart';
+import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
-// Trang quản lý voucher
 class VoucherListScreen extends StatefulWidget {
   const VoucherListScreen({super.key});
 
@@ -12,64 +14,33 @@ class VoucherListScreen extends StatefulWidget {
 
 class _VoucherListScreenState extends State<VoucherListScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final int _currentNavIndex = 1;
+  final VoucherService _voucherService = VoucherService();
+  final AccessControlService _accessControlService = AccessControlService();
+  
+  int _selectedTabIndex = 0;
+  final List<String> _tabs = ['Tất cả', 'Đang chạy', 'Sắp tới', 'Kết thúc'];
   final Color _navyColor = const Color(0xFF0C1C46);
   final Color _orangeColor = const Color(0xFFFF9800);
+  final Color _bgColor = const Color(0xFFFFF8F6);
+  
+  bool _canCreate = false;
+  bool _canEdit = false;
+  bool _canDelete = false;
 
-  int _selectedTabIndex = 0;
-
-  final List<String> _tabs = ['Tất cả', 'Đang chạy', 'Sắp tới', 'Kết thúc'];
-
-  final List<Map<String, dynamic>> _vouchers = [
-    {
-      'title': 'Chào Hè Sôi Động',
-      'code': 'HE2024',
-      'status': 'active',
-      'statusText': 'Đang chạy',
-      'statusColor': Colors.green,
-      'used': 45,
-      'total': 100,
-      'discount': '-50K',
-      'expiry': '30/06',
-      'isEnded': false,
-    },
-    {
-      'title': 'Siêu Sale 9.9',
-      'code': 'SALE99',
-      'status': 'upcoming',
-      'statusText': 'Sắp tới',
-      'statusColor': Colors.blue,
-      'used': 0,
-      'total': 500,
-      'discount': '-20%',
-      'expiry': '09/09',
-      'isEnded': false,
-    },
-    {
-      'title': 'Giờ Vàng Giá Sốc',
-      'code': 'GIOVANG',
-      'status': 'ended',
-      'statusText': 'Kết thúc',
-      'statusColor': Colors.grey,
-      'used': 200,
-      'total': 200,
-      'discount': '-100K',
-      'expiry': '15/05',
-      'isEnded': true,
-    },
-    {
-      'title': 'Ưu Đãi Tân Thủ',
-      'code': 'NEWBIE',
-      'status': 'active',
-      'statusText': 'Đang chạy',
-      'statusColor': Colors.green,
-      'used': 12,
-      'total': 1000,
-      'discount': '-30K',
-      'expiry': '31/12',
-      'isEnded': false,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _checkPermissions();
+  }
+  
+  Future<void> _checkPermissions() async {
+    final permissionMap = await _accessControlService.getCurrentPermissionMap();
+    setState(() {
+      _canCreate = _accessControlService.can(permissionMap, 'vouchers', 'create');
+      _canEdit = _accessControlService.can(permissionMap, 'vouchers', 'update');
+      _canDelete = _accessControlService.can(permissionMap, 'vouchers', 'delete');
+    });
+  }
 
   @override
   void dispose() {
@@ -77,271 +48,202 @@ class _VoucherListScreenState extends State<VoucherListScreen> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(),
-          _buildSearchAndTabs(),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-              itemCount: _vouchers.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _buildVoucherCard(_vouchers[index]),
-                );
+  List<Voucher> _applyFilters(List<Voucher> vouchers) {
+    final query = _searchController.text.trim().toLowerCase();
+    
+    // Filter by tab
+    var filtered = vouchers.where((v) {
+      if (_selectedTabIndex == 0) return true;
+      if (_selectedTabIndex == 1) return v.status == 'active';
+      if (_selectedTabIndex == 2) return v.status == 'upcoming';
+      return v.status == 'ended';
+    }).toList();
+
+    // Filter by search query
+    if (query.isNotEmpty) {
+      filtered = filtered
+          .where((v) =>
+              v.title.toLowerCase().contains(query) ||
+              v.code.toLowerCase().contains(query))
+          .toList();
+    }
+
+    return filtered;
+  }
+
+  String _formatDiscountDisplay(Voucher voucher) {
+    if (voucher.discountType == 'percent') {
+      return '-${voucher.discountValue.toStringAsFixed(0)}%';
+    }
+    return '-${(voucher.discountValue / 1000).toStringAsFixed(0)}K';
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}';
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'active':
+        return Colors.green;
+      case 'upcoming':
+        return Colors.blue;
+      case 'ended':
+        return Colors.grey;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getStatusText(String status) {
+    switch (status) {
+      case 'active':
+        return 'Đang chạy';
+      case 'upcoming':
+        return 'Sắp tới';
+      case 'ended':
+        return 'Kết thúc';
+      default:
+        return '';
+    }
+  }
+
+  void _showDeleteDialog(BuildContext context, String voucherId, String title) {
+    final messenger = ScaffoldMessenger.of(context);
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Xóa voucher'),
+          content: Text('Bạn có chắc chắn muốn xóa voucher "$title"?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Hủy'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                try {
+                  await _voucherService.deleteVoucher(voucherId);
+                  if (mounted) {
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Xóa voucher thành công')),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    messenger.showSnackBar(
+                      SnackBar(content: Text('Lỗi: $e')),
+                    );
+                  }
+                }
               },
+              child: const Text('Xóa', style: TextStyle(color: Colors.red)),
             ),
-          ),
-        ],
-      ),
-      floatingActionButton: _buildFAB(),
-      bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildVoucherCard(Voucher voucher) {
+    final usagePercentage = voucher.totalQuantity > 0
+        ? (voucher.usedQuantity / voucher.totalQuantity) * 100
+        : 0.0;
+    final isEnded = voucher.status == 'ended';
+
     return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Icon(Icons.arrow_back, size: 24, color: _navyColor),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Quản Lý Voucher',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: _navyColor,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
-          ),
+        color: isEnded ? Colors.grey[50] : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.grey[100]!,
+          width: 1,
         ),
-      ),
-    );
-  }
-
-  Widget _buildSearchAndTabs() {
-    return Container(
-      color: const Color(0xFFFFF8F6),
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-      child: Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+        boxShadow: [
+          if (!isEnded)
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Tìm mã voucher...',
-                hintStyle: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[400],
-                ),
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: Colors.grey[400],
-                  size: 24,
-                ),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
-              ),
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: _navyColor,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: List.generate(_tabs.length, (index) {
-                final isSelected = _selectedTabIndex == index;
-                return Padding(
-                  padding: EdgeInsets.only(
-                    right: index < _tabs.length - 1 ? 12 : 0,
-                  ),
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedTabIndex = index;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected ? _navyColor : Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: isSelected
-                              ? _navyColor
-                              : Colors.grey.withValues(alpha: 0.1),
-                        ),
-                        boxShadow: [
-                          if (isSelected)
-                            BoxShadow(
-                              color: _navyColor.withValues(alpha: 0.2),
-                              blurRadius: 4,
-                            ),
-                          if (!isSelected)
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.03),
-                              blurRadius: 2,
-                            ),
-                        ],
-                      ),
-                      child: Text(
-                        _tabs[index],
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.w500,
-                          color: isSelected ? Colors.white : Colors.grey[500],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildVoucherCard(Map<String, dynamic> voucher) {
-    final bool isEnded = voucher['isEnded'] as bool;
-    final int used = voucher['used'] as int;
-    final int total = voucher['total'] as int;
-    final double progress = used / total;
-
-    return Opacity(
-      opacity: isEnded ? 0.6 : 1.0,
-      child: GestureDetector(
-        onTap: () {
-          Navigator.pushNamed(context, AppRoutes.voucherDetail);
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            color: isEnded ? Colors.grey[50] : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-            boxShadow: [
-              if (!isEnded)
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-            ],
-          ),
-          child: Row(
-            children: [
-              // Left section
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
+      child: Row(
+        children: [
+          // Left side - Voucher info
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
+                  Text(
+                    voucher.title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: isEnded ? Colors.grey[600] : _navyColor,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  // Code and Status
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: Colors.grey[200]!,
+                          ),
+                        ),
+                        child: Text(
+                          voucher.code,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                            color: isEnded ? Colors.grey[500] : Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _getStatusColor(voucher.status),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _getStatusText(voucher.status),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: _getStatusColor(voucher.status),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Usage progress
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        voucher['title'] as String,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: isEnded ? Colors.grey[600] : _navyColor,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isEnded ? Colors.white : Colors.grey[100],
-                              border: Border.all(
-                                color: Colors.grey.withValues(alpha: 0.2),
-                              ),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              voucher['code'] as String,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'monospace',
-                                color: isEnded
-                                    ? Colors.grey[500]
-                                    : Colors.grey[600],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: voucher['statusColor'] as Color,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            voucher['statusText'] as String,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                              color: isEnded
-                                  ? Colors.grey[500]
-                                  : voucher['statusColor'] as Color,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -352,256 +254,446 @@ class _VoucherListScreenState extends State<VoucherListScreen> {
                               color: Colors.grey[500],
                             ),
                           ),
-                          RichText(
-                            text: TextSpan(
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: isEnded ? Colors.grey[600] : _navyColor,
-                              ),
-                              children: [
-                                TextSpan(text: '$used'),
-                                TextSpan(
-                                  text: '/$total',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.normal,
-                                    color: Colors.grey[400],
-                                  ),
-                                ),
-                              ],
+                          Text(
+                            '${voucher.usedQuantity}/${voucher.totalQuantity}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isEnded ? Colors.grey[600] : _navyColor,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(8),
                         child: LinearProgressIndicator(
-                          value: progress,
-                          backgroundColor: isEnded
-                              ? Colors.grey[200]
-                              : Colors.grey[100],
+                          value: usagePercentage / 100,
+                          minHeight: 6,
+                          backgroundColor: Colors.grey[100],
                           valueColor: AlwaysStoppedAnimation<Color>(
                             isEnded ? Colors.grey[500]! : _orangeColor,
                           ),
-                          minHeight: 6,
                         ),
                       ),
                     ],
                   ),
+                ],
+              ),
+            ),
+          ),
+          // Separator - ticket cutout
+          Container(
+            width: 1,
+            height: 120,
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(
+                  color: Colors.grey[200]!,
+                  width: 2,
+                  style: BorderStyle.solid,
                 ),
               ),
-              // Dashed divider with cutouts
-              SizedBox(
-                width: 1,
-                height: 140,
-                child: CustomPaint(
-                  painter: DashedLinePainter(
-                    color: Colors.grey.withValues(alpha: 0.3),
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  top: -8,
+                  left: -5,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _bgColor,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 2,
+                          offset: const Offset(0, -1),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              // Right section
-              Container(
-                width: 112,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isEnded
-                      ? Colors.grey.withValues(alpha: 0.05)
-                      : _orangeColor.withValues(alpha: 0.05),
+                Positioned(
+                  bottom: -8,
+                  left: -5,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _bgColor,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 2,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      voucher['discount'] as String,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: isEnded ? Colors.grey[500] : _orangeColor,
-                        letterSpacing: -0.5,
+              ],
+            ),
+          ),
+          // Right side - Discount and actions
+          Container(
+            width: 112,
+            color: isEnded
+                ? Colors.grey[100]
+                : Colors.orange.withOpacity(0.05),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    children: [
+                      Text(
+                        _formatDiscountDisplay(voucher),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: isEnded ? Colors.grey[500] : _orangeColor,
+                          letterSpacing: -0.5,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'HSD: ${voucher['expiry']}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[400],
+                      const SizedBox(height: 8),
+                      Text(
+                        'HSD: ${_formatDate(voucher.endDate)}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey[400],
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
+                    ],
+                  ),
+                  // Action buttons
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         GestureDetector(
-                          onTap: () {
-                            Navigator.pushNamed(context, AppRoutes.voucherEdit);
-                          },
+                          onTap: (isEnded || !_canEdit)
+                              ? null
+                              : () async {
+                                  await Navigator.pushNamed(
+                                    context,
+                                    AppRoutes.voucherEdit,
+                                    arguments: {'id': voucher.id},
+                                  );
+                                  setState(() {});
+                                },
                           child: Container(
                             width: 32,
                             height: 32,
                             decoration: BoxDecoration(
-                              color: Colors.white,
                               shape: BoxShape.circle,
+                              color: Colors.white,
                               border: Border.all(
-                                color: Colors.grey.withValues(alpha: 0.1),
+                                color: Colors.grey[100]!,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.03),
+                                  color: Colors.black.withOpacity(0.05),
                                   blurRadius: 4,
-                                ),
+                                )
                               ],
                             ),
                             child: Icon(
                               Icons.edit,
-                              size: 18,
-                              color: isEnded
+                              size: 16,
+                              color: (isEnded || !_canEdit)
                                   ? Colors.grey[400]
                                   : Colors.blue[600],
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         GestureDetector(
-                          onTap: () {
-                            _showDeleteDialog(voucher['title'] as String);
-                          },
+                          onTap: !_canDelete
+                              ? null
+                              : () {
+                                  _showDeleteDialog(
+                                      context, voucher.id, voucher.title);
+                                },
                           child: Container(
                             width: 32,
                             height: 32,
                             decoration: BoxDecoration(
-                              color: Colors.white,
                               shape: BoxShape.circle,
+                              color: Colors.white,
                               border: Border.all(
-                                color: Colors.grey.withValues(alpha: 0.1),
+                                color: Colors.grey[100]!,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.03),
+                                  color: Colors.black.withOpacity(0.05),
                                   blurRadius: 4,
-                                ),
+                                )
                               ],
                             ),
                             child: Icon(
                               Icons.delete,
-                              size: 18,
-                              color: isEnded
+                              size: 16,
+                              color: !_canDelete
                                   ? Colors.grey[400]
-                                  : Colors.red[500],
+                                  : (isEnded ? Colors.grey[400] : Colors.red[500]),
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFAB() {
-    return Container(
-      height: 56,
-      width: 56,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_orangeColor, const Color(0xFFFF5722)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: _orangeColor.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            ),
           ),
         ],
       ),
-      child: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, AppRoutes.voucherCreate);
-        },
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: const Icon(Icons.add, size: 32, color: Colors.white),
-      ),
     );
   }
 
-  void _showDeleteDialog(String voucherTitle) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _bgColor,
+      appBar: AppBar(
+        backgroundColor: _bgColor,
+        elevation: 0,
+        scrolledUnderElevation: 2,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: _navyColor),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Quản Lý Voucher',
+          style: TextStyle(
+            color: _navyColor,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
           ),
-          title: const Text(
-            'Xóa voucher',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: Text(
-            'Bạn có chắc chắn muốn xóa voucher "$voucherTitle" không?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Hủy'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Đã xóa "$voucherTitle"')),
-                );
+        ),
+        centerTitle: false,
+      ),
+      body: Column(
+        children: [
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {});
               },
-              child: const Text(
-                'Xóa',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
+              decoration: InputDecoration(
+                hintText: 'Tìm mã voucher...',
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: Colors.grey[400],
                 ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 0,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: Colors.grey[200]!),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(
+                    color: Colors.grey[200]!,
+                    width: 1,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(
+                    color: _orangeColor,
+                    width: 2,
+                  ),
+                ),
+                filled: true,
+                fillColor: Colors.white,
               ),
             ),
-          ],
-        );
-      },
+          ),
+          // Tabs
+          SizedBox(
+            height: 48,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              itemCount: _tabs.length,
+              itemBuilder: (context, index) {
+                final isSelected = _selectedTabIndex == index;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedTabIndex = index;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected ? _navyColor : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: isSelected
+                            ? null
+                            : Border.all(
+                                color: Colors.grey[100]!,
+                                width: 1,
+                              ),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: _navyColor.withOpacity(0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
+                            : [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.03),
+                                  blurRadius: 4,
+                                )
+                              ],
+                      ),
+                      child: Text(
+                        _tabs[index],
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                          color: isSelected ? Colors.white : Colors.grey[500],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          // Voucher list
+          Expanded(
+            child: StreamBuilder<List<Voucher>>(
+              stream: _voucherService.getAllVouchersStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: _orangeColor,
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Lỗi tải dữ liệu',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final vouchers = snapshot.data ?? [];
+                final filtered = _applyFilters(vouchers);
+
+                if (filtered.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.card_giftcard_outlined,
+                          size: 48,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Không có voucher nào',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () async {
+                        await Navigator.pushNamed(
+                          context,
+                          AppRoutes.voucherDetail,
+                          arguments: {'id': filtered[index].id},
+                        );
+                        setState(() {});
+                      },
+                      child: _buildVoucherCard(filtered[index]),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          if (!_canCreate) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Bạn không có quyền tạo voucher'),
+                  backgroundColor: _orangeColor,
+                ),
+              );
+            }
+            return;
+          }
+          await Navigator.pushNamed(context, AppRoutes.voucherCreate);
+          setState(() {});
+        },
+        backgroundColor: _orangeColor,
+        elevation: 8,
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 28,
+        ),
+      ),
+      bottomNavigationBar: CommonBottomNav(currentIndex: 1),
     );
   }
 }
-
-// Custom painter for dashed line
-class DashedLinePainter extends CustomPainter {
-  final Color color;
-
-  DashedLinePainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    const dashHeight = 4;
-    const dashSpace = 4;
-    double startY = 0;
-
-    while (startY < size.height) {
-      canvas.drawLine(Offset(0, startY), Offset(0, startY + dashHeight), paint);
-      startY += dashHeight + dashSpace;
-    }
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
-}
-

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sportset_admin/routes/app_routes.dart';
+import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 class StaffDetailScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class _StaffDetailScreenState extends State<StaffDetailScreen> {
   final int _currentNavIndex = 1;
   final Color _navyColor = const Color(0xFF0C1C46);
   final Color _orangeColor = const Color(0xFFFF9800);
+  final AccessControlService _accessControlService = AccessControlService();
 
   final Map<String, dynamic> _staffData = {
     'name': 'Nguyễn Minh Quân',
@@ -24,6 +26,9 @@ class _StaffDetailScreenState extends State<StaffDetailScreen> {
     'joinDate': '15 Tháng 03, 2023',
     'isActive': true,
   };
+  
+  bool _canEdit = false;
+  bool _canDelete = false;
 
   final List<Map<String, dynamic>> _recentActivities = [
     {
@@ -39,6 +44,20 @@ class _StaffDetailScreenState extends State<StaffDetailScreen> {
       'isRecent': false,
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPermissions();
+  }
+  
+  Future<void> _checkPermissions() async {
+    final permissionMap = await _accessControlService.getCurrentPermissionMap();
+    setState(() {
+      _canEdit = _accessControlService.can(permissionMap, 'staff', 'update');
+      _canDelete = _accessControlService.can(permissionMap, 'staff', 'delete');
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -458,12 +477,17 @@ class _StaffDetailScreenState extends State<StaffDetailScreen> {
             height: 56,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red[500]!, width: 2),
+              border: Border.all(
+                color: _canDelete ? Colors.red[500]! : Colors.grey.withValues(alpha: 0.3),
+                width: 2,
+              ),
             ),
             child: TextButton(
-              onPressed: () {
-                _showDisableDialog();
-              },
+              onPressed: _canDelete
+                  ? () {
+                      _showDisableDialog();
+                    }
+                  : null,
               style: TextButton.styleFrom(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -474,7 +498,7 @@ class _StaffDetailScreenState extends State<StaffDetailScreen> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Colors.red[500],
+                  color: _canDelete ? Colors.red[500] : Colors.grey,
                 ),
               ),
             ),
@@ -486,33 +510,39 @@ class _StaffDetailScreenState extends State<StaffDetailScreen> {
           child: Container(
             height: 56,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFF9800), Color(0xFFFF5722)],
+              gradient: LinearGradient(
+                colors: _canEdit
+                    ? [const Color(0xFFFF9800), const Color(0xFFFF5722)]
+                    : [Colors.grey.withValues(alpha: 0.5), Colors.grey.withValues(alpha: 0.5)],
               ),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.orange.withValues(alpha: 0.2),
+                  color: _canEdit
+                      ? Colors.orange.withValues(alpha: 0.2)
+                      : Colors.transparent,
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
               ],
             ),
             child: TextButton(
-              onPressed: () {
-                Navigator.pushNamed(context, AppRoutes.staffEdit);
-              },
+              onPressed: _canEdit
+                  ? () {
+                      Navigator.pushNamed(context, AppRoutes.staffEdit);
+                    }
+                  : null,
               style: TextButton.styleFrom(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
+              child: Text(
                 'Chỉnh sửa',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: _canEdit ? Colors.white : Colors.grey[400],
                 ),
               ),
             ),

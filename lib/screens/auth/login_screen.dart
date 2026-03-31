@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sportset_admin/routes/app_routes.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -11,7 +13,11 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -219,26 +225,32 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: Colors.transparent,
                           child: InkWell(
                             borderRadius: BorderRadius.circular(12),
-                            onTap: () {
-                              // TODO: Implement login logic
-                              Navigator.pushReplacementNamed(context, AppRoutes.home);
-                            },
-                            child: const Center(
-                              child: Text(
-                                'Đăng nhập hệ thống',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
+                            onTap: _isLoading ? null : _handleLogin,
+                            child: Center(
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      height: 22,
+                                      width: 22,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Đăng nhập hệ thống',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 32),
-                      
+
                       // Forgot Password & Footer
                       Column(
                         children: [
@@ -249,14 +261,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Text(
                               'Quên mật khẩu quản trị?',
                               style: TextStyle(
-                                color: isDark ? const Color(0xFFFF8A80) : const Color(0xFFF44336),
+                                color: isDark
+                                    ? const Color(0xFFFF8A80)
+                                    : const Color(0xFFF44336),
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
                           const SizedBox(height: 32),
-                          
+
                           // Version Tag
                           Opacity(
                             opacity: 0.4,
@@ -269,11 +283,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'v2.4.0 • Internal Use Only',
+                                  'v2.4.0 - Internal Use Only',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
-                                    color: isDark ? Colors.white : const Color(0xFF1C0E0D),
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF1C0E0D),
                                   ),
                                 ),
                               ],
@@ -288,6 +304,143 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _handleLogin() async {
+    final loginInput = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (loginInput.isEmpty || password.isEmpty) {
+      _showError('Vui lòng nhập tài khoản và mật khẩu');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final authEmail = _toAuthEmail(loginInput);
+      final credential = await _firebaseAuth.signInWithEmailAndPassword(
+        email: authEmail,
+        password: password,
+      );
+
+      final uid = credential.user?.uid;
+      if (uid == null) {
+        _showError('Không lấy được thông tin người dùng');
+        return;
+      }
+
+      final adminDoc = await _firestore.collection('admin_accounts').doc(uid).get();
+      if (!adminDoc.exists) {
+        await _firebaseAuth.signOut();
+        _showError('Tài khoản không có quyền quản trị');
+        return;
+      }
+
+      final adminData = adminDoc.data() ?? <String, dynamic>{};
+      if (adminData['isActive'] != true) {
+        await _firebaseAuth.signOut();
+        _showError('Tài khoản quản trị đã bị khóa');
+        return;
+      }
+
+      final permissionGroupId = (adminData['permissionGroupId'] as String?)?.trim();
+      if (permissionGroupId == null || permissionGroupId.isEmpty) {
+        await _firebaseAuth.signOut();
+        _showError('Tài khoản chưa được gán nhóm quyền');
+        return;
+      }
+
+      final permissionDoc =
+          await _firestore.collection('permissions').doc(permissionGroupId).get();
+      if (!permissionDoc.exists) {
+        await _firebaseAuth.signOut();
+        _showError('Nhóm quyền không tồn tại');
+        return;
+      }
+
+      final permissionData = permissionDoc.data() ?? <String, dynamic>{};
+      final permissionMap = permissionData['permissions'];
+      final hasAnyAccess =
+          permissionMap is Map<String, dynamic> && _hasAnyAccess(permissionMap);
+
+      if (!hasAnyAccess) {
+        await _firebaseAuth.signOut();
+        _showError('Tài khoản chưa được cấu hình quyền truy cập');
+        return;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.pushReplacementNamed(context, AppRoutes.home);
+    } on FirebaseAuthException catch (e) {
+      _showError(_mapLoginError(e));
+    } catch (e) {
+      _showError('Đăng nhập thất bại: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  String _toAuthEmail(String input) {
+    if (input.contains('@')) {
+      return input.toLowerCase();
+    }
+
+    final normalized = input
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'\s+'), '_')
+        .replaceAll(RegExp(r'[^a-z0-9._-]'), '');
+
+    return '$normalized@sportset.local';
+  }
+
+  bool _hasAnyAccess(Map<String, dynamic> permissions) {
+    for (final moduleEntry in permissions.entries) {
+      final actionMap = moduleEntry.value;
+      if (actionMap is! Map<String, dynamic>) {
+        continue;
+      }
+
+      for (final actionEntry in actionMap.entries) {
+        if (actionEntry.value == true) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  String _mapLoginError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'user-not-found':
+      case 'invalid-credential':
+        return 'Sai tài khoản hoặc mật khẩu';
+      case 'wrong-password':
+        return 'Sai mật khẩu';
+      case 'too-many-requests':
+        return 'Bạn thử quá nhiều lần, vui lòng thử lại sau';
+      default:
+        return 'Lỗi đăng nhập: ${e.code}';
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
       ),
     );
   }

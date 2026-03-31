@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../widgets/common_bottom_nav.dart';
 
 // 5. Trang tài khoản
@@ -480,12 +481,7 @@ class _AccountScreenState extends State<AccountScreen> {
               child: TextButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Đã đăng xuất thành công'),
-                      backgroundColor: Color(0xFF0C1C46),
-                    ),
-                  );
+                  _performLogout();
                 },
                 child: const Text(
                   'Đăng xuất',
@@ -501,6 +497,59 @@ class _AccountScreenState extends State<AccountScreen> {
         );
       },
     );
+  }
+
+  Future<void> _performLogout() async {
+    try {
+      // Show loading dialog
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      // Sign out from Firebase
+      await FirebaseAuth.instance.signOut();
+
+      if (!mounted) return;
+      // Close loading dialog
+      Navigator.pop(context);
+
+      // Navigate to login screen and clear navigation stack
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/login',
+        (Route<dynamic> route) => false,
+      );
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã đăng xuất thành công'),
+            backgroundColor: Color(0xFF0C1C46),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      // Close loading dialog if still open
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi đăng xuất: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 }
 

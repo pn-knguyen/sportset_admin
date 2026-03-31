@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:sportset_admin/screens/management/sport/sport_icon_mapper.dart';
+import 'package:sportset_admin/services/sport_service.dart';
+import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 // Trang thêm mới môn thể thao
@@ -15,20 +18,33 @@ class _SportCreateScreenState extends State<SportCreateScreen> {
   final int _currentNavIndex = 1;
   final Color _navyColor = const Color(0xFF0C1C46);
   final Color _orangeColor = const Color(0xFFFF9800);
+  final SportService _sportService = SportService();
+  final AccessControlService _accessControlService = AccessControlService();
 
   int _selectedIconIndex = 0;
   bool _isVisible = true;
+  bool _isSaving = false;
 
-  final List<Map<String, dynamic>> _icons = [
-    {'icon': Icons.sports_soccer, 'name': 'Bóng đá'},
-    {'icon': Icons.sports_tennis, 'name': 'Cầu lông'},
-    {'icon': Icons.sports_basketball, 'name': 'Bóng rổ'},
-    {'icon': Icons.sports_volleyball, 'name': 'Bóng chuyền'},
-    {'icon': Icons.pool, 'name': 'Bơi lội'},
-    {'icon': Icons.fitness_center, 'name': 'Gym'},
-    {'icon': Icons.directions_run, 'name': 'Chạy bộ'},
-    {'icon': Icons.sports_baseball, 'name': 'Bóng chày'},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _checkCreatePermission();
+  }
+  
+  Future<void> _checkCreatePermission() async {
+    final permissionMap = await _accessControlService.getCurrentPermissionMap();
+    final hasPermission = _accessControlService.can(permissionMap, 'sports', 'create');
+    
+    if (!hasPermission && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bạn không có quyền tạo môn thể thao'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      Navigator.pop(context);
+    }
+  }
 
   @override
   void dispose() {
@@ -146,7 +162,7 @@ class _SportCreateScreenState extends State<SportCreateScreen> {
             mainAxisSpacing: 12,
             childAspectRatio: 1,
           ),
-          itemCount: _icons.length,
+          itemCount: SportIconMapper.iconOptions.length,
           itemBuilder: (context, index) {
             final isSelected = _selectedIconIndex == index;
             return GestureDetector(
@@ -192,7 +208,7 @@ class _SportCreateScreenState extends State<SportCreateScreen> {
                         ).createShader(bounds);
                       },
                       child: Icon(
-                        _icons[index]['icon'] as IconData,
+                        SportIconMapper.iconOptions[index]['icon'] as IconData,
                         size: 32,
                         color: isSelected
                             ? Colors.white
@@ -383,26 +399,66 @@ class _SportCreateScreenState extends State<SportCreateScreen> {
         ],
       ),
       child: TextButton(
-        onPressed: () {
-          if (_nameController.text.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Vui lòng nhập tên danh mục')),
-            );
-            return;
-          }
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Đã thêm danh mục "${_nameController.text}"')),
-          );
-        },
+        onPressed: _isSaving
+            ? null
+            : () async {
+                if (_nameController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Vui lòng nhập tên danh mục')),
+                  );
+                  return;
+                }
+
+                setState(() {
+                  _isSaving = true;
+                });
+
+                try {
+                  await _sportService.createSport(
+                    name: _nameController.text.trim(),
+                    description: _descriptionController.text.trim(),
+                    iconKey: SportIconMapper.iconOptions[_selectedIconIndex]['key']
+                        as String,
+                    isVisible: _isVisible,
+                  );
+
+                  if (!mounted) {
+                    return;
+                  }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Đã thêm danh mục "${_nameController.text.trim()}"',
+                      ),
+                    ),
+                  );
+                    Navigator.pop(context);
+                } catch (_) {
+                  if (!mounted) {
+                    return;
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Tạo danh mục thất bại, vui lòng thử lại'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } finally {
+                  if (mounted) {
+                    setState(() {
+                      _isSaving = false;
+                    });
+                  }
+                }
+              },
         style: TextButton.styleFrom(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
         ),
-        child: const Text(
-          'Lưu Danh Mục',
-          style: TextStyle(
+        child: Text(
+          _isSaving ? 'Đang lưu...' : 'Lưu Danh Mục',
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.white,

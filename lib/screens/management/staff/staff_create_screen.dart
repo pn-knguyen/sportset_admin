@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:sportset_admin/models/staff.dart';
+import 'package:sportset_admin/services/staff_service.dart';
+import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 class StaffCreateScreen extends StatefulWidget {
@@ -12,34 +16,52 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final StaffService _staffService = StaffService();
+  final AccessControlService _accessControlService = AccessControlService();
   
   final int _currentNavIndex = 1;
   final Color _navyColor = const Color(0xFF0C1C46);
   final Color _orangeColor = const Color(0xFFFF9800);
   final Color _secondaryColor = const Color(0xFFFF4E00);
   
-  bool _obscurePassword = true;
+  bool _isLoading = false;
   String? _selectedPosition;
   String? _selectedWorkplace;
 
   final List<Map<String, String>> _positions = [
     {'value': 'admin', 'label': 'Quản trị viên'},
-    {'value': 'staff', 'label': 'Nhân viên trực sân'},
+    {'value': 'manager', 'label': 'Quản lý cơ sở'},
+    {'value': 'staff', 'label': 'Nhân viên vận hành'},
+    {'value': 'coach', 'label': 'Huấn luyện viên'},
+    {'value': 'receptionist', 'label': 'Lễ tân'},
   ];
 
-  final List<Map<String, String>> _workplaces = [
-    {'value': '1', 'label': 'SPORTSET Quận 1'},
-    {'value': '2', 'label': 'SPORTSET Bình Thạnh'},
-    {'value': '3', 'label': 'SPORTSET Quận 7'},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _checkCreatePermission();
+  }
+  
+  Future<void> _checkCreatePermission() async {
+    final permissionMap = await _accessControlService.getCurrentPermissionMap();
+    final hasPermission = _accessControlService.can(permissionMap, 'staff', 'create');
+    
+    if (!hasPermission && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bạn không có quyền tạo nhân viên'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      Navigator.pop(context);
+    }
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
-    _passwordController.dispose();
     super.dispose();
   }
 
@@ -227,12 +249,10 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
           keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: 20),
-        _buildPasswordField(),
-        const SizedBox(height: 20),
         _buildDropdownField(
-          label: 'Chức vụ',
+          label: 'Vị trí làm việc',
           icon: Icons.work,
-          placeholder: 'Chọn chức vụ',
+          placeholder: 'Chọn vị trí',
           value: _selectedPosition,
           items: _positions,
           onChanged: (value) {
@@ -242,18 +262,7 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
           },
         ),
         const SizedBox(height: 20),
-        _buildDropdownField(
-          label: 'Cơ sở làm việc',
-          icon: Icons.location_on,
-          placeholder: 'Chọn cơ sở',
-          value: _selectedWorkplace,
-          items: _workplaces,
-          onChanged: (value) {
-            setState(() {
-              _selectedWorkplace = value;
-            });
-          },
-        ),
+        _buildFacilityDropdown(),
       ],
     );
   }
@@ -314,14 +323,16 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
     );
   }
 
-  Widget _buildPasswordField() {
+
+
+  Widget _buildFacilityDropdown() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 6),
           child: Text(
-            'Mật khẩu',
+            'Cơ sở làm việc',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -329,48 +340,99 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
             ),
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 4,
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('facilities')
+              .orderBy('name')
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+                height: 56,
+                child: Center(
+                  child: SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      color: _orangeColor,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: const Text('Lỗi tải dữ liệu'),
+              );
+            }
+
+            final facilities = snapshot.data?.docs ?? [];
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 4,
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: TextField(
-            controller: _passwordController,
-            obscureText: _obscurePassword,
-            decoration: InputDecoration(
-              hintText: '••••••••',
-              hintStyle: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[400],
-              ),
-              prefixIcon: Icon(
-                Icons.lock,
-                color: Colors.grey[400],
-                size: 20,
-              ),
-              suffixIcon: GestureDetector(
-                onTap: () {
+              child: DropdownButtonFormField<String>(
+                value: _selectedWorkplace,
+                decoration: InputDecoration(
+                  hintText: 'Chọn cơ sở',
+                  hintStyle: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[400],
+                  ),
+                  prefixIcon: Icon(
+                    Icons.location_on,
+                    color: Colors.grey[400],
+                    size: 20,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                ),
+                icon: Icon(
+                  Icons.expand_more,
+                  color: Colors.grey[400],
+                ),
+                style: TextStyle(fontSize: 14, color: _navyColor),
+                dropdownColor: Colors.white,
+                items: facilities.map((facility) {
+                  final id = facility.id;
+                  final name = facility['name'] ?? 'Unknown';
+                  return DropdownMenuItem<String>(
+                    value: id,
+                    child: Text(name),
+                  );
+                }).toList(),
+                onChanged: (value) {
                   setState(() {
-                    _obscurePassword = !_obscurePassword;
+                    _selectedWorkplace = value;
                   });
                 },
-                child: Icon(
-                  _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                  color: Colors.grey[400],
-                  size: 20,
-                ),
               ),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            ),
-            style: const TextStyle(fontSize: 14),
-          ),
+            );
+          },
         ),
       ],
     );
@@ -464,39 +526,111 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
         ],
       ),
       child: TextButton(
-        onPressed: () {
-          // Handle save
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đã lưu thông tin nhân viên')),
-          );
-          Navigator.pop(context);
-        },
+        onPressed: _isLoading ? null : _handleSave,
         style: TextButton.styleFrom(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
         ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.save,
-              color: Colors.white,
-              size: 20,
-            ),
-            SizedBox(width: 8),
-            Text(
-              'Lưu Thông Tin',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+        child: _isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.save,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Thêm Nhân Viên',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
+  }
+
+  Future<void> _handleSave() async {
+    // Validate inputs
+    if (_nameController.text.isEmpty ||
+        _emailController.text.isEmpty ||
+        _phoneController.text.isEmpty ||
+        _selectedPosition == null ||
+        _selectedWorkplace == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng điền đầy đủ thông tin'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Get facility name from selected ID
+      final facilityDoc = await FirebaseFirestore.instance
+          .collection('facilities')
+          .doc(_selectedWorkplace)
+          .get();
+      final facilityName = facilityDoc['name'] ?? _selectedWorkplace ?? '';
+
+      final now = DateTime.now();
+      final newStaff = Staff(
+        id: '', // Firestore will auto-generate
+        name: _nameController.text,
+        email: _emailController.text,
+        phone: _phoneController.text,
+        position: _selectedPosition!,
+        facilityId: _selectedWorkplace!,
+        facilityName: facilityName,
+        status: 'active',
+        avatar: null,
+        permissionGroupId: '', // Can be set separately
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await _staffService.createStaff(newStaff);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã thêm nhân viên thành công'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 }
 

@@ -1,10 +1,16 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:sportset_admin/models/court.dart';
 import 'package:sportset_admin/models/facility.dart';
+import 'package:sportset_admin/models/sport.dart';
 import 'package:sportset_admin/services/court_service.dart';
 import 'package:sportset_admin/services/facility_service.dart';
+import 'package:sportset_admin/services/sport_service.dart';
+import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 // Trang chỉnh sửa sân
@@ -30,16 +36,22 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
   final int _currentNavIndex = 1;
   final CourtService _courtService = CourtService();
   final FacilityService _facilityService = FacilityService();
+  final SportService _sportService = SportService();
+  final AccessControlService _accessControlService = AccessControlService();
+  
   String? _courtId;
   bool _didLoadInitialData = false;
   bool _isSaving = false;
   bool _isLoadingFacilities = true;
+  bool _isLoadingSports = true;
+  bool _hasEditPermission = true;
 
   List<Facility> _facilities = <Facility>[];
+  List<Sport> _sports = <Sport>[];
   String? _selectedFacilityId;
 
   String _selectedFacility = '';
-  String _selectedSport = 'Bóng đá (Sân 5)';
+  String _selectedSport = '';
 
   final List<Map<String, dynamic>> _subCourts = [
     {'name': 'Sân A1', 'isActive': true},
@@ -53,6 +65,9 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
   String _existingImage =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuBimKqI_K3ErU0fFiygQjiFvtQuimeAaux_Cg2sGwexIKAmqiz6rjscATpgV0yUpnAE0hqg_UBnBirUkOn2dyeAw_WNKTL490x7sbdkiwYtiGQTBdNz3lzzlw_vY_5yIDTkWigcdfjnlZnhEfA_4c8PztUf70ixOUCk2o_md8bggUsKef12TEtfnJGe1kWRUYaxtyc9T3Za6A-XllgsL76O26pfZ_1n5_6-D3da3HGP5RNTTVEjitmGnQJWXLLwAZ-_LCUtr5IP3tHy';
 
+  File? _selectedImageFile;
+  bool _isUploadingImage = false;
+
   final List<Map<String, dynamic>> _weekdayPricing = [
     {'startTime': '05:00', 'endTime': '16:00', 'price': 150000},
     {'startTime': '17:00', 'endTime': '22:00', 'price': 250000},
@@ -65,7 +80,26 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
   @override
   void initState() {
     super.initState();
+    _checkEditPermission();
     _loadFacilities();
+    _loadSports();
+  }
+  
+  Future<void> _checkEditPermission() async {
+    final permissionMap = await _accessControlService.getCurrentPermissionMap();
+    final hasPermission = _accessControlService.can(permissionMap, 'courts', 'update');
+    
+    if (!hasPermission && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bạn không có quyền chỉnh sửa sân'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      Navigator.pop(context);
+    }
+    
+    setState(() => _hasEditPermission = hasPermission);
   }
 
   @override
@@ -180,6 +214,28 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
     }
   }
 
+  Future<void> _loadSports() async {
+    try {
+      final sports = await _sportService.getAllSports();
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _sports = sports.where((sport) => sport.isVisible).toList();
+        if (_selectedSport.isEmpty && _sports.isNotEmpty) {
+          _selectedSport = _sports.first.name;
+        }
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingSports = false;
+        });
+      }
+    }
+  }
+
   void _syncSelectedFacilityFromList() {
     if (_selectedFacilityId == null || _facilities.isEmpty) {
       return;
@@ -209,6 +265,58 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
       }
     }
     return null;
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 1920,
+      maxHeight: 1440,
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImageFile = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<String?> _uploadImageToFirebase() async {
+    if (_selectedImageFile == null) {
+      return null;
+    }
+
+    try {
+      setState(() => _isUploadingImage = true);
+
+      final fileName =
+          'courts/${DateTime.now().millisecondsSinceEpoch}_${_selectedImageFile!.path.split('/').last}';
+      final uploadTask = FirebaseStorage.instance
+          .ref()
+          .child(fileName)
+          .putFile(_selectedImageFile!);
+
+      final taskSnapshot = await uploadTask;
+      final downloadUrl = await taskSnapshot.ref.getDownloadURL();
+
+      if (mounted) {
+        setState(() => _isUploadingImage = false);
+      }
+
+      return downloadUrl;
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isUploadingImage = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi tải ảnh: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return null;
+    }
   }
 
   @override
@@ -380,30 +488,34 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
   }
 
   Widget _buildImageSection() {
-    return GestureDetector(
-      onTap: () {
-        // TODO: Implement image picker
-      },
-      child: Stack(
-        children: [
-          Container(
-            width: double.infinity,
-            height: 200,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Stack(
-                children: [
+    return Stack(
+      children: [
+        Container(
+          width: double.infinity,
+          height: 200,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Stack(
+              children: [
+                if (_selectedImageFile != null)
+                  Image.file(
+                    _selectedImageFile!,
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.cover,
+                  )
+                else
                   Image.network(
                     _existingImage,
                     width: double.infinity,
@@ -420,25 +532,31 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                       );
                     },
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          _navyColor.withValues(alpha: 0.1),
-                          _navyColor.withValues(alpha: 0.2),
-                        ],
-                      ),
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        _navyColor.withValues(alpha: 0.1),
+                        _navyColor.withValues(alpha: 0.2),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          Positioned(
-            bottom: 12,
-            right: 12,
+        ),
+        Positioned(
+          bottom: 12,
+          right: 12,
+          child: GestureDetector(
+            onTap: _isUploadingImage
+                ? null
+                : () async {
+                    await _pickImage();
+                  },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
@@ -457,7 +575,7 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                   Icon(Icons.edit, size: 18, color: _orangeColor),
                   const SizedBox(width: 6),
                   Text(
-                    'Thay đổi ảnh',
+                    _selectedImageFile != null ? 'Thay đổi ảnh' : 'Thay đổi ảnh',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -468,8 +586,8 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -554,7 +672,7 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                 ],
               ),
               child: DropdownButtonFormField<String>(
-                initialValue: _selectedSport,
+                initialValue: _selectedSport.isEmpty ? null : _selectedSport,
                 decoration: InputDecoration(
                   prefixIcon: Icon(Icons.sports_soccer, color: _orangeColor),
                   contentPadding: const EdgeInsets.symmetric(
@@ -562,6 +680,9 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                     vertical: 12,
                   ),
                   border: InputBorder.none,
+                  hintText: _sports.isEmpty
+                      ? 'Chưa có danh mục môn thể thao'
+                      : 'Chọn môn thể thao',
                 ),
                 style: const TextStyle(
                   fontSize: 14,
@@ -570,21 +691,19 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                 ),
                 icon: const Icon(Icons.expand_more, color: Colors.grey),
                 dropdownColor: Colors.white,
-                items:
-                    [
-                      'Bóng đá (Sân 5)',
-                      'Bóng đá (Sân 7)',
-                      'Cầu lông',
-                      'Pickleball',
-                      'Tennis',
-                    ].map((sport) {
-                      return DropdownMenuItem(value: sport, child: Text(sport));
-                    }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedSport = value!;
-                  });
-                },
+                items: _sports
+                    .map((sport) => DropdownMenuItem(
+                          value: sport.name,
+                          child: Text(sport.name),
+                        ))
+                    .toList(),
+                onChanged: _sports.isEmpty
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _selectedSport = value ?? '';
+                        });
+                      },
               ),
             ),
           ],
@@ -1451,6 +1570,17 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
     );
 
     try {
+      String imageUrl = _existingImage;
+      
+      // Upload new image if selected
+      if (_selectedImageFile != null) {
+        final uploadedUrl = await _uploadImageToFirebase();
+        if (uploadedUrl != null) {
+          imageUrl = uploadedUrl;
+          _existingImage = uploadedUrl;
+        }
+      }
+
       await _courtService.updateCourt(
         id: _courtId!,
         facilityId: selectedFacility.id,
@@ -1460,7 +1590,7 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
         address: selectedFacility.address,
         pricePerHour: price,
         status: hasActiveSubCourt ? 'available' : 'maintenance',
-        imageUrl: _existingImage,
+        imageUrl: imageUrl,
         description: _descriptionController.text.trim(),
         amenities: List<String>.from(_selectedAmenities),
         subCourts: _subCourts

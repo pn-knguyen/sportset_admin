@@ -4,6 +4,7 @@ import 'package:sportset_admin/models/facility.dart';
 import 'package:sportset_admin/routes/app_routes.dart';
 import 'package:sportset_admin/services/court_service.dart';
 import 'package:sportset_admin/services/facility_service.dart';
+import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 // 3.1. Chi tiết cơ sở (Create/Update)
@@ -21,6 +22,24 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
   final Color _orangeBrandColor = const Color(0xFFFF5722);
   final CourtService _courtService = CourtService();
   final FacilityService _facilityService = FacilityService();
+  final AccessControlService _accessControlService = AccessControlService();
+  
+  bool _canEdit = false;
+  bool _canDelete = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPermissions();
+  }
+  
+  Future<void> _checkPermissions() async {
+    final permissionMap = await _accessControlService.getCurrentPermissionMap();
+    setState(() {
+      _canEdit = _accessControlService.can(permissionMap, 'facilities', 'update');
+      _canDelete = _accessControlService.can(permissionMap, 'facilities', 'delete');
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,116 +48,120 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8F6),
-      body: Stack(
-        children: [
-          // Main Content
-          if (facilityId == null || facilityId.isEmpty)
-            const Center(
-              child: Text('Không tìm thấy thông tin cơ sở'),
-            )
-          else
-            StreamBuilder<Facility?>(
-              stream: _facilityService.getFacilityByIdStream(facilityId),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: facilityId == null || facilityId.isEmpty
+                  ? const Center(
+                      child: Text('Không tìm thấy thông tin cơ sở'),
+                    )
+                  : StreamBuilder<Facility?>(
+                      stream: _facilityService.getFacilityByIdStream(facilityId),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
 
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Không thể tải dữ liệu cơ sở',
-                      style: TextStyle(color: Colors.red[400]),
+                        if (snapshot.hasError) {
+                          return Center(
+                            child: Text(
+                              'Không thể tải dữ liệu cơ sở',
+                              style: TextStyle(color: Colors.red[400]),
+                            ),
+                          );
+                        }
+
+                        final facility = snapshot.data;
+                        if (facility == null) {
+                          return const Center(
+                            child: Text('Cơ sở không tồn tại hoặc đã bị xóa'),
+                          );
+                        }
+
+                        return SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(0, 20, 0, 32),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildImageGallery(facility),
+                              const SizedBox(height: 16),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildFacilityInfo(facility),
+                                    const SizedBox(height: 24),
+                                    _buildAmenities(facility),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+                              _buildCourtsList(facility.id),
+                              const SizedBox(height: 32),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                child: _buildActionButtons(facility.id, facility.name),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                  );
-                }
-
-                final facility = snapshot.data;
-                if (facility == null) {
-                  return const Center(
-                    child: Text('Cơ sở không tồn tại hoặc đã bị xóa'),
-                  );
-                }
-
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.only(top: 104, bottom: 32),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildImageGallery(facility),
-                      const SizedBox(height: 16),
-                      _buildFacilityInfo(facility),
-                      const SizedBox(height: 24),
-                      _buildAmenities(facility),
-                      const SizedBox(height: 32),
-                      _buildCourtsList(facility.id),
-                      const SizedBox(height: 32),
-                      _buildActionButtons(facility.id, facility.name),
-                    ],
-                  ),
-                );
-              },
             ),
-
-          // Header
-          _buildHeader(),
-        ],
+            ],
+        ),
       ),
       bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
     );
   }
 
   Widget _buildHeader() {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 48, 20, 16),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF8F6),
-          border: Border(
-            bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
-          ),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8F6),
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
         ),
-        child: SafeArea(
-          bottom: false,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              GestureDetector(
-                onTap: () {
-                  Navigator.pop(context);
-                },
-                child: Container(
-                  height: 40,
-                  width: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withValues(alpha: 0.1),
-                        blurRadius: 4,
-                      ),
-                    ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          GestureDetector(
+            onTap: () {
+              Navigator.pop(context);
+            },
+            child: Container(
+              height: 40,
+              width: 40,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withValues(alpha: 0.1),
+                    blurRadius: 4,
                   ),
-                  child: Icon(Icons.chevron_left, size: 28, color: _navyColor),
-                ),
+                ],
               ),
-              Text(
-                'Chi Tiết Cơ Sở',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: _navyColor,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(width: 40),
-            ],
+              child: Icon(Icons.chevron_left, size: 28, color: _navyColor),
+            ),
           ),
-        ),
+          Text(
+            'Chi Tiết Cơ Sở',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: _navyColor,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(width: 40),
+        ],
       ),
     );
   }
@@ -198,91 +221,88 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
   Widget _buildFacilityInfo(Facility facility) {
     final isOpen = facility.status == 'open';
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.orange.withValues(alpha: 0.05)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    facility.name,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: _navyColor,
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  facility.name,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: _navyColor,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: isOpen
+                      ? Colors.green.withValues(alpha: 0.1)
+                      : Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: isOpen ? Colors.green : Colors.red,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isOpen
-                        ? Colors.green.withValues(alpha: 0.1)
-                        : Colors.red.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: isOpen ? Colors.green : Colors.red,
-                          shape: BoxShape.circle,
-                        ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isOpen ? 'ĐANG MỞ' : 'ĐANG ĐÓNG',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isOpen ? Colors.green : Colors.red,
+                        letterSpacing: 0.5,
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        isOpen ? 'ĐANG MỞ' : 'ĐANG ĐÓNG',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: isOpen ? Colors.green : Colors.red,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow(
-              Icons.location_on,
-              facility.address,
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow(Icons.call, facility.hotline),
-            const SizedBox(height: 16),
-            Container(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
-            const SizedBox(height: 16),
-            _buildInfoRow(
-              Icons.schedule,
-              '${facility.openTime} - ${facility.closeTime}',
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow(
+            Icons.location_on,
+            facility.address,
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow(Icons.call, facility.hotline),
+          const SizedBox(height: 16),
+          Container(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
+          const SizedBox(height: 16),
+          _buildInfoRow(
+            Icons.schedule,
+            '${facility.openTime} - ${facility.closeTime}',
+          ),
+        ],
       ),
     );
   }
@@ -314,94 +334,88 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            'TIỆN ÍCH CƠ SỞ',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: _navyColor,
-              letterSpacing: 1.5,
-            ),
+        Text(
+          'TIỆN ÍCH CƠ SỞ',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: _navyColor,
+            letterSpacing: 1.5,
           ),
         ),
         const SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: amenities.isEmpty
-              ? Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-                  ),
-                  child: Text(
-                    'Chưa cập nhật tiện ích cho cơ sở này',
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                )
-              : LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isNarrow = constraints.maxWidth < 360;
-                    return GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: isNarrow ? 3 : 4,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: isNarrow ? 0.9 : 0.85,
-                      ),
-                      itemCount: amenities.length,
-                      itemBuilder: (context, index) {
-                        final amenityLabel = amenities[index];
-                        return Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Colors.grey.withValues(alpha: 0.1),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withValues(alpha: 0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                _amenityIcon(amenityLabel),
-                                color: _orangeLightColor,
-                                size: 24,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                amenityLabel,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey[500],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    );
-                  },
+        amenities.isEmpty
+            ? Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                 ),
-        ),
+                child: Text(
+                  'Chưa cập nhật tiện ích cho cơ sở này',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              )
+            : LayoutBuilder(
+                builder: (context, constraints) {
+                  final isNarrow = constraints.maxWidth < 360;
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: isNarrow ? 3 : 4,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: isNarrow ? 0.9 : 0.85,
+                    ),
+                    itemCount: amenities.length,
+                    itemBuilder: (context, index) {
+                      final amenityLabel = amenities[index];
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.grey.withValues(alpha: 0.1),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withValues(alpha: 0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _amenityIcon(amenityLabel),
+                              color: _orangeLightColor,
+                              size: 24,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              amenityLabel,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+                  ),
       ],
     );
   }
@@ -619,20 +633,31 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
             child: SizedBox(
               height: 56,
               child: OutlinedButton(
-                onPressed: () {
-                  _showDeleteDialog(facilityName);
-                },
+                onPressed: _canDelete
+                    ? () {
+                        _showDeleteDialog(facilityName);
+                      }
+                    : null,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  side: const BorderSide(color: Colors.red, width: 2),
+                  foregroundColor: _canDelete ? Colors.red : Colors.grey,
+                  side: BorderSide(
+                    color: _canDelete ? Colors.red : Colors.grey.withValues(alpha: 0.3),
+                    width: 2,
+                  ),
                   backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Xóa cơ sở',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: _canDelete ? Colors.red : Colors.grey,
+                  ),
                 ),
               ),
             ),
@@ -643,13 +668,17 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
             child: Container(
               height: 56,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF9500), Color(0xFFF44336)],
+                gradient: LinearGradient(
+                  colors: _canEdit
+                      ? [const Color(0xFFFF9500), const Color(0xFFF44336)]
+                      : [Colors.grey.withValues(alpha: 0.5), Colors.grey.withValues(alpha: 0.5)],
                 ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.orange.withValues(alpha: 0.2),
+                    color: _canEdit
+                        ? Colors.orange.withValues(alpha: 0.2)
+                        : Colors.transparent,
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),
@@ -659,18 +688,20 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16),
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      AppRoutes.facilityEdit,
-                      arguments: {'id': facilityId},
-                    );
-                  },
-                  child: const Center(
+                  onTap: _canEdit
+                      ? () {
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.facilityEdit,
+                            arguments: {'id': facilityId},
+                          );
+                        }
+                      : null,
+                  child: Center(
                     child: Text(
                       'Chỉnh sửa cơ sở',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: _canEdit ? Colors.white : Colors.grey[400],
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),

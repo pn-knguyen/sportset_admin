@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sportset_admin/models/court.dart';
 import 'package:sportset_admin/routes/app_routes.dart';
 import 'package:sportset_admin/services/court_service.dart';
+import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 // Chi tiết sân
@@ -17,9 +18,26 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
   final Color _orangeColor = const Color(0xFFFF5722);
   final int _currentNavIndex = 1;
   final CourtService _courtService = CourtService();
-
+  final AccessControlService _accessControlService = AccessControlService();
+  
   bool _isStatusUpdating = false;
   int _currentImageIndex = 0;
+  bool _canEdit = false;
+  bool _canDelete = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPermissions();
+  }
+  
+  Future<void> _checkPermissions() async {
+    final permissionMap = await _accessControlService.getCurrentPermissionMap();
+    setState(() {
+      _canEdit = _accessControlService.can(permissionMap, 'courts', 'update');
+      _canDelete = _accessControlService.can(permissionMap, 'courts', 'delete');
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,27 +46,29 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: courtId == null || courtId.isEmpty
-                ? const Center(child: Text('Không tìm thấy mã sân'))
-                : StreamBuilder<Court?>(
-                    stream: _courtService.getCourtByIdStream(courtId),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: courtId == null || courtId.isEmpty
+                  ? const Center(child: Text('Không tìm thấy mã sân'))
+                  : StreamBuilder<Court?>(
+                      stream: _courtService.getCourtByIdStream(courtId),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
 
-                      if (snapshot.hasError) {
-                        return Center(
-                          child: Text(
-                            'Không thể tải dữ liệu sân',
-                            style: TextStyle(color: Colors.red[400]),
-                          ),
-                        );
-                      }
+                        if (snapshot.hasError) {
+                          return Center(
+                            child: Text(
+                              'Không thể tải dữ liệu sân',
+                              style: TextStyle(color: Colors.red[400]),
+                            ),
+                          );
+                        }
 
                       final court = snapshot.data;
                       if (court == null) {
@@ -88,57 +108,55 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
           ),
         ],
       ),
+      ),
       bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
     );
   }
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
+        color: const Color(0xFFFFF8F6),
         border: Border(
           bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
         ),
       ),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          children: [
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Icon(
-                  Icons.arrow_back_ios_new,
-                  size: 24,
-                  color: _navyColor,
-                ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Icon(
+                Icons.arrow_back_ios_new,
+                size: 24,
+                color: _navyColor,
               ),
             ),
-            Expanded(
-              child: Text(
-                'Chi Tiết Sân',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: _navyColor,
-                  letterSpacing: -0.5,
-                ),
+          ),
+          Expanded(
+            child: Text(
+              'Chi Tiết Sân',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: _navyColor,
+                letterSpacing: -0.5,
               ),
             ),
-            GestureDetector(
-              onTap: () {
-                // TODO: Implement share functionality
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Icon(Icons.share, size: 24, color: _navyColor),
-              ),
+          ),
+          GestureDetector(
+            onTap: () {
+              // TODO: Implement share functionality
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Icon(Icons.share, size: 24, color: _navyColor),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -847,9 +865,9 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
               ],
             ),
             child: ElevatedButton(
-              onPressed: () {
+              onPressed: _canDelete ? () {
                 _showDeleteDialog(court);
-              },
+              } : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 shadowColor: Colors.transparent,
@@ -887,13 +905,13 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
               ],
             ),
             child: ElevatedButton(
-              onPressed: () {
+              onPressed: _canEdit ? () {
                 Navigator.pushNamed(
                   context,
                   AppRoutes.courtEdit,
                   arguments: {'id': court.id},
                 );
-              },
+              } : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
@@ -965,9 +983,11 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
   }
 
   void _showDeleteDialog(Court court) {
+    final messenger = ScaffoldMessenger.of(context);
+
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -979,18 +999,18 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
           content: Text('Bạn có chắc chắn muốn xóa sân "${court.name}" không?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Hủy'),
             ),
             TextButton(
               onPressed: () async {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
                 try {
                   await _courtService.deleteCourt(court.id);
                   if (!mounted) {
                     return;
                   }
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text('Đã xóa sân thành công'),
                       backgroundColor: Colors.green,
@@ -1001,7 +1021,7 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
                   if (!mounted) {
                     return;
                   }
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text('Xóa sân thất bại, vui lòng thử lại'),
                       backgroundColor: Colors.red,

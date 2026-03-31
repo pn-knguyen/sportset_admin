@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 import 'package:sportset_admin/models/facility.dart';
+import 'package:sportset_admin/models/sport.dart';
 import 'package:sportset_admin/services/court_service.dart';
 import 'package:sportset_admin/services/facility_service.dart';
+import 'package:sportset_admin/services/sport_service.dart';
+import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 // Trang thêm mới sân
@@ -22,14 +28,22 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
   final int _currentNavIndex = 1;
   final CourtService _courtService = CourtService();
   final FacilityService _facilityService = FacilityService();
+  final SportService _sportService = SportService();
+  final AccessControlService _accessControlService = AccessControlService();
+  
   bool _isSaving = false;
   bool _isLoadingFacilities = true;
+  bool _isLoadingSports = true;
+  bool _hasCreatePermission = true;
+  bool _isUploadingImage = false;
 
   List<Facility> _facilities = <Facility>[];
+  List<Sport> _sports = <Sport>[];
   String? _selectedFacilityId;
+  File? _selectedImageFile;
+  String? _uploadedImageUrl;
 
-  String _selectedFacility = '';
-  String _selectedSport = 'Bóng đá (Sân 5)';
+  String _selectedSport = '';
 
   final List<Map<String, dynamic>> _subCourts = [
     {'name': 'Sân A1', 'isActive': true},
@@ -52,7 +66,48 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
   @override
   void initState() {
     super.initState();
+    _checkCreatePermission();
+    _loadSports();
     _loadFacilities();
+  }
+  
+  Future<void> _checkCreatePermission() async {
+    final permissionMap = await _accessControlService.getCurrentPermissionMap();
+    final hasPermission = _accessControlService.can(permissionMap, 'courts', 'create');
+    
+    if (!hasPermission && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bạn không có quyền tạo sân'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      Navigator.pop(context);
+    }
+    
+    setState(() => _hasCreatePermission = hasPermission);
+  }
+
+  Future<void> _loadSports() async {
+    try {
+      final sports = await _sportService.getAllSports();
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _sports = sports.where((sport) => sport.isVisible).toList();
+        if (_sports.isNotEmpty) {
+          _selectedSport = _sports.first.name;
+        }
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingSports = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadFacilities() async {
@@ -66,13 +121,76 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
         _facilities = facilities;
         if (_facilities.isNotEmpty) {
           _selectedFacilityId = _facilities.first.id;
-          _selectedFacility = _facilities.first.name;
         }
       });
     } finally {
       if (mounted) {
         setState(() {
           _isLoadingFacilities = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+        maxWidth: 1920,
+        maxHeight: 1440,
+      );
+
+      if (image != null) {
+        setState(() {
+          _selectedImageFile = File(image.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<String?> _uploadImageToFirebase() async {
+    if (_selectedImageFile == null) {
+      return null;
+    }
+
+    try {
+      setState(() {
+        _isUploadingImage = true;
+      });
+
+      final fileName = 'courts/${DateTime.now().millisecondsSinceEpoch}_${_selectedImageFile!.path.split('/').last}';
+      final Reference ref = FirebaseStorage.instance.ref().child(fileName);
+
+      final UploadTask uploadTask = ref.putFile(_selectedImageFile!);
+      final TaskSnapshot taskSnapshot = await uploadTask;
+
+      final String downloadUrl = await taskSnapshot.ref.getDownloadURL();
+      return downloadUrl;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi tải ảnh: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return null;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingImage = false;
         });
       }
     }
@@ -237,7 +355,6 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                     );
                     setState(() {
                       _selectedFacilityId = selected.id;
-                      _selectedFacility = selected.name;
                     });
                   },
           ),
@@ -261,14 +378,12 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
 
   Widget _buildImageUploadSection() {
     return GestureDetector(
-      onTap: () {
-        // TODO: Implement image picker
-      },
+      onTap: _isUploadingImage ? null : _pickImage,
       child: Container(
         width: double.infinity,
         height: 200,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: _selectedImageFile != null ? Colors.transparent : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: _orangeColor.withValues(alpha: 0.3),
@@ -283,29 +398,76 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              height: 56,
-              width: 56,
-              decoration: BoxDecoration(
-                color: _orangeColor.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+        child: _selectedImageFile != null
+            ? Stack(
+                alignment: Alignment.center,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Image.file(
+                      _selectedImageFile!,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 200,
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  if (_isUploadingImage)
+                    const CircularProgressIndicator(color: Colors.white)
+                  else
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          height: 56,
+                          width: 56,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.edit, size: 32, color: _orangeColor),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Chọn ảnh khác',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    height: 56,
+                    width: 56,
+                    decoration: BoxDecoration(
+                      color: _orangeColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.add_a_photo, size: 32, color: _orangeColor),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Tải ảnh thực tế sân bãi',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
               ),
-              child: Icon(Icons.add_a_photo, size: 32, color: _orangeColor),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Tải ảnh thực tế sân bãi',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -389,39 +551,47 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                   ),
                 ],
               ),
-              child: DropdownButtonFormField<String>(
-                initialValue: _selectedSport,
-                decoration: InputDecoration(
-                  prefixIcon: Icon(Icons.sports_soccer, color: _orangeColor),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  border: InputBorder.none,
-                ),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
-                icon: const Icon(Icons.expand_more, color: Colors.grey),
-                dropdownColor: Colors.white,
-                items:
-                    [
-                      'Bóng đá (Sân 5)',
-                      'Bóng đá (Sân 7)',
-                      'Cầu lông',
-                      'Pickleball',
-                      'Tennis',
-                    ].map((sport) {
-                      return DropdownMenuItem(value: sport, child: Text(sport));
-                    }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedSport = value!;
-                  });
-                },
-              ),
+              child: _isLoadingSports
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : DropdownButtonFormField<String>(
+                      initialValue: _selectedSport.isEmpty ? null : _selectedSport,
+                      decoration: InputDecoration(
+                        prefixIcon: Icon(Icons.sports_soccer, color: _orangeColor),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        border: InputBorder.none,
+                        hintText: _sports.isEmpty
+                            ? 'Chưa có danh mục môn thể thao'
+                            : 'Chọn môn thể thao',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                      icon: const Icon(Icons.expand_more, color: Colors.grey),
+                      dropdownColor: Colors.white,
+                      items: _sports
+                          .map(
+                            (sport) => DropdownMenuItem(
+                              value: sport.name,
+                              child: Text(sport.name),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: _sports.isEmpty
+                          ? null
+                          : (value) {
+                              setState(() {
+                                _selectedSport = value ?? '';
+                              });
+                            },
+                    ),
             ),
           ],
         ),
@@ -1250,6 +1420,16 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
       return;
     }
 
+    if (_selectedSport.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng chọn danh mục môn thể thao'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final selectedFacility = _currentFacility();
     if (selectedFacility == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1277,6 +1457,16 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
     );
 
     try {
+      // Upload image if selected
+      if (_selectedImageFile != null) {
+        final imageUrl = await _uploadImageToFirebase();
+        if (imageUrl != null) {
+          setState(() {
+            _uploadedImageUrl = imageUrl;
+          });
+        }
+      }
+
       await _courtService.createCourt(
         facilityId: selectedFacility.id,
         name: _courtNameController.text.trim(),
@@ -1287,6 +1477,7 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
         status: hasActiveSubCourt ? 'available' : 'maintenance',
         description: _descriptionController.text.trim(),
         amenities: List<String>.from(_selectedAmenities),
+        imageUrl: _uploadedImageUrl,
         subCourts: _subCourts
             .map(
               (court) => {

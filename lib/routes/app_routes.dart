@@ -43,6 +43,13 @@ class AppRoutes {
   static const String permissionCreate = '/permission-create';
   static const String permissionEdit = '/permission-edit';
   static const String permissionDelete = '/permission-delete';
+
+  // Management routes - Accounts
+  static const String accountList = '/account-list';
+  static const String accountCreate = '/account-create';
+  static const String accountDetail = '/account-detail';
+  static const String accountEdit = '/account-edit';
+  static const String accountDelete = '/account-delete';
   static const String revenue = '/revenue';
   static const String customers = '/customers';
   static const String customerDetail = '/customer-detail';

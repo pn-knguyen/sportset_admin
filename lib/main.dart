@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:sportset_admin/routes/app_routes.dart';
 import 'package:sportset_admin/firebase_options.dart';
+import 'package:sportset_admin/services/setup_service.dart';
 import 'package:sportset_admin/screens/auth/login_screen.dart';
 import 'package:sportset_admin/screens/main_screen.dart';
 import 'package:sportset_admin/screens/account/account_screen.dart';
@@ -30,6 +31,11 @@ import 'package:sportset_admin/screens/management/permission/permission_list_scr
 import 'package:sportset_admin/screens/management/permission/permission_create_screen.dart';
 import 'package:sportset_admin/screens/management/permission/permission_edit_screen.dart';
 import 'package:sportset_admin/screens/management/permission/permission_delete_screen.dart';
+import 'package:sportset_admin/screens/management/account/account_list_screen.dart';
+import 'package:sportset_admin/screens/management/account/account_creation_screen.dart';
+import 'package:sportset_admin/screens/management/account/account_detail_screen.dart';
+import 'package:sportset_admin/screens/management/account/account_edit_screen.dart';
+import 'package:sportset_admin/screens/management/account/account_delete_screen.dart';
 import 'package:sportset_admin/screens/management/revenue/revenue_screen.dart';
 import 'package:sportset_admin/screens/management/customer/customer_list_screen.dart';
 import 'package:sportset_admin/screens/management/customer/customer_detail_screen.dart';
@@ -41,6 +47,13 @@ import 'package:sportset_admin/screens/booking/booking_detail_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  // Setup default admin account and permission group
+  await SetupService.setupDefaultAdmin();
+  
+  // Debug: Show all accounts
+  await SetupService.debugShowAllAccounts();
+  
   runApp(const MainApp());
 }
 
@@ -99,6 +112,11 @@ class MainApp extends StatelessWidget {
         AppRoutes.permissionCreate: (context) => const PermissionCreateScreen(),
         AppRoutes.permissionEdit: (context) => const PermissionEditScreen(),
         AppRoutes.permissionDelete: (context) => const PermissionDeleteScreen(),
+        AppRoutes.accountList: (context) => const AccountListScreen(),
+        AppRoutes.accountCreate: (context) => const AccountCreationScreen(),
+        AppRoutes.accountDetail: (context) => const AccountDetailScreen(),
+        AppRoutes.accountEdit: (context) => const AccountEditScreen(),
+        AppRoutes.accountDelete: (context) => const AccountDeleteScreen(),
 
         // Management - Revenue
         AppRoutes.revenue: (context) => const RevenueScreen(),
