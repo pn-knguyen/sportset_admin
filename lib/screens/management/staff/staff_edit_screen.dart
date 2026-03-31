@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:sportset_admin/models/staff.dart';
 import 'package:sportset_admin/services/staff_service.dart';
 import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
+import 'dart:typed_data';
 
 class StaffEditScreen extends StatefulWidget {
   const StaffEditScreen({super.key});
@@ -18,6 +21,7 @@ class _StaffEditScreenState extends State<StaffEditScreen> {
   final TextEditingController _emailController = TextEditingController();
   final StaffService _staffService = StaffService();
   final AccessControlService _accessControlService = AccessControlService();
+  final ImagePicker _imagePicker = ImagePicker();
   
   final int _currentNavIndex = 1;
   final Color _navyColor = const Color(0xFF0C1C46);
@@ -26,6 +30,8 @@ class _StaffEditScreenState extends State<StaffEditScreen> {
   String? _staffId;
   String? _selectedPosition;
   String? _selectedWorkplace;
+  Uint8List? _selectedAvatarBytes;
+  String? _selectedAvatarFileName;
   bool _isLoading = false;
 
   final List<Map<String, String>> _positions = [
@@ -217,7 +223,14 @@ class _StaffEditScreenState extends State<StaffEditScreen> {
                 ],
                 border: Border.all(color: Colors.orange[100]!, width: 2),
               ),
-              child: staff.avatar != null
+              child: _selectedAvatarBytes != null
+                  ? ClipOval(
+                      child: Image.memory(
+                        _selectedAvatarBytes!,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : staff.avatar != null
                   ? ClipOval(
                       child: Image.network(
                         staff.avatar!,
@@ -241,9 +254,7 @@ class _StaffEditScreenState extends State<StaffEditScreen> {
               bottom: 0,
               right: 0,
               child: GestureDetector(
-                onTap: () {
-                  // Handle image picker
-                },
+                onTap: _isLoading ? null : _showImageSourceDialog,
                 child: Container(
                   width: 32,
                   height: 32,
@@ -279,6 +290,109 @@ class _StaffEditScreenState extends State<StaffEditScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _showImageSourceDialog() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (bottomSheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('Chọn từ thư viện'),
+                  onTap: () {
+                    Navigator.pop(bottomSheetContext);
+                    _pickAvatar(ImageSource.gallery);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_camera),
+                  title: const Text('Chụp ảnh mới'),
+                  onTap: () {
+                    Navigator.pop(bottomSheetContext);
+                    _pickAvatar(ImageSource.camera);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickAvatar(ImageSource source) async {
+    try {
+      final pickedImage = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 80,
+        maxWidth: 1080,
+      );
+
+      if (pickedImage == null) {
+        return;
+      }
+
+      final bytes = await pickedImage.readAsBytes();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _selectedAvatarBytes = bytes;
+        _selectedAvatarFileName = pickedImage.name;
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể chọn ảnh: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  String _inferImageContentType(String fileName) {
+    final lowercase = fileName.toLowerCase();
+    if (lowercase.endsWith('.png')) {
+      return 'image/png';
+    }
+    if (lowercase.endsWith('.webp')) {
+      return 'image/webp';
+    }
+    return 'image/jpeg';
+  }
+
+  Future<String?> _uploadAvatarIfNeeded() async {
+    if (_selectedAvatarBytes == null) {
+      return null;
+    }
+
+    final safeFileName =
+        (_selectedAvatarFileName ?? 'avatar.jpg').replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+    final filePath =
+        'staff_avatars/${_staffId ?? 'unknown'}_${DateTime.now().millisecondsSinceEpoch}_$safeFileName';
+    final storageRef = FirebaseStorage.instance.ref().child(filePath);
+
+    final metadata = SettableMetadata(
+      contentType: _inferImageContentType(safeFileName),
+    );
+    final uploadTask = storageRef.putData(_selectedAvatarBytes!, metadata);
+    final snapshot = await uploadTask;
+    return snapshot.ref.getDownloadURL();
   }
 
   Widget _buildFormFields() {
@@ -394,6 +508,11 @@ class _StaffEditScreenState extends State<StaffEditScreen> {
     required List<Map<String, String>> items,
     required ValueChanged<String?> onChanged,
   }) {
+    final selectedCount = items
+        .where((item) => item['value'] == value)
+        .length;
+    final safeSelectedValue = selectedCount == 1 ? value : null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -421,7 +540,7 @@ class _StaffEditScreenState extends State<StaffEditScreen> {
             ],
           ),
           child: DropdownButtonFormField<String>(
-            initialValue: value,
+            initialValue: safeSelectedValue,
             decoration: InputDecoration(
               hintText: placeholder,
               hintStyle: TextStyle(
@@ -520,6 +639,12 @@ class _StaffEditScreenState extends State<StaffEditScreen> {
             }
 
             final facilities = snapshot.data?.docs ?? [];
+            final selectedFacilityCount = facilities
+                .where((facility) => facility.id == _selectedWorkplace)
+                .length;
+            final safeSelectedWorkplace =
+                selectedFacilityCount == 1 ? _selectedWorkplace : null;
+
             return Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -533,7 +658,7 @@ class _StaffEditScreenState extends State<StaffEditScreen> {
                 ],
               ),
               child: DropdownButtonFormField<String>(
-                value: _selectedWorkplace,
+                value: safeSelectedWorkplace,
                 decoration: InputDecoration(
                   prefixIcon: Icon(
                     Icons.location_on,
@@ -648,6 +773,8 @@ class _StaffEditScreenState extends State<StaffEditScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final avatarUrl = await _uploadAvatarIfNeeded();
+
       // Get facility name from selected ID
       final facilityDoc = await FirebaseFirestore.instance
           .collection('facilities')
@@ -655,14 +782,20 @@ class _StaffEditScreenState extends State<StaffEditScreen> {
           .get();
       final facilityName = facilityDoc['name'] ?? _selectedWorkplace ?? '';
 
-      await _staffService.updateStaff(_staffId!, {
+      final updateData = <String, dynamic>{
         'name': _nameController.text,
         'email': _emailController.text,
         'phone': _phoneController.text,
         'position': _selectedPosition,
         'facilityId': _selectedWorkplace,
         'facilityName': facilityName,
-      });
+      };
+
+      if (avatarUrl != null) {
+        updateData['avatar'] = avatarUrl;
+      }
+
+      await _staffService.updateStaff(_staffId!, updateData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
