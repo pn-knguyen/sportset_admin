@@ -635,7 +635,7 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
               child: OutlinedButton(
                 onPressed: _canDelete
                     ? () {
-                        _showDeleteDialog(facilityName);
+                        _showDeleteDialog(facilityId, facilityName);
                       }
                     : null,
                 style: OutlinedButton.styleFrom(
@@ -716,10 +716,10 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
     );
   }
 
-  void _showDeleteDialog(String facilityName) {
+  void _showDeleteDialog(String facilityId, String facilityName) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -734,21 +734,52 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.of(dialogContext).pop();
               },
               child: Text('Hủy', style: TextStyle(color: Colors.grey[600])),
             ),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                // TODO: Implement delete logic
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Đã xóa cơ sở thành công'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                Navigator.pop(context);
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                try {
+                  await _facilityService.deleteFacility(facilityId);
+                  if (!mounted) {
+                    return;
+                  }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Đã xóa cơ sở "$facilityName"'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  Navigator.of(context).pop();
+                } on StateError catch (e) {
+                  if (!mounted) {
+                    return;
+                  }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        e.message ??
+                            'Không thể xóa cơ sở do còn sân trực thuộc',
+                      ),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                } catch (e) {
+                  if (!mounted) {
+                    return;
+                  }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Lỗi: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,

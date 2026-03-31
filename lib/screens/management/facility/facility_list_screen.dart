@@ -629,6 +629,15 @@ class _FacilityListScreenState extends State<FacilityListScreen> {
           ),
         );
       }
+    } on StateError catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? 'Không thể xóa cơ sở do còn dữ liệu liên quan'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

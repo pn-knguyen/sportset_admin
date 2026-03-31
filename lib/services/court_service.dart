@@ -111,11 +111,14 @@ class CourtService {
     return _firestore
         .collection(_collection)
         .where('facilityId', isEqualTo: facilityId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs.map((doc) => Court.fromFirestore(doc)).toList(),
-        );
+        .map((snapshot) {
+          final courts = snapshot.docs
+              .map((doc) => Court.fromFirestore(doc))
+              .toList();
+
+          courts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return courts;
+        });
   }
 }

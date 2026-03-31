@@ -192,13 +192,31 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
   Future<void> _loadFacilities() async {
     try {
       final facilities = await _facilityService.getAllFacilities();
+      final uniqueFacilities = <Facility>[];
+      final seenFacilityIds = <String>{};
+      for (final facility in facilities) {
+        if (seenFacilityIds.add(facility.id)) {
+          uniqueFacilities.add(facility);
+        }
+      }
+
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _facilities = facilities;
-        if (_selectedFacilityId == null && _facilities.isNotEmpty) {
+        _facilities = uniqueFacilities;
+        if (_facilities.isEmpty) {
+          _selectedFacilityId = null;
+          _selectedFacility = '';
+          return;
+        }
+
+        final hasCurrentSelection =
+            _selectedFacilityId != null &&
+            _facilities.any((facility) => facility.id == _selectedFacilityId);
+
+        if (!hasCurrentSelection) {
           _selectedFacilityId = _facilities.first.id;
           _selectedFacility = _facilities.first.name;
         }
@@ -223,8 +241,14 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
 
       setState(() {
         _sports = sports.where((sport) => sport.isVisible).toList();
-        if (_selectedSport.isEmpty && _sports.isNotEmpty) {
+        final hasCurrentSelection =
+            _selectedSport.isNotEmpty &&
+            _sports.any((sport) => sport.name == _selectedSport);
+
+        if (!hasCurrentSelection && _sports.isNotEmpty) {
           _selectedSport = _sports.first.name;
+        } else if (_sports.isEmpty) {
+          _selectedSport = '';
         }
       });
     } finally {
@@ -265,6 +289,39 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
       }
     }
     return null;
+  }
+
+  String? _validatedFacilitySelection() {
+    if (_selectedFacilityId == null || _selectedFacilityId!.isEmpty) {
+      return null;
+    }
+
+    final matches = _facilities
+        .where((facility) => facility.id == _selectedFacilityId)
+        .length;
+    return matches == 1 ? _selectedFacilityId : null;
+  }
+
+  List<String> _uniqueSportNames() {
+    final uniqueNames = <String>[];
+    final seenNames = <String>{};
+    for (final sport in _sports) {
+      if (sport.name.isEmpty) {
+        continue;
+      }
+      if (seenNames.add(sport.name)) {
+        uniqueNames.add(sport.name);
+      }
+    }
+    return uniqueNames;
+  }
+
+  String? _validatedSportSelection(List<String> sportNames) {
+    if (_selectedSport.isEmpty) {
+      return null;
+    }
+
+    return sportNames.contains(_selectedSport) ? _selectedSport : null;
   }
 
   Future<void> _pickImage() async {
@@ -448,7 +505,7 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
             ],
           ),
           child: DropdownButtonFormField<String>(
-            initialValue: _selectedFacilityId,
+            initialValue: _validatedFacilitySelection(),
             decoration: const InputDecoration(
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16,
@@ -592,6 +649,8 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
   }
 
   Widget _buildCourtInfoSection() {
+    final sportNames = _uniqueSportNames();
+
     return Column(
       children: [
         // Tên cụm sân
@@ -672,7 +731,7 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                 ],
               ),
               child: DropdownButtonFormField<String>(
-                initialValue: _selectedSport.isEmpty ? null : _selectedSport,
+                initialValue: _validatedSportSelection(sportNames),
                 decoration: InputDecoration(
                   prefixIcon: Icon(Icons.sports_soccer, color: _orangeColor),
                   contentPadding: const EdgeInsets.symmetric(
@@ -691,13 +750,13 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                 ),
                 icon: const Icon(Icons.expand_more, color: Colors.grey),
                 dropdownColor: Colors.white,
-                items: _sports
-                    .map((sport) => DropdownMenuItem(
-                          value: sport.name,
-                          child: Text(sport.name),
+                items: sportNames
+                    .map((sportName) => DropdownMenuItem(
+                          value: sportName,
+                          child: Text(sportName),
                         ))
                     .toList(),
-                onChanged: _sports.isEmpty
+                onChanged: sportNames.isEmpty
                     ? null
                     : (value) {
                         setState(() {

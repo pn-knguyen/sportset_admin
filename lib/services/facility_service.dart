@@ -104,7 +104,24 @@ class FacilityService {
 
   // Delete a facility
   Future<void> deleteFacility(String id) async {
+    final courtCount = await getCourtCountByFacility(id);
+    if (courtCount > 0) {
+      throw StateError(
+        'Không thể xóa cơ sở vì vẫn còn $courtCount sân trực thuộc.',
+      );
+    }
+
     await _firestore.collection(_collection).doc(id).delete();
+  }
+
+  Future<int> getCourtCountByFacility(String facilityId) async {
+    final snapshot = await _firestore
+        .collection('courts')
+        .where('facilityId', isEqualTo: facilityId)
+        .count()
+        .get();
+
+    return snapshot.count ?? 0;
   }
 
   // Search facilities by name

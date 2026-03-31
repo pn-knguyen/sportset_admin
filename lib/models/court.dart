@@ -79,7 +79,11 @@ class Court {
 
     return Court(
       id: doc.id,
-      facilityId: data['facilityId'] as String? ?? '',
+      facilityId:
+          data['facilityId'] as String? ??
+          data['facilityID'] as String? ??
+          data['facility_id'] as String? ??
+          '',
       name: data['name'] as String? ?? '',
       facilityName: data['facilityName'] as String? ?? '',
       sportType: data['sportType'] as String? ?? '',
