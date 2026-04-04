@@ -13,6 +13,8 @@ class Facility {
   final String status; // 'open' or 'closed'
   final DateTime createdAt;
   final DateTime updatedAt;
+  final double? latitude;
+  final double? longitude;
 
   Facility({
     required this.id,
@@ -27,6 +29,8 @@ class Facility {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    this.latitude,
+    this.longitude,
   });
 
   // Convert Facility to JSON for Firestore
@@ -43,6 +47,8 @@ class Facility {
       'status': status,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 
@@ -62,6 +68,8 @@ class Facility {
       status: data['status'] ?? 'open',
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      latitude: (data['latitude'] as num?)?.toDouble(),
+      longitude: (data['longitude'] as num?)?.toDouble(),
     );
   }
 
@@ -79,6 +87,8 @@ class Facility {
     String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
+    double? latitude,
+    double? longitude,
   }) {
     return Facility(
       id: id ?? this.id,
@@ -93,6 +103,8 @@ class Facility {
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 }

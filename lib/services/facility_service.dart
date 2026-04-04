@@ -16,6 +16,8 @@ class FacilityService {
     required List<String> amenities,
     String? imageUrl,
     String status = 'open',
+    double? latitude,
+    double? longitude,
   }) async {
     final now = DateTime.now();
     final docRef = await _firestore.collection(_collection).add({
@@ -28,6 +30,8 @@ class FacilityService {
       'amenities': amenities,
       'imageUrl': imageUrl,
       'status': status,
+      'latitude': latitude,
+      'longitude': longitude,
       'createdAt': Timestamp.fromDate(now),
       'updatedAt': Timestamp.fromDate(now),
     });
@@ -87,6 +91,8 @@ class FacilityService {
     required List<String> amenities,
     String? imageUrl,
     String? status,
+    double? latitude,
+    double? longitude,
   }) async {
     await _firestore.collection(_collection).doc(id).update({
       'name': name,
@@ -98,6 +104,8 @@ class FacilityService {
       'amenities': amenities,
       'imageUrl': imageUrl,
       'status': status,
+      'latitude': latitude,
+      'longitude': longitude,
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     });
   }

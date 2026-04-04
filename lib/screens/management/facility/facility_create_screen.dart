@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 import 'package:sportset_admin/services/facility_service.dart';
 import 'package:sportset_admin/services/access_control_service.dart';
+import 'package:sportset_admin/screens/management/facility/map_picker_screen.dart';
 
 // Trang thêm mới cơ sở
 class FacilityCreateScreen extends StatefulWidget {
@@ -33,6 +35,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
   bool _isUploadingImage = false;
   File? _selectedImageFile;
   String? _uploadedImageUrl;
+  LatLng? _pickedLocation;
 
   final List<Map<String, dynamic>> _amenities = [
     {'icon': Icons.local_parking, 'label': 'Gửi xe', 'selected': true},
@@ -324,8 +327,9 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
           label: 'Địa chỉ chi tiết',
           controller: _addressController,
           placeholder: 'Số nhà, tên đường, phường/xã...',
-          suffixIcon: Icons.location_on,
         ),
+        const SizedBox(height: 8),
+        _buildMapPicker(),
         const SizedBox(height: 20),
         Row(
           children: [
@@ -352,6 +356,160 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
           controller: _descriptionController,
           placeholder: 'Giới thiệu đôi nét về cơ sở của bạn...',
         ),
+      ],
+    );
+  }
+
+  Widget _buildMapPicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: () async {
+            final result = await Navigator.push<Map<String, dynamic>>(
+              context,
+              MaterialPageRoute(
+                builder: (_) => MapPickerScreen(
+                  initialLocation: _pickedLocation,
+                  initialAddress: _addressController.text,
+                ),
+              ),
+            );
+            if (result != null) {
+              setState(() => _pickedLocation = result['location'] as LatLng);
+              final address = result['address'] as String;
+              if (address.isNotEmpty) {
+                _addressController.text = address;
+              }
+            }
+          },
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: _pickedLocation != null
+                    ? _orangeColor.withValues(alpha: 0.6)
+                    : Colors.grey.withValues(alpha: 0.15),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Icon(
+                  _pickedLocation != null
+                      ? Icons.location_on
+                      : Icons.add_location_alt_outlined,
+                  size: 20,
+                  color: _pickedLocation != null ? _orangeColor : Colors.grey[400],
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _pickedLocation != null
+                        ? 'Đã chọn: ${_pickedLocation!.latitude.toStringAsFixed(5)}, ${_pickedLocation!.longitude.toStringAsFixed(5)}'
+                        : 'Chọn vị trí trên Google Maps',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: _pickedLocation != null ? _navyColor : Colors.grey[400],
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: Colors.grey[400],
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_pickedLocation != null) ...
+          [
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: SizedBox(
+                height: 160,
+                child: Stack(
+                  children: [
+                    GoogleMap(
+                      initialCameraPosition: CameraPosition(
+                        target: _pickedLocation!,
+                        zoom: 15,
+                      ),
+                      markers: {
+                        Marker(
+                          markerId: const MarkerId('preview'),
+                          position: _pickedLocation!,
+                        ),
+                      },
+                      zoomControlsEnabled: false,
+                      scrollGesturesEnabled: false,
+                      zoomGesturesEnabled: false,
+                      rotateGesturesEnabled: false,
+                      tiltGesturesEnabled: false,
+                      myLocationButtonEnabled: false,
+                      liteModeEnabled: true,
+                    ),
+                    Positioned.fill(
+                      child: GestureDetector(
+                        onTap: () async {
+                          final result = await Navigator.push<Map<String, dynamic>>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => MapPickerScreen(
+                                initialLocation: _pickedLocation,
+                                initialAddress: _addressController.text,
+                              ),
+                            ),
+                          );
+                          if (result != null) {
+                            setState(() => _pickedLocation = result['location'] as LatLng);
+                            final address = result['address'] as String;
+                            if (address.isNotEmpty) {
+                              _addressController.text = address;
+                            }
+                          }
+                        },
+                        behavior: HitTestBehavior.translucent,
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _pickedLocation = null),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(Icons.close, size: 16),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
       ],
     );
   }
@@ -671,6 +829,8 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
         description: _descriptionController.text.trim(),
         amenities: amenities,
         imageUrl: _uploadedImageUrl,
+        latitude: _pickedLocation?.latitude,
+        longitude: _pickedLocation?.longitude,
       );
 
       if (mounted) {
