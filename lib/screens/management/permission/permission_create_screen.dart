@@ -86,6 +86,16 @@ class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
         {'label': 'Xuất báo cáo', 'enabled': false},
       ],
     },
+    {
+      'title': 'Quản lý Tài khoản',
+      'icon': Icons.admin_panel_settings,
+      'items': [
+        {'label': 'Xem danh sách', 'enabled': false},
+        {'label': 'Thêm mới', 'enabled': false},
+        {'label': 'Chỉnh sửa', 'enabled': false},
+        {'label': 'Xóa', 'enabled': false},
+      ],
+    },
   ];
 
   @override
@@ -579,6 +589,18 @@ class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
             return _getPermissionValue('reports', 'export');
         }
         break;
+      case 6:
+        switch (itemIndex) {
+          case 0:
+            return _getPermissionValue('accounts', 'view');
+          case 1:
+            return _getPermissionValue('accounts', 'create');
+          case 2:
+            return _getPermissionValue('accounts', 'update');
+          case 3:
+            return _getPermissionValue('accounts', 'delete');
+        }
+        break;
     }
 
     return false;
@@ -681,6 +703,22 @@ class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
             return;
           case 1:
             _setPermissionValue('reports', 'export', value);
+            return;
+        }
+        return;
+      case 6:
+        switch (itemIndex) {
+          case 0:
+            _setPermissionValue('accounts', 'view', value);
+            return;
+          case 1:
+            _setPermissionValue('accounts', 'create', value);
+            return;
+          case 2:
+            _setPermissionValue('accounts', 'update', value);
+            return;
+          case 3:
+            _setPermissionValue('accounts', 'delete', value);
             return;
         }
         return;

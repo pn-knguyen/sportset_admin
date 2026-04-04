@@ -194,6 +194,12 @@ class PermissionService {
         'delete': false,
         'assign_permissions': false,
       },
+      'accounts': {
+        'view': false,
+        'create': false,
+        'update': false,
+        'delete': false,
+      },
       'sports': {
         'view': false,
         'create': false,

@@ -55,6 +55,7 @@ class SetupService {
       } else {
         adminPermissionGroupId = adminPermQuery.docs.first.id;
         print('[SetupService] ℹ️  Permission group Admin đã tồn tại: $adminPermissionGroupId');
+        await _ensureAdminPermissionHasFullAccess(adminPermissionGroupId);
       }
 
       // Check if admin account already exists in Firestore
@@ -204,6 +205,27 @@ class SetupService {
     } catch (e) {
       print('[SetupService] ❌ Debug error: $e');
     }
+  }
+
+  static Future<void> _ensureAdminPermissionHasFullAccess(
+    String permissionGroupId,
+  ) async {
+    final fullPermissions = PermissionService.getDefaultPermissionsTemplate();
+
+    fullPermissions.forEach((module, actions) {
+      if (actions is Map<String, dynamic>) {
+        actions.forEach((action, _) {
+          actions[action] = true;
+        });
+      }
+    });
+
+    await _firestore.collection('permissions').doc(permissionGroupId).update({
+      'permissions': fullPermissions,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    print('[SetupService] ✅ Đã đồng bộ quyền Admin đầy đủ cho group $permissionGroupId');
   }
 
   /// Clean up: Try to delete a Firebase Auth user by attempting sign in and delete
