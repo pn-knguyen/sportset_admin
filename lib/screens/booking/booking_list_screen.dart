@@ -1,10 +1,11 @@
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:sportset_admin/routes/app_routes.dart';
+import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
-// Trang danh sách đơn đặt
 class BookingListScreen extends StatefulWidget {
   final bool showBottomNav;
-  
+
   const BookingListScreen({super.key, this.showBottomNav = true});
 
   @override
@@ -12,60 +13,81 @@ class BookingListScreen extends StatefulWidget {
 }
 
 class _BookingListScreenState extends State<BookingListScreen> {
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF9800);
+  static const Color _navyColor = Color(0xFF0C1C46);
+  static const Color _orangeColor = Color(0xFFFF9800);
   final int _currentNavIndex = 2;
-  
-  int _selectedDateIndex = 0;
-  int _selectedTabIndex = 0;
-  
-  final List<Map<String, dynamic>> _dates = [
-    {'day': 'Th 2', 'date': 15},
-    {'day': 'Th 3', 'date': 16},
-    {'day': 'Th 4', 'date': 17},
-    {'day': 'Th 5', 'date': 18},
-    {'day': 'Th 6', 'date': 19},
-    {'day': 'Th 7', 'date': 20},
-  ];
-  
-  final List<Map<String, dynamic>> _pendingBookings = [
-    {
-      'id': '1',
-      'customerName': 'Anh Hoàng',
-      'phone': '0908.123.456',
-      'courtName': 'Sân Chảo Lửa - Sân A1',
-      'time': '18:00 - 19:30',
-      'duration': '1.5h',
-      'date': 'Thứ 2, 15/11/2023',
-      'price': '450.000đ',
-      'isNew': true,
-      'avatarColor': Colors.blue,
-    },
-    {
-      'id': '2',
-      'customerName': 'Chị Lan',
-      'phone': '0912.999.888',
-      'courtName': 'Sân Sport Plus - Sân 7',
-      'time': '20:00 - 21:00',
-      'duration': '1h',
-      'date': 'Thứ 2, 15/11/2023',
-      'price': '300.000đ',
-      'isNew': false,
-      'avatarColor': Colors.purple,
-    },
-    {
-      'id': '3',
-      'customerName': 'Anh Tuấn',
-      'phone': '0977.666.555',
-      'courtName': 'Sân K34 - Sân 5',
-      'time': '17:00 - 18:30',
-      'duration': '1.5h',
-      'date': 'Thứ 2, 15/11/2023',
-      'price': '250.000đ',
-      'isNew': false,
-      'avatarColor': Colors.green,
-    },
-  ];
+
+  late DateTime _selectedDate;
+  int _selectedTabIndex = 0; // 0: confirmed, 1: cancelled
+
+  final Map<String, Map<String, String>> _customerCache = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = DateTime.now();
+  }
+
+  List<DateTime> get _weekDates {
+    final today = DateTime.now();
+    return List.generate(7, (i) => today.subtract(Duration(days: 3 - i)));
+  }
+
+  String get _tabStatus => _selectedTabIndex == 0 ? 'confirmed' : 'cancelled';
+
+  bool _matchesSelectedDate(Map<String, dynamic> booking) {
+    final raw = booking['selectedDate'];
+    if (raw is! Map) return false;
+    final bookingDay = int.tryParse(raw['date']?.toString() ?? '');
+    final bookingMonth = int.tryParse(raw['month']?.toString() ?? '');
+    final bookingYear = int.tryParse(raw['year']?.toString() ?? '');
+    return bookingDay == _selectedDate.day &&
+        bookingMonth == _selectedDate.month &&
+        (bookingYear == null || bookingYear == _selectedDate.year);
+  }
+
+  Future<Map<String, String>> _getCustomerInfo(String userId) async {
+    if (_customerCache.containsKey(userId)) return _customerCache[userId]!;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('customers')
+          .doc(userId)
+          .get();
+      final data = doc.data() ?? {};
+      final info = {
+        'name': data['fullName']?.toString() ?? 'Khách hàng',
+        'phone': data['phone']?.toString() ?? '',
+      };
+      _customerCache[userId] = info;
+      return info;
+    } catch (_) {
+      return {'name': 'Khách hàng', 'phone': ''};
+    }
+  }
+
+  String _formatCurrency(dynamic value) {
+    final int amount = value is int
+        ? value
+        : (value is num
+            ? value.toInt()
+            : int.tryParse(value?.toString() ?? '') ?? 0);
+    final digits = amount.toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      final reverseIndex = digits.length - i;
+      buffer.write(digits[i]);
+      if (reverseIndex > 1 && reverseIndex % 3 == 1) buffer.write('.');
+    }
+    return '${buffer.toString()}đ';
+  }
+
+  String _dayLabel(DateTime date) {
+    const labels = ['CN', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7'];
+    return labels[date.weekday % 7];
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.day == b.day && a.month == b.month && a.year == b.year;
 
   @override
   Widget build(BuildContext context) {
@@ -75,20 +97,62 @@ class _BookingListScreenState extends State<BookingListScreen> {
         children: [
           _buildHeader(),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.only(left: 20, top: 16, right: 20, bottom: 24),
-              itemCount: _pendingBookings.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _buildBookingCard(_pendingBookings[index]),
+            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance
+                  .collection('bookings')
+                  .where('status', isEqualTo: _tabStatus)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: _orangeColor),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Không tải được dữ liệu.\n${snapshot.error}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+
+                final docs = snapshot.data?.docs ?? [];
+                final filtered = docs
+                    .where((doc) => _matchesSelectedDate(doc.data()))
+                    .toList()
+                  ..sort((a, b) {
+                    final aTs = a.data()['createdAt'];
+                    final bTs = b.data()['createdAt'];
+                    if (aTs is Timestamp && bTs is Timestamp) {
+                      return bTs.compareTo(aTs);
+                    }
+                    return 0;
+                  });
+
+                if (filtered.isEmpty) {
+                  return _buildEmptyState();
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final doc = filtered[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildBookingCard(doc.id, doc.data()),
+                    );
+                  },
                 );
               },
             ),
           ),
         ],
       ),
-      bottomNavigationBar: widget.showBottomNav ? _buildBottomNav() : null,
+      bottomNavigationBar:
+          widget.showBottomNav ? CommonBottomNav(currentIndex: _currentNavIndex) : null,
     );
   }
 
@@ -104,12 +168,11 @@ class _BookingListScreenState extends State<BookingListScreen> {
         bottom: false,
         child: Column(
           children: [
-            // Title
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
               child: Text(
                 'Quản Lý Đơn Đặt',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                   color: _navyColor,
@@ -118,31 +181,30 @@ class _BookingListScreenState extends State<BookingListScreen> {
               ),
             ),
             // Date selector
-            Container(
+            SizedBox(
               height: 84,
-              padding: const EdgeInsets.only(left: 20, bottom: 12),
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: _dates.length,
+                padding: const EdgeInsets.only(left: 20),
+                itemCount: _weekDates.length,
                 itemBuilder: (context, index) {
-                  final date = _dates[index];
-                  final isSelected = _selectedDateIndex == index;
-                  
+                  final date = _weekDates[index];
+                  final isSelected = _isSameDay(date, _selectedDate);
+                  final isToday = _isSameDay(date, DateTime.now());
+
                   return Padding(
-                    padding: const EdgeInsets.only(right: 12),
+                    padding: const EdgeInsets.only(right: 12, bottom: 12),
                     child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedDateIndex = index;
-                        });
-                      },
+                      onTap: () => setState(() => _selectedDate = date),
                       child: Container(
                         width: 64,
                         decoration: BoxDecoration(
                           color: isSelected ? _navyColor : Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isSelected ? _navyColor : Colors.grey.withValues(alpha: 0.1),
+                            color: isSelected
+                                ? _navyColor
+                                : Colors.grey.withValues(alpha: 0.1),
                           ),
                           boxShadow: isSelected
                               ? [
@@ -158,16 +220,18 @@ class _BookingListScreenState extends State<BookingListScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              date['day'],
+                              isToday ? 'HN' : _dayLabel(date),
                               style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: isSelected ? FontWeight.w300 : FontWeight.w500,
-                                color: isSelected ? Colors.white.withValues(alpha: 0.8) : Colors.grey[400],
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: isSelected
+                                    ? Colors.white.withValues(alpha: 0.8)
+                                    : Colors.grey[400],
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              date['date'].toString(),
+                              date.day.toString(),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -184,7 +248,6 @@ class _BookingListScreenState extends State<BookingListScreen> {
             ),
             // Tabs
             Container(
-              margin: const EdgeInsets.only(top: 4),
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
@@ -192,9 +255,8 @@ class _BookingListScreenState extends State<BookingListScreen> {
               ),
               child: Row(
                 children: [
-                  _buildTab(0, 'Chờ xác nhận'),
-                  _buildTab(1, 'Đã xác nhận'),
-                  _buildTab(2, 'Lịch sử'),
+                  _buildTab(0, 'Đã xác nhận'),
+                  _buildTab(1, 'Đã hủy'),
                 ],
               ),
             ),
@@ -206,16 +268,11 @@ class _BookingListScreenState extends State<BookingListScreen> {
 
   Widget _buildTab(int index, String label) {
     final isSelected = _selectedTabIndex == index;
-    
     return Expanded(
       child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _selectedTabIndex = index;
-          });
-        },
+        onTap: () => setState(() => _selectedTabIndex = index),
         child: Container(
-          padding: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.only(bottom: 12, top: 8),
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
@@ -228,7 +285,7 @@ class _BookingListScreenState extends State<BookingListScreen> {
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
               color: isSelected ? _orangeColor : Colors.grey[400],
             ),
@@ -238,217 +295,174 @@ class _BookingListScreenState extends State<BookingListScreen> {
     );
   }
 
-  Widget _buildBookingCard(Map<String, dynamic> booking) {
-    final avatarColor = booking['avatarColor'] as Color;
-    final isNew = booking['isNew'] as bool;
-    
-    return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(context, AppRoutes.bookingDetail);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+  Widget _buildBookingCard(String docId, Map<String, dynamic> data) {
+    final userId = data['userId']?.toString() ?? '';
+    final courtName = data['courtName']?.toString() ?? 'Sân thể thao';
+    final subCourtName = data['subCourtName']?.toString() ?? '';
+    final totalPrice = data['totalPrice'];
+    final duration = data['duration']?.toString() ?? '';
+    final slot = data['selectedSlot'];
+    final startTime = (slot is Map) ? slot['startTime']?.toString() ?? '' : '';
+    final endTime = (slot is Map) ? slot['endTime']?.toString() ?? '' : '';
+    final timeText = (startTime.isNotEmpty && endTime.isNotEmpty)
+        ? '$startTime - $endTime'
+        : '';
+    final selectedDateMap = data['selectedDate'];
+    final dateText = (selectedDateMap is Map)
+        ? '${selectedDateMap['day'] ?? ''}, ${selectedDateMap['date'] ?? ''}/${selectedDateMap['month'] ?? ''}'
+        : '';
+    final createdAt = data['createdAt'];
+    final isNew = createdAt is Timestamp &&
+        DateTime.now().difference(createdAt.toDate()).inHours < 2;
+
+    return FutureBuilder<Map<String, String>>(
+      future: userId.isNotEmpty
+          ? _getCustomerInfo(userId)
+          : Future.value({'name': 'Khách hàng', 'phone': ''}),
+      builder: (context, snap) {
+        final customerName = snap.data?['name'] ?? 'Khách hàng';
+        final phone = snap.data?['phone'] ?? '';
+
+        return GestureDetector(
+          onTap: () => Navigator.pushNamed(
+            context,
+            AppRoutes.bookingDetail,
+            arguments: {
+              'bookingId': docId,
+              'bookingData': data,
+              'customerName': customerName,
+              'customerPhone': phone,
+            },
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Customer info
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
               children: [
+                // Customer row
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      height: 40,
-                      width: 40,
-                      decoration: BoxDecoration(
-                        color: avatarColor.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.person,
-                        size: 20,
-                        color: avatarColor,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          height: 40,
+                          width: 40,
+                          decoration: BoxDecoration(
+                            color: _navyColor.withValues(alpha: 0.08),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.person, size: 20, color: _navyColor),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              customerName,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            if (phone.isNotEmpty)
+                              Text(
+                                phone,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    if (isNew)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _orangeColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'MỚI',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: _orangeColor,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Booking details
+                Column(
+                  children: [
+                    _buildDetailRow(
+                      Icons.stadium,
+                      subCourtName.isNotEmpty ? '$courtName - $subCourtName' : courtName,
+                    ),
+                    if (timeText.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _buildDetailRow(
+                        Icons.schedule,
+                        duration.isNotEmpty ? '$timeText  |  $duration' : timeText,
+                      ),
+                    ],
+                    if (dateText.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _buildDetailRow(Icons.calendar_today, dateText),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Divider(color: Colors.grey.withValues(alpha: 0.2), height: 1),
+                const SizedBox(height: 16),
+                // Price + arrow
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Tổng thanh toán',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                    ),
+                    Row(
                       children: [
                         Text(
-                          booking['customerName'],
+                          _formatCurrency(totalPrice),
                           style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: _orangeColor,
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          booking['phone'],
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey[500],
-                          ),
-                        ),
+                        const SizedBox(width: 6),
+                        Icon(Icons.chevron_right, color: Colors.grey[300], size: 20),
                       ],
                     ),
                   ],
                 ),
-                if (isNew)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _orangeColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'MỚI',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: _orangeColor,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
               ],
             ),
-            const SizedBox(height: 16),
-            // Booking details
-            Column(
-              children: [
-                _buildDetailRow(Icons.stadium, booking['courtName']),
-                const SizedBox(height: 8),
-                _buildDetailRow(
-                  Icons.schedule,
-                  '${booking['time']}  |  ${booking['duration']}',
-                ),
-                const SizedBox(height: 8),
-                _buildDetailRow(Icons.calendar_today, booking['date']),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Divider
-            Container(
-              height: 1,
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: Colors.grey.withValues(alpha: 0.2),
-                    width: 1,
-                    style: BorderStyle.solid,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Total price
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Tổng thanh toán',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[500],
-                  ),
-                ),
-                Text(
-                  booking['price'],
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: _orangeColor,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Action buttons
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 44,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
-                    ),
-                    child: TextButton(
-                      onPressed: () {
-                        _showCancelDialog(booking);
-                      },
-                      style: TextButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        'Hủy đơn',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Container(
-                    height: 44,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [_orangeColor, const Color(0xFFFF5722)],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _orangeColor.withValues(alpha: 0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: TextButton(
-                      onPressed: () {
-                        _confirmBooking(booking);
-                      },
-                      style: TextButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Xác nhận',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -461,7 +475,7 @@ class _BookingListScreenState extends State<BookingListScreen> {
           child: Text(
             text,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 13,
               color: Colors.grey[600],
               fontWeight: FontWeight.w500,
             ),
@@ -471,111 +485,29 @@ class _BookingListScreenState extends State<BookingListScreen> {
     );
   }
 
-  void _showCancelDialog(Map<String, dynamic> booking) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: const Text(
-            'Hủy đơn đặt',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: Text('Bạn có chắc chắn muốn hủy đơn đặt của ${booking['customerName']}?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Không'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _pendingBookings.removeWhere((b) => b['id'] == booking['id']);
-                });
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Đã hủy đơn đặt')),
-                );
-              },
-              child: const Text(
-                'Hủy đơn',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _confirmBooking(Map<String, dynamic> booking) {
-    setState(() {
-      _pendingBookings.removeWhere((b) => b['id'] == booking['id']);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Đã xác nhận đơn đặt của ${booking['customerName']}')),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Container(
-      height: 64,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          top: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+  Widget _buildEmptyState() {
+    final labels = ['Đã xác nhận', 'Đã hủy'];
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _buildNavItem(0, Icons.home, 'Trang chủ'),
-          _buildNavItem(1, Icons.view_list, 'Quản lý'),
-          _buildNavItem(2, Icons.calendar_month, 'Đơn đặt'),
-          _buildNavItem(3, Icons.person, 'Tài khoản'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String label) {
-    final isActive = _currentNavIndex == index;
-    final color = isActive ? _orangeColor : Colors.grey[400];
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          // TODO: Handle navigation
-        },
-        child: Container(
-          color: Colors.transparent,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 26, color: color),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                  color: color,
-                ),
-              ),
-            ],
+          Icon(Icons.event_busy, size: 64, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          Text(
+            'Không có đơn ${labels[_selectedTabIndex].toLowerCase()}',
+            style: TextStyle(
+              fontSize: 15,
+              color: Colors.grey.shade500,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
+          const SizedBox(height: 4),
+          Text(
+            'trong ngày ${_selectedDate.day}/${_selectedDate.month}',
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+          ),
+        ],
       ),
     );
   }
 }
-
