@@ -16,7 +16,6 @@ import 'package:sportset_admin/screens/management/court/court_detail_screen.dart
 import 'package:sportset_admin/screens/management/court/court_create_screen.dart';
 import 'package:sportset_admin/screens/management/court/court_edit_screen.dart';
 import 'package:sportset_admin/screens/management/sport/sport_list_screen.dart';
-import 'package:sportset_admin/screens/management/sport/sport_detail_screen.dart';
 import 'package:sportset_admin/screens/management/sport/sport_create_screen.dart';
 import 'package:sportset_admin/screens/management/sport/sport_edit_screen.dart';
 import 'package:sportset_admin/screens/management/voucher/voucher_list_screen.dart';
@@ -24,14 +23,12 @@ import 'package:sportset_admin/screens/management/voucher/voucher_detail_screen.
 import 'package:sportset_admin/screens/management/voucher/voucher_create_screen.dart';
 import 'package:sportset_admin/screens/management/voucher/voucher_edit_screen.dart';
 import 'package:sportset_admin/screens/management/staff/staff_list_screen.dart';
-import 'package:sportset_admin/screens/management/staff/staff_detail_screen.dart';
 import 'package:sportset_admin/screens/management/staff/staff_create_screen.dart';
 import 'package:sportset_admin/screens/management/staff/staff_edit_screen.dart';
 import 'package:sportset_admin/screens/management/permission/permission_list_screen.dart';
 import 'package:sportset_admin/screens/management/permission/permission_create_screen.dart';
 import 'package:sportset_admin/screens/management/permission/permission_edit_screen.dart';
 import 'package:sportset_admin/screens/management/permission/permission_delete_screen.dart';
-import 'package:sportset_admin/screens/management/account/account_list_screen.dart';
 import 'package:sportset_admin/screens/management/account/account_creation_screen.dart';
 import 'package:sportset_admin/screens/management/account/account_detail_screen.dart';
 import 'package:sportset_admin/screens/management/account/account_edit_screen.dart';
@@ -93,7 +90,6 @@ class MainApp extends StatelessWidget {
 
         // Management - Sports
         AppRoutes.sports: (context) => const SportListScreen(),
-        AppRoutes.sportDetail: (context) => const SportDetailScreen(),
         AppRoutes.sportCreate: (context) => const SportCreateScreen(),
         AppRoutes.sportEdit: (context) => const SportEditScreen(),
 
@@ -105,14 +101,12 @@ class MainApp extends StatelessWidget {
 
         // Management - Staff & Permissions
         AppRoutes.staff: (context) => const StaffListScreen(),
-        AppRoutes.staffDetail: (context) => const StaffDetailScreen(),
         AppRoutes.staffCreate: (context) => const StaffCreateScreen(),
         AppRoutes.staffEdit: (context) => const StaffEditScreen(),
         AppRoutes.permissions: (context) => const PermissionListScreen(),
         AppRoutes.permissionCreate: (context) => const PermissionCreateScreen(),
         AppRoutes.permissionEdit: (context) => const PermissionEditScreen(),
         AppRoutes.permissionDelete: (context) => const PermissionDeleteScreen(),
-        AppRoutes.accountList: (context) => const AccountListScreen(),
         AppRoutes.accountCreate: (context) => const AccountCreationScreen(),
         AppRoutes.accountDetail: (context) => const AccountDetailScreen(),
         AppRoutes.accountEdit: (context) => const AccountEditScreen(),

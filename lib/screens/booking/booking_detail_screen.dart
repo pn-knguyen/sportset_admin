@@ -1,7 +1,15 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:sportset_admin/widgets/common_bottom_nav.dart';
+
+// Design tokens
+const _primary = Color(0xFF4CAF50);
+const _darkGreen = Color(0xFF2E7D32);
+const _lightGreen = Color(0xFFE8F5E9);
+const _onSurface = Color(0xFF1A1C1C);
+const _onSurfaceVariant = Color(0xFF5C615A);
+const _tertiary = Color(0xFF994700);
+const _tertiaryFixed = Color(0xFFFFDBC8);
 
 class BookingDetailScreen extends StatefulWidget {
   const BookingDetailScreen({super.key});
@@ -11,10 +19,6 @@ class BookingDetailScreen extends StatefulWidget {
 }
 
 class _BookingDetailScreenState extends State<BookingDetailScreen> {
-  static const Color _navyColor = Color(0xFF0C1C46);
-  static const Color _orangeColor = Color(0xFFFF9800);
-  final int _currentNavIndex = 2;
-
   late String _bookingId;
   late Map<String, dynamic> _bookingData;
   String _customerName = '';
@@ -32,7 +36,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           args['bookingData'] as Map<String, dynamic>? ?? {});
       _customerName = args['customerName'] as String? ?? 'Khách hàng';
       _customerPhone = args['customerPhone'] as String? ?? '';
-      // If customer info wasn't passed, fetch it
       if (_customerName == 'Khách hàng' || _customerName.isEmpty) {
         _fetchCustomerInfo();
       }
@@ -57,8 +60,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     } catch (_) {}
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
-
   String _formatCurrency(dynamic value) {
     final int amount = value is int
         ? value
@@ -82,28 +83,26 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       case 'confirmed':
         return {
           'label': 'ĐÃ XÁC NHẬN',
-          'color': Colors.green,
-          'bg': Colors.green.withValues(alpha: 0.1),
-          'icon': Icons.check_circle_outline,
+          'color': _darkGreen,
+          'bg': _lightGreen,
+          'icon': Icons.check_circle_rounded,
         };
       case 'cancelled':
         return {
           'label': 'ĐÃ HỦY',
-          'color': Colors.red,
-          'bg': Colors.red.withValues(alpha: 0.1),
-          'icon': Icons.cancel_outlined,
+          'color': const Color(0xFFBA1A1A),
+          'bg': const Color(0xFFFFDAD6),
+          'icon': Icons.cancel_rounded,
         };
-      default: // pending
+      default:
         return {
           'label': 'CHỜ XÁC NHẬN',
-          'color': _orangeColor,
-          'bg': _orangeColor.withValues(alpha: 0.1),
-          'icon': Icons.hourglass_empty,
+          'color': _tertiary,
+          'bg': _tertiaryFixed,
+          'icon': Icons.pending_rounded,
         };
     }
   }
-
-  // ── Firebase actions ──────────────────────────────────────────────────────
 
   Future<void> _doConfirm() async {
     setState(() => _isLoading = true);
@@ -121,9 +120,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           _isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã xác nhận đơn đặt'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('Đã xác nhận đơn đặt'),
+            backgroundColor: _darkGreen,
           ),
         );
       }
@@ -175,17 +174,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
   }
 
-  // ── Dialogs ───────────────────────────────────────────────────────────────
-
   void _showConfirmDialog() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: const Text('Xác nhận đơn đặt',
             style: TextStyle(fontWeight: FontWeight.bold)),
-        content:
-            Text('Xác nhận đơn đặt của $_customerName?'),
+        content: Text('Xác nhận đơn đặt của $_customerName?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -196,9 +193,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               Navigator.pop(ctx);
               _doConfirm();
             },
-            child: Text('Xác nhận',
+            child: const Text('Xác nhận',
                 style: TextStyle(
-                    color: _orangeColor, fontWeight: FontWeight.bold)),
+                    color: _primary, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -209,7 +206,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: const Text('Hủy đơn đặt',
             style: TextStyle(fontWeight: FontWeight.bold)),
         content: Text('Bạn có chắc muốn hủy đơn đặt của $_customerName?'),
@@ -232,88 +230,86 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     );
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final config = _statusConfig(_status);
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
       body: Stack(
         children: [
-          Column(
-            children: [
-              _buildHeader(),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-                  child: Column(
-                    children: [
-                      _buildStatusBadge(config),
-                      const SizedBox(height: 24),
-                      _buildCustomerInfo(),
-                      const SizedBox(height: 20),
-                      _buildBookingInfo(),
-                      const SizedBox(height: 20),
-                      _buildPaymentInfo(),
-                      if (_status == 'pending') ...[
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [_lightGreen, Colors.white],
+              ),
+            ),
+            child: Column(
+              children: [
+                _buildHeader(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+                    child: Column(
+                      children: [
+                        _buildStatusBadge(config),
                         const SizedBox(height: 24),
-                        _buildActionButtons(),
+                        _buildCustomerCard(),
+                        const SizedBox(height: 16),
+                        _buildBookingInfoCard(),
+                        const SizedBox(height: 16),
+                        _buildPaymentCard(),
+                        if (_status == 'pending') ...[
+                          const SizedBox(height: 24),
+                          _buildActionButtons(),
+                        ],
+                        const SizedBox(height: 16),
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           if (_isLoading)
             Container(
               color: Colors.black.withValues(alpha: 0.3),
               child: const Center(
-                child: CircularProgressIndicator(color: _orangeColor),
+                child: CircularProgressIndicator(color: _primary),
               ),
             ),
         ],
       ),
-      bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
     );
   }
 
   Widget _buildHeader() {
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
-        ),
-      ),
+      color: Colors.transparent,
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Stack(
-            alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: Row(
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(Icons.arrow_back_ios_new,
-                        size: 24, color: _navyColor),
+              IconButton(
+                icon: const Icon(Icons.arrow_back_rounded,
+                    color: _darkGreen, size: 24),
+                onPressed: () => Navigator.pop(context),
+              ),
+              Expanded(
+                child: Text(
+                  'Chi Tiết Đơn Đặt',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: _darkGreen,
+                    letterSpacing: -0.3,
                   ),
                 ),
               ),
-              const Text(
-                'Chi Tiết Đơn Đặt',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: _navyColor,
-                  letterSpacing: -0.5,
-                ),
-              ),
+              const SizedBox(width: 48),
             ],
           ),
         ),
@@ -324,11 +320,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   Widget _buildStatusBadge(Map<String, dynamic> config) {
     return Center(
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         decoration: BoxDecoration(
           color: config['bg'] as Color,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(999),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -339,10 +334,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             Text(
               config['label'] as String,
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
                 color: config['color'] as Color,
-                letterSpacing: 0.5,
+                letterSpacing: 1.2,
               ),
             ),
           ],
@@ -351,78 +346,77 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     );
   }
 
-  Widget _buildCustomerInfo() {
+  Widget _buildCustomerCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                height: 48,
-                width: 48,
-                decoration: BoxDecoration(
-                  color: _navyColor.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
+          Container(
+            height: 56,
+            width: 56,
+            decoration: BoxDecoration(
+              color: _lightGreen,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.person_rounded,
+                size: 28, color: _primary),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _customerName.isNotEmpty ? _customerName : 'Khách hàng',
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: _onSurface,
+                  ),
                 ),
-                child: const Icon(Icons.person, size: 24, color: _navyColor),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                if (_customerPhone.isNotEmpty) ...[
+                  const SizedBox(height: 3),
                   Text(
-                    _customerName.isNotEmpty ? _customerName : 'Khách hàng',
+                    _customerPhone,
                     style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: _onSurfaceVariant,
                     ),
                   ),
-                  if (_customerPhone.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      _customerPhone,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                  ],
                 ],
-              ),
-            ],
+              ],
+            ),
           ),
           if (_customerPhone.isNotEmpty)
             GestureDetector(
               onTap: () async {
                 final uri = Uri(
                     scheme: 'tel',
-                    path: _customerPhone.replaceAll(RegExp(r'[^\d+]'), ''));
+                    path: _customerPhone
+                        .replaceAll(RegExp(r'[^\d+]'), ''));
                 if (await canLaunchUrl(uri)) await launchUrl(uri);
               },
               child: Container(
-                height: 40,
-                width: 40,
+                height: 48,
+                width: 48,
                 decoration: BoxDecoration(
-                  color: _orangeColor.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
+                  color: _primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(Icons.call, size: 20, color: _orangeColor),
+                child: const Icon(Icons.call_rounded,
+                    size: 22, color: _primary),
               ),
             ),
         ],
@@ -430,11 +424,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     );
   }
 
-  Widget _buildBookingInfo() {
+  Widget _buildBookingInfoCard() {
     final courtName =
         _bookingData['courtName']?.toString() ?? 'Sân thể thao';
-    final subCourtName =
-        _bookingData['subCourtName']?.toString() ?? '';
+    final subCourtName = _bookingData['subCourtName']?.toString() ?? '';
     final selectedDateMap = _bookingData['selectedDate'];
     final dateText = (selectedDateMap is Map)
         ? '${selectedDateMap['day'] ?? ''}, ${selectedDateMap['date'] ?? ''}/${selectedDateMap['month'] ?? ''}'
@@ -457,52 +450,80 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          _buildSectionTitle('Thông tin đặt sân'),
-          const SizedBox(height: 20),
-          _buildInfoRow(Icons.stadium, 'Cơ sở / Sân',
-              subCourtName.isNotEmpty
-                  ? '$courtName - $subCourtName'
-                  : courtName),
-          if (dateText.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _buildInfoRow(Icons.calendar_today, 'Ngày đặt', dateText),
-          ],
-          if (timeText.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _buildInfoRow(
-              Icons.schedule,
-              'Thời gian',
-              duration.isNotEmpty ? '$timeText  |  $duration' : timeText,
-              highlight: true,
+          Positioned(
+            left: -24,
+            top: 0,
+            bottom: 0,
+            child: Container(
+              width: 4,
+              decoration: BoxDecoration(
+                color: _tertiary,
+                borderRadius: BorderRadius.circular(999),
+              ),
             ),
-          ],
-          if (createdText.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _buildInfoRow(
-                Icons.access_time, 'Đặt lúc', createdText),
-          ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.sports_soccer_rounded,
+                      color: _tertiary, size: 22),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Thông tin đặt sân',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: _onSurface,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _buildInfoEntry('Cơ sở',
+                  subCourtName.isNotEmpty
+                      ? '$courtName - $subCourtName'
+                      : courtName),
+              if (dateText.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildInfoEntry('Ngày đặt', dateText),
+              ],
+              if (timeText.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildInfoEntry(
+                  'Thời gian',
+                  timeText,
+                  sub:
+                      duration.isNotEmpty ? '($duration)' : null,
+                ),
+              ],
+              if (createdText.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildInfoEntry('Đặt lúc', createdText),
+              ],
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildPaymentInfo() {
+  Widget _buildPaymentCard() {
     final totalPrice = _bookingData['totalPrice'];
     final discountAmount = _bookingData['discountAmount'];
     final voucherId = _bookingData['voucherId']?.toString() ?? '';
@@ -514,108 +535,159 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         : totalPrice;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          _buildSectionTitle('Chi tiết thanh toán'),
-          const SizedBox(height: 20),
-          _buildPaymentRow('Giá sân', _formatCurrency(basePrice)),
-          if (voucherId.isNotEmpty && discountAmount is num && discountAmount > 0) ...[
-            const SizedBox(height: 12),
-            _buildPaymentRow(
-              'Giảm giá (voucher)',
-              '- ${_formatCurrency(discountAmount)}',
-              isDiscount: true,
-            ),
-          ] else ...[
-            const SizedBox(height: 12),
-            _buildPaymentRow('Mã giảm giá', 'Không có', isDiscount: true),
-          ],
-          const SizedBox(height: 16),
-          Divider(color: Colors.grey.withValues(alpha: 0.2), height: 1),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Tổng thanh toán',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: _navyColor,
-                ),
-              ),
-              Text(
-                _formatCurrency(totalPrice),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: _orangeColor,
-                ),
-              ),
-            ],
-          ),
-          if (paymentMethod.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
+          Positioned(
+            left: -24,
+            top: 0,
+            bottom: 0,
+            child: Container(
+              width: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(12),
+                color: _tertiary,
+                borderRadius: BorderRadius.circular(999),
               ),
-              child: Row(
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Container(
-                    height: 32,
-                    width: 32,
-                    decoration: BoxDecoration(
-                      color: _navyColor,
-                      borderRadius: BorderRadius.circular(8),
+                  Icon(Icons.receipt_long_rounded,
+                      color: _tertiary, size: 22),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Chi tiết thanh toán',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: _onSurface,
                     ),
-                    child: const Icon(Icons.account_balance_wallet,
-                        size: 16, color: Colors.white),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'PHƯƠNG THỨC THANH TOÁN',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey[500],
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        paymentMethod,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
+              const SizedBox(height: 20),
+              _buildPaymentRow('Giá sân', _formatCurrency(basePrice)),
+              const SizedBox(height: 12),
+              (voucherId.isNotEmpty &&
+                      discountAmount is num &&
+                      discountAmount > 0)
+                  ? _buildPaymentRow('Giảm giá (voucher)',
+                      '- ${_formatCurrency(discountAmount)}',
+                      isDiscount: true)
+                  : _buildPaymentRow(
+                      'Mã giảm giá', 'Không có',
+                      isItalic: true),
+              const SizedBox(height: 12),
+              _buildPaymentRow('Phí dịch vụ', '0đ'),
+              const SizedBox(height: 20),
+              Divider(
+                  color: const Color(0xFFEEEEEE), height: 1),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Tổng thanh toán',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: _onSurface,
+                    ),
+                  ),
+                  Text(
+                    _formatCurrency(totalPrice),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: _primary,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
+              ),
+              if (paymentMethod.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _buildPaymentMethodCard(paymentMethod),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentMethodCard(String method) {
+    final isMoMo = method.toLowerCase().contains('momo') ||
+        method.toLowerCase().contains('mo mo');
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F3F3),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: isMoMo ? const Color(0xFFA50064) : _darkGreen,
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
+            child: isMoMo
+                ? const Center(
+                    child: Text('MOMO',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 8,
+                          letterSpacing: 0.5,
+                        )))
+                : const Icon(Icons.account_balance_wallet,
+                    size: 18, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'PHƯƠNG THỨC',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: _onSurfaceVariant,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  method,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: _onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.verified_user_rounded,
+              color: _primary, size: 22),
         ],
       ),
     );
@@ -625,54 +697,57 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     return Row(
       children: [
         Expanded(
-          child: Container(
-            height: 52,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+          child: OutlinedButton(
+            onPressed: _showCancelDialog,
+            style: OutlinedButton.styleFrom(
+              backgroundColor: Colors.white.withValues(alpha: 0.8),
+              foregroundColor: _darkGreen,
+              side: const BorderSide(color: Color(0xFFD6F0D8)),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
             ),
-            child: TextButton(
-              onPressed: _showCancelDialog,
-              style: TextButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-              child: Text('Hủy đơn',
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[600])),
+            child: const Text(
+              'Hủy đơn',
+              style: TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w700),
             ),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Container(
-            height: 52,
+          child: DecoratedBox(
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                  colors: [_orangeColor, Color(0xFFFF5722)]),
-              borderRadius: BorderRadius.circular(12),
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF2E7D32), Color(0xFF4CAF50)],
+              ),
+              borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: _orangeColor.withValues(alpha: 0.25),
+                  color: _primary.withValues(alpha: 0.3),
                   blurRadius: 12,
-                  offset: const Offset(0, 6),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: TextButton(
+            child: ElevatedButton(
               onPressed: _showConfirmDialog,
-              style: TextButton.styleFrom(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(16)),
               ),
-              child: const Text('Xác nhận đơn',
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white)),
+              child: const Text(
+                'Xác nhận đơn',
+                style: TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w700),
+              ),
             ),
           ),
         ),
@@ -680,74 +755,42 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     );
   }
 
-  // ── Shared widgets ────────────────────────────────────────────────────────
-
-  Widget _buildSectionTitle(String title) {
+  Widget _buildInfoEntry(String label, String value, {String? sub}) {
     return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 20,
-          decoration: BoxDecoration(
-            color: _orangeColor,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: _navyColor,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoRow(IconData icon, String label, String value,
-      {bool highlight = false}) {
-    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          height: 32,
-          width: 32,
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(8),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: _onSurfaceVariant,
           ),
-          child: Icon(icon, size: 18, color: Colors.grey[400]),
         ),
-        const SizedBox(width: 12),
-        Expanded(
+        const SizedBox(width: 16),
+        Flexible(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(label,
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey[400])),
-              const SizedBox(height: 2),
-              highlight
-                  ? Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: _orangeColor,
-                      ),
-                    )
-                  : Text(
-                      value,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
+              Text(
+                value,
+                textAlign: TextAlign.end,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: _onSurface,
+                ),
+              ),
+              if (sub != null)
+                Text(
+                  sub,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _primary,
+                  ),
+                ),
             ],
           ),
         ),
@@ -756,19 +799,25 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   }
 
   Widget _buildPaymentRow(String label, String value,
-      {bool isDiscount = false}) {
+      {bool isDiscount = false, bool isItalic = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: TextStyle(fontSize: 14, color: Colors.grey[500])),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: _onSurfaceVariant,
+          ),
+        ),
         Text(
           value,
           style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: isDiscount ? Colors.green[600] : Colors.black87,
-            fontStyle: FontStyle.normal,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isDiscount ? _primary : _onSurface,
+            fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
           ),
         ),
       ],

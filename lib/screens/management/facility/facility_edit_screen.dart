@@ -36,8 +36,13 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
   LatLng? _pickedLocation;
 
   final int _currentNavIndex = 1; // Active on Management tab
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF9800);
+
+  static const _primary = Color(0xFF4CAF50);
+  static const _secondary = Color(0xFF18A5A7);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF5C615A);
 
   String _currentImage = '';
 
@@ -165,62 +170,61 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-                  _buildImageSection(),
-                  const SizedBox(height: 32),
-                  _buildFormFields(),
-                ],
+      backgroundColor: _lightGreen,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_lightGreen, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    _buildImageSection(),
+                    const SizedBox(height: 32),
+                    _buildFormFields(),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
     );
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-      ),
-      child: SafeArea(
-        bottom: false,
+    return SafeArea(
+      bottom: false,
+      child: SizedBox(
+        height: 56,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            GestureDetector(
-              onTap: () {
-                Navigator.pop(context);
-              },
-              child: Container(
-                height: 40,
-                width: 40,
-                decoration: const BoxDecoration(shape: BoxShape.circle),
-                child: Icon(Icons.chevron_left, size: 28, color: _navyColor),
-              ),
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: _darkGreen),
+              onPressed: () => Navigator.pop(context),
             ),
-            Text(
-              'Chỉnh Sửa Cơ Sở',
+            const Text(
+              'Ch\u1ec9nh s\u1eeda c\u01a1 s\u1edf',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: _navyColor,
+                color: _darkGreen,
                 letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(width: 40),
+            const SizedBox(width: 48),
           ],
         ),
       ),
@@ -354,7 +358,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _orangeColor,
+                  backgroundColor: _primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
@@ -456,7 +460,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: _pickedLocation != null
-                    ? _orangeColor.withValues(alpha: 0.6)
+                    ? _primary.withValues(alpha: 0.6)
                     : Colors.grey.withValues(alpha: 0.15),
                 width: 2,
               ),
@@ -476,7 +480,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                       ? Icons.location_on
                       : Icons.add_location_alt_outlined,
                   size: 20,
-                  color: _pickedLocation != null ? _orangeColor : Colors.grey[400],
+                  color: _pickedLocation != null ? _primary : Colors.grey[400],
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -486,7 +490,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                         : 'Chọn vị trí trên Google Maps',
                     style: TextStyle(
                       fontSize: 13,
-                      color: _pickedLocation != null ? _navyColor : Colors.grey[400],
+                      color: _pickedLocation != null ? _onSurface : Colors.grey[400],
                     ),
                   ),
                 ),
@@ -588,10 +592,10 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
           padding: const EdgeInsets.only(left: 8, bottom: 6),
           child: Text(
             label.toUpperCase(),
-            style: TextStyle(
-              fontSize: 10,
+            style: const TextStyle(
+              fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[400],
+              color: _onSurfaceVariant,
               letterSpacing: 0.5,
             ),
           ),
@@ -599,7 +603,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
@@ -611,26 +615,26 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
           child: TextField(
             controller: controller,
             keyboardType: keyboardType,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w500,
-              color: _navyColor,
+              color: _onSurface,
             ),
             decoration: InputDecoration(
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide.none,
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: _orangeColor, width: 2),
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _primary, width: 2),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 20,
                 vertical: 16,
               ),
               suffixIcon: suffixIcon != null
-                  ? Icon(suffixIcon, color: Colors.grey[400], size: 20)
+                  ? Icon(suffixIcon, color: _secondary, size: 20)
                   : null,
             ),
           ),
@@ -651,10 +655,10 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
           padding: const EdgeInsets.only(left: 8, bottom: 6),
           child: Text(
             label.toUpperCase(),
-            style: TextStyle(
-              fontSize: 10,
+            style: const TextStyle(
+              fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[400],
+              color: _onSurfaceVariant,
               letterSpacing: 0.5,
             ),
           ),
@@ -662,7 +666,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
@@ -674,19 +678,19 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
           child: TextField(
             controller: controller,
             maxLines: maxLines,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w500,
-              color: _navyColor,
+              color: _onSurface,
             ),
             decoration: InputDecoration(
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide.none,
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: _orangeColor, width: 2),
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _primary, width: 2),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 20,
@@ -703,14 +707,14 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 0),
+        const Padding(
+          padding: EdgeInsets.only(left: 8, bottom: 0),
           child: Text(
-            'TIỆN ÍCH',
+            'TI\u1ec6N \xcdCH',
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[400],
+              color: _onSurfaceVariant,
               letterSpacing: 0.5,
             ),
           ),
@@ -737,21 +741,26 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? _orangeColor.withValues(alpha: 0.1)
-                      : Colors.grey.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(16),
+                  color: isSelected ? _lightGreen : Colors.white,
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: isSelected ? _orangeColor : Colors.transparent,
+                    color: isSelected ? _primary : Colors.transparent,
                     width: 2,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       amenity['icon'] as IconData,
-                      color: isSelected ? _orangeColor : Colors.grey[400],
+                      color: isSelected ? _primary : _secondary,
                       size: 28,
                     ),
                     const SizedBox(height: 8),
@@ -760,7 +769,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: isSelected ? _orangeColor : Colors.grey[400],
+                        color: isSelected ? _darkGreen : _onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -778,13 +787,13 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_orangeColor, const Color(0xFFF44336)],
+        gradient: const LinearGradient(
+          colors: [_primary, _darkGreen],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.withValues(alpha: 0.3),
+            color: _primary.withValues(alpha: 0.25),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),

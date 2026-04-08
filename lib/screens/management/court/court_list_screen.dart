@@ -16,12 +16,16 @@ class CourtListScreen extends StatefulWidget {
 class _CourtListScreenState extends State<CourtListScreen> {
   final TextEditingController _searchController = TextEditingController();
   final int _currentNavIndex = 1;
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF5722);
+
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF5C615A);
+
   final CourtService _courtService = CourtService();
   final AccessControlService _accessControlService = AccessControlService();
   
-  bool _canView = true;
   bool _canCreate = false;
   bool _canEdit = false;
   bool _canDelete = false;
@@ -53,122 +57,114 @@ class _CourtListScreenState extends State<CourtListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(),
-          _buildSearchBar(),
-          Expanded(
-            child: StreamBuilder<List<Court>>(
-              stream: _courtService.getAllCourtsStream(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFFF5722)),
-                  );
-                }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Lỗi tải dữ liệu sân',
-                      style: TextStyle(color: _navyColor),
-                    ),
-                  );
-                }
-
-                final courts = snapshot.data ?? <Court>[];
-                final query = _searchController.text.trim().toLowerCase();
-                final filtered = query.isEmpty
-                    ? courts
-                    : courts
-                          .where(
-                            (court) =>
-                                court.name.toLowerCase().contains(query) ||
-                                court.address.toLowerCase().contains(query),
-                          )
-                          .toList();
-
-                if (filtered.isEmpty) {
-                  return const Center(child: Text('Chưa có sân nào'));
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  itemCount: filtered.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: _buildCourtCard(filtered[index]),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: _canCreate ? Container(
-        margin: const EdgeInsets.only(bottom: 32),
-        child: FloatingActionButton(
-          onPressed: () {
-            Navigator.pushNamed(context, AppRoutes.courtCreate);
-          },
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: Container(
-            height: 56,
-            width: 56,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFF5722), Color(0xFFFF8A65)],
-              ),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: _orangeColor.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: const Icon(Icons.add, size: 32, color: Colors.white),
+      backgroundColor: _lightGreen,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_lightGreen, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
-      ) : null,
+        child: Column(
+          children: [
+            _buildHeader(),
+            _buildSearchBar(),
+            Expanded(
+              child: StreamBuilder<List<Court>>(
+                stream: _courtService.getAllCourtsStream(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: _primary),
+                    );
+                  }
+
+                  if (snapshot.hasError) {
+                    return const Center(
+                      child: Text(
+                        'L\u1ed7i t\u1ea3i d\u1eef li\u1ec7u s\xe2n',
+                        style: TextStyle(color: _onSurface),
+                      ),
+                    );
+                  }
+
+                  final courts = snapshot.data ?? <Court>[];
+                  final query = _searchController.text.trim().toLowerCase();
+                  final filtered = query.isEmpty
+                      ? courts
+                      : courts
+                            .where(
+                              (court) =>
+                                  court.name.toLowerCase().contains(query) ||
+                                  court.address.toLowerCase().contains(query),
+                            )
+                            .toList();
+
+                  if (filtered.isEmpty) {
+                    return const Center(child: Text('Ch\u01b0a c\xf3 s\xe2n n\xe0o'));
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: _buildCourtCard(filtered[index]),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: _canCreate
+          ? Container(
+              margin: const EdgeInsets.only(bottom: 32),
+              child: FloatingActionButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, AppRoutes.courtCreate);
+                },
+                backgroundColor: _primary,
+                elevation: 4,
+                shape: const CircleBorder(
+                  side: BorderSide(color: Colors.white, width: 4),
+                ),
+                child: const Icon(Icons.add, size: 32, color: Colors.white),
+              ),
+            )
+          : null,
       bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
     );
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-      ),
-      child: SafeArea(
-        bottom: false,
+    return SafeArea(
+      bottom: false,
+      child: SizedBox(
+        height: 56,
         child: Row(
           children: [
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Icon(Icons.arrow_back, size: 28, color: _navyColor),
-              ),
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: _darkGreen),
+              onPressed: () => Navigator.pop(context),
             ),
-            Expanded(
+            const Expanded(
               child: Text(
-                'Danh Sách Sân',
+                'Danh S\xe1ch S\xe2n',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: _navyColor,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: _darkGreen,
+                  letterSpacing: -0.5,
                 ),
               ),
             ),
-            const SizedBox(width: 40),
+            const SizedBox(width: 48),
           ],
         ),
       ),
@@ -178,44 +174,64 @@ class _CourtListScreenState extends State<CourtListScreen> {
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(25),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: 'Tìm tên sân, địa chỉ...',
-            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-            prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
-            suffixIcon: IconButton(
-              icon: Icon(Icons.tune, color: Colors.grey[500]),
-              onPressed: () {
-                // TODO: Implement filter
-              },
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(25),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(25),
-              borderSide: BorderSide(color: _orangeColor, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'T\xecm ki\u1ebfm t\xean s\xe2n, lo\u1ea1i s\xe2n...',
+                  hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: _primary, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                ),
+              ),
             ),
           ),
-        ),
+          const SizedBox(width: 12),
+          Container(
+            height: 48,
+            width: 48,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.tune, color: _primary),
+              onPressed: () {},
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -234,13 +250,12 @@ class _CourtListScreenState extends State<CourtListScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              blurRadius: 24,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -250,10 +265,10 @@ class _CourtListScreenState extends State<CourtListScreen> {
               children: [
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
+                    top: Radius.circular(24),
                   ),
                   child: Container(
-                    height: 176,
+                    height: 224,
                     width: double.infinity,
                     color: Colors.grey[100],
                     child: court.imageUrl == null || court.imageUrl!.isEmpty
@@ -290,19 +305,10 @@ class _CourtListScreenState extends State<CourtListScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.95),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isAvailable
-                            ? Colors.green.withValues(alpha: 0.1)
-                            : Colors.red.withValues(alpha: 0.1),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 4,
-                        ),
-                      ],
+                      color: isAvailable
+                          ? _primary.withValues(alpha: 0.9)
+                          : Colors.orange.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -310,22 +316,19 @@ class _CourtListScreenState extends State<CourtListScreen> {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: BoxDecoration(
-                            color: isAvailable
-                                ? Colors.green[500]
-                                : Colors.red[500],
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
                             shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          isAvailable ? 'Sẵn sàng' : 'Bảo trì',
-                          style: TextStyle(
+                          isAvailable ? 'S\u1eb5n s\xe0ng' : 'B\u1ea3o tr\xec',
+                          style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: isAvailable
-                                ? Colors.green[600]
-                                : Colors.red[600],
+                            color: Colors.white,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ],
@@ -341,7 +344,7 @@ class _CourtListScreenState extends State<CourtListScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: _navyColor.withValues(alpha: 0.8),
+                      color: Colors.black.withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -378,10 +381,10 @@ class _CourtListScreenState extends State<CourtListScreen> {
                       Expanded(
                         child: Text(
                           court.name,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: _navyColor,
+                            color: _onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -393,10 +396,10 @@ class _CourtListScreenState extends State<CourtListScreen> {
                           children: [
                             TextSpan(
                               text: _formatPrice(court.pricePerHour),
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: _orangeColor,
+                                color: Color(0xFF994700),
                               ),
                             ),
                             TextSpan(
@@ -417,15 +420,16 @@ class _CourtListScreenState extends State<CourtListScreen> {
                       Icon(
                         Icons.location_on,
                         size: 18,
-                        color: Colors.grey[400],
+                        color: _onSurfaceVariant,
                       ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           court.address,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[500],
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: _onSurfaceVariant,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -447,44 +451,38 @@ class _CourtListScreenState extends State<CourtListScreen> {
                           } : null,
                           icon: const Icon(Icons.edit, size: 20),
                           label: const Text(
-                            'Chỉnh sửa',
+                            'Ch\u1ec9nh s\u1eeda',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey[50],
-                            foregroundColor: _navyColor,
+                            backgroundColor: Colors.grey[100],
+                            foregroundColor: _onSurface,
                             elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(
-                                color: Colors.grey.withValues(alpha: 0.1),
-                              ),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       SizedBox(
-                        width: 56,
-                        height: 40,
+                        width: 48,
+                        height: 48,
                         child: ElevatedButton(
                           onPressed: _canDelete ? () {
                             _showDeleteDialog(court.id, court.name);
                           } : null,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.withValues(alpha: 0.05),
-                            foregroundColor: Colors.red[400],
+                            backgroundColor: const Color(0xFFFFDAD6),
+                            foregroundColor: const Color(0xFFBA1A1A),
                             elevation: 0,
                             padding: EdgeInsets.zero,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(
-                                color: Colors.red.withValues(alpha: 0.05),
-                              ),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                           child: const Icon(Icons.delete, size: 20),

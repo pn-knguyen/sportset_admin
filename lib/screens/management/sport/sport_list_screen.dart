@@ -15,10 +15,15 @@ class SportListScreen extends StatefulWidget {
 }
 
 class _SportListScreenState extends State<SportListScreen> {
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF3F4A3C);
+
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   final int _currentNavIndex = 1;
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF9800);
   final SportService _sportService = SportService();
   final AccessControlService _accessControlService = AccessControlService();
   String _searchQuery = '';
@@ -57,29 +62,39 @@ class _SportListScreenState extends State<SportListScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              child: Column(
-                children: [
-                  _buildSearchBar(),
-                  const SizedBox(height: 24),
-                  _buildSportsList(),
-                ],
+      backgroundColor: _lightGreen,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_lightGreen, Colors.white],
+          ),
+        ),
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                child: Column(
+                  children: [
+                    _buildSearchBar(),
+                    const SizedBox(height: 16),
+                    _buildSportsList(),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: _buildFAB(),
       bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
@@ -87,53 +102,39 @@ class _SportListScreenState extends State<SportListScreen> {
   }
 
   Widget _buildHeader() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    height: 40,
-                    width: 40,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.arrow_back_ios_new,
-                      size: 24,
-                      color: _navyColor,
-                    ),
-                  ),
-                ),
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 16, 8, 12),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_ios_new, size: 22, color: _darkGreen),
+                padding: const EdgeInsets.all(8),
               ),
-              Text(
-                'Quản Lý Danh Mục',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: _navyColor,
-                  letterSpacing: -0.5,
-                ),
+            ),
+            const Text(
+              'Quản lý Danh mục',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: _darkGreen,
+                letterSpacing: -0.5,
               ),
-              const Align(
-                alignment: Alignment.centerRight,
-                child: SizedBox(width: 40),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: IconButton(
+                onPressed: () => _searchFocusNode.requestFocus(),
+                icon: const Icon(Icons.search, size: 22, color: _darkGreen),
+                padding: const EdgeInsets.all(8),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -143,42 +144,38 @@ class _SportListScreenState extends State<SportListScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: _primary.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
       ),
       child: TextField(
         controller: _searchController,
-        onChanged: (value) {
-          setState(() {
-            _searchQuery = value;
-          });
-        },
-        decoration: InputDecoration(
+        focusNode: _searchFocusNode,
+        onChanged: (value) => setState(() => _searchQuery = value),
+        decoration: const InputDecoration(
           hintText: 'Tìm kiếm môn thể thao...',
           hintStyle: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Colors.grey[400],
+            color: _onSurfaceVariant,
           ),
-          prefixIcon: Icon(
-            Icons.search,
-            color: Colors.grey[400],
-            size: 24,
-          ),
+          prefixIcon: Icon(Icons.search, color: _onSurfaceVariant, size: 22),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(20)),
+            borderSide: BorderSide(color: _primary, width: 2),
+          ),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
         style: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: _onSurface,
         ),
       ),
     );
@@ -231,138 +228,88 @@ class _SportListScreenState extends State<SportListScreen> {
   Widget _buildSportCard(Sport sport) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _primary.withValues(alpha: 0.08)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Row(
         children: [
+          // Icon
           Container(
             height: 56,
             width: 56,
             decoration: BoxDecoration(
-              color: _orangeColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: _primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
               SportIconMapper.iconFromKey(sport.iconKey),
               size: 28,
-              color: _orangeColor,
+              color: _primary,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
+          // Name + count
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   sport.name,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: _navyColor,
+                    color: _onSurface,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   '${sport.itemCount} sân hiện có',
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: const TextStyle(
+                    fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey[500],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  sport.isVisible ? 'Đang hiển thị' : 'Đang ẩn',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: sport.isVisible ? Colors.green : Colors.red,
+                    color: _onSurfaceVariant,
                   ),
                 ),
               ],
             ),
           ),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushNamed(
-                    context,
-                    AppRoutes.sportDetail,
-                    arguments: {'id': sport.id},
-                  );
-                },
-                child: Container(
-                  height: 40,
-                  width: 40,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.transparent,
-                  ),
-                  child: Icon(
-                    Icons.visibility,
-                    size: 22,
-                    color: _orangeColor,
-                  ),
-                ),
-              ),
-              GestureDetector(
-                onTap: _canEdit
-                    ? () {
-                        Navigator.pushNamed(
-                          context,
-                          AppRoutes.sportEdit,
-                          arguments: {'id': sport.id},
-                        );
-                      }
-                    : null,
-                child: Container(
-                  height: 40,
-                  width: 40,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.transparent,
-                  ),
-                  child: Icon(
-                    Icons.edit,
-                    size: 22,
-                    color: _canEdit ? _navyColor : Colors.grey,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-              GestureDetector(
-                onTap: _canDelete
-                    ? () {
-                        _showDeleteDialog(sport);
-                      }
-                    : null,
-                child: Container(
-                  height: 40,
-                  width: 40,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.transparent,
-                  ),
-                  child: Icon(
-                    Icons.delete,
-                    size: 22,
-                    color: _canDelete ? Colors.red : Colors.grey,
-                  ),
-                ),
-              ),
-            ],
+          // Edit button
+          IconButton(
+            onPressed: _canEdit
+                ? () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.sportEdit,
+                      arguments: {'id': sport.id},
+                    )
+                : null,
+            icon: Icon(
+              Icons.edit_outlined,
+              size: 22,
+              color: _canEdit ? const Color(0xFF18A5A7) : Colors.grey[300],
+            ),
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          ),
+          // Delete button
+          IconButton(
+            onPressed: _canDelete ? () => _showDeleteDialog(sport) : null,
+            icon: Icon(
+              Icons.delete_outline,
+              size: 22,
+              color: _canDelete ? const Color(0xFFBA1A1A) : Colors.grey[300],
+            ),
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
           ),
         ],
       ),
@@ -370,59 +317,29 @@ class _SportListScreenState extends State<SportListScreen> {
   }
 
   Widget _buildFAB() {
-    return _canCreate
-        ? Container(
-            height: 56,
-            width: 56,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [_orangeColor, const Color(0xFFFF5722)],
-              ),
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: _orangeColor.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: FloatingActionButton(
-              onPressed: () {
-                Navigator.pushNamed(context, AppRoutes.sportCreate);
-              },
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              child: const Icon(
-                Icons.add,
-                size: 32,
-                color: Colors.white,
-              ),
-            ),
-          )
-        : Container(
-            height: 56,
-            width: 56,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.grey.withValues(alpha: 0.5),
-                  Colors.grey.withValues(alpha: 0.5),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: FloatingActionButton(
-              onPressed: null,
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              child: Icon(
-                Icons.add,
-                size: 32,
-                color: Colors.grey[400],
-              ),
-            ),
-          );
+    return Container(
+      height: 60,
+      width: 60,
+      decoration: BoxDecoration(
+        color: _canCreate ? _primary : Colors.grey[400],
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: (_canCreate ? _primary : Colors.grey).withValues(alpha: 0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: FloatingActionButton(
+        onPressed: _canCreate
+            ? () => Navigator.pushNamed(context, AppRoutes.sportCreate)
+            : null,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: const Icon(Icons.add, size: 30, color: Colors.white),
+      ),
+    );
   }
 
   void _showDeleteDialog(Sport sport) {

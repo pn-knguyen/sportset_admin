@@ -22,12 +22,14 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
   final StaffService _staffService = StaffService();
   final AccessControlService _accessControlService = AccessControlService();
   final ImagePicker _imagePicker = ImagePicker();
-  
-  final int _currentNavIndex = 1;
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF9800);
-  final Color _secondaryColor = const Color(0xFFFF4E00);
-  
+
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF5C615A);
+  static const _iconTeal = Color(0xFF18A5A7);
+
   bool _isLoading = false;
   String? _selectedPosition;
   String? _selectedWorkplace;
@@ -74,83 +76,63 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
-                  const SizedBox(height: 24),
-                  _buildAvatarSection(),
-                  const SizedBox(height: 32),
-                  _buildFormFields(),
-                  const SizedBox(height: 40),
-                  _buildSaveButton(),
-                  const SizedBox(height: 24),
-                ],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_lightGreen, Colors.white],
+          ),
+        ),
+        child: Column(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(4, 8, 20, 4),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back,
+                          size: 22, color: _onSurfaceVariant),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        'Th\u00eam nh\u00e2n vi\u00ean m\u1edbi',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: _darkGreen,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  height: 40,
-                  width: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.arrow_back_ios_new,
-                    color: Color(0xFF0C1C46),
-                    size: 18,
-                  ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 24),
+                    _buildAvatarSection(),
+                    const SizedBox(height: 32),
+                    _buildFormFields(),
+                    const SizedBox(height: 32),
+                    _buildSaveButton(),
+                    const SizedBox(height: 24),
+                  ],
                 ),
               ),
-              const SizedBox(width: 16),
-              Text(
-                'Thêm Nhân Viên',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: _navyColor,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+      bottomNavigationBar: const CommonBottomNav(currentIndex: 1),
     );
   }
 
@@ -160,21 +142,16 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
         Stack(
           children: [
             Container(
-              width: 128,
-              height: 128,
+              width: 112,
+              height: 112,
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.grey.withValues(alpha: 0.2),
-                  width: 2,
-                  strokeAlign: BorderSide.strokeAlignInside,
-                  style: BorderStyle.solid,
-                ),
+                border: Border.all(color: Colors.white, width: 4),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 4,
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 16,
                   ),
                 ],
               ),
@@ -187,7 +164,7 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
                     )
                   : Icon(
                       Icons.person,
-                      size: 60,
+                      size: 56,
                       color: Colors.grey[300],
                     ),
             ),
@@ -197,22 +174,22 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
               child: GestureDetector(
                 onTap: _isLoading ? null : _showImageSourceDialog,
                 child: Container(
-                  width: 40,
-                  height: 40,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
-                    color: _orangeColor,
+                    color: _primary,
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 2),
                     boxShadow: [
                       BoxShadow(
-                        color: _orangeColor.withValues(alpha: 0.3),
+                        color: _primary.withValues(alpha: 0.3),
                         blurRadius: 8,
                       ),
                     ],
                   ),
                   child: const Icon(
                     Icons.photo_camera,
-                    size: 20,
+                    size: 18,
                     color: Colors.white,
                   ),
                 ),
@@ -220,14 +197,13 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Text(
-          'ẢNH ĐẠI DIỆN',
+        const SizedBox(height: 10),
+        const Text(
+          'T\u1ea3i \u1ea3nh \u0111\u1ea1i di\u1ec7n',
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: Colors.grey[500],
-            letterSpacing: 1.2,
+            color: _onSurfaceVariant,
           ),
         ),
       ],
@@ -328,39 +304,35 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
     return Column(
       children: [
         _buildTextField(
-          label: 'Họ và tên',
+          label: 'H\u1ecd v\u00e0 t\u00ean',
           controller: _nameController,
-          icon: Icons.badge,
-          placeholder: 'Nhập họ và tên đầy đủ',
-        ),
-        const SizedBox(height: 20),
-        _buildTextField(
-          label: 'Số điện thoại',
-          controller: _phoneController,
-          icon: Icons.call,
-          placeholder: '0123 456 789',
-          keyboardType: TextInputType.phone,
+          icon: Icons.person,
+          placeholder: 'H\u1ecd v\u00e0 t\u00ean',
         ),
         const SizedBox(height: 20),
         _buildTextField(
           label: 'Email',
           controller: _emailController,
           icon: Icons.mail,
-          placeholder: 'example@sportset.com',
+          placeholder: 'Email',
           keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: 20),
+        _buildTextField(
+          label: 'S\u1ed1 \u0111i\u1ec7n tho\u1ea1i',
+          controller: _phoneController,
+          icon: Icons.phone,
+          placeholder: 'S\u1ed1 \u0111i\u1ec7n tho\u1ea1i',
+          keyboardType: TextInputType.phone,
+        ),
+        const SizedBox(height: 20),
         _buildDropdownField(
-          label: 'Vị trí làm việc',
-          icon: Icons.work,
-          placeholder: 'Chọn vị trí',
+          label: 'V\u1ecb tr\u00ed l\u00e0m vi\u1ec7c',
+          icon: Icons.shield,
+          placeholder: 'Ch\u1ecdn v\u1ecb tr\u00ed l\u00e0m vi\u1ec7c',
           value: _selectedPosition,
           items: _positions,
-          onChanged: (value) {
-            setState(() {
-              _selectedPosition = value;
-            });
-          },
+          onChanged: (value) => setState(() => _selectedPosition = value),
         ),
         const SizedBox(height: 20),
         _buildFacilityDropdown(),
@@ -381,11 +353,12 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 6),
           child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
+            label.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: _navyColor,
+              color: _onSurfaceVariant,
+              letterSpacing: 1.2,
             ),
           ),
         ),
@@ -396,7 +369,8 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 4,
+                blurRadius: 16,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -405,19 +379,26 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
             keyboardType: keyboardType,
             decoration: InputDecoration(
               hintText: placeholder,
-              hintStyle: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[400],
+              hintStyle: TextStyle(fontSize: 14, color: Colors.grey[400]),
+              prefixIcon: Icon(icon, color: _iconTeal, size: 20),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
               ),
-              prefixIcon: Icon(
-                icon,
-                color: Colors.grey[400],
-                size: 20,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
               ),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: _primary, width: 1.5),
+              ),
             ),
-            style: const TextStyle(fontSize: 14),
+            style: const TextStyle(fontSize: 14, color: _onSurface),
           ),
         ),
       ],
@@ -430,14 +411,15 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 6),
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 6),
           child: Text(
-            'Cơ sở làm việc',
+            'C\u01a0 S\u1eee L\u00c0M VI\u1ec6C',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: _navyColor,
+              color: _onSurfaceVariant,
+              letterSpacing: 1.2,
             ),
           ),
         ),
@@ -455,17 +437,18 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 4,
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-                height: 56,
-                child: Center(
+                height: 58,
+                child: const Center(
                   child: SizedBox(
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(
-                      color: _orangeColor,
+                      color: _primary,
                       strokeWidth: 2,
                     ),
                   ),
@@ -480,7 +463,7 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 padding: const EdgeInsets.all(16),
-                child: const Text('Lỗi tải dữ liệu'),
+                child: const Text('L\u1ed7i t\u1ea3i d\u1eef li\u1ec7u'),
               );
             }
 
@@ -492,31 +475,39 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 4,
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: DropdownButtonFormField<String>(
-                value: _selectedWorkplace,
+                initialValue: _selectedWorkplace,
                 decoration: InputDecoration(
-                  hintText: 'Chọn cơ sở',
-                  hintStyle: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[400],
+                  hintText: 'Ch\u1ecdn c\u01a1 s\u1edf l\u00e0m vi\u1ec7c',
+                  hintStyle:
+                      TextStyle(fontSize: 14, color: Colors.grey[400]),
+                  prefixIcon:
+                      const Icon(Icons.stadium, color: _iconTeal, size: 20),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 18),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
                   ),
-                  prefixIcon: Icon(
-                    Icons.location_on,
-                    color: Colors.grey[400],
-                    size: 20,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
                   ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide:
+                        const BorderSide(color: _primary, width: 1.5),
+                  ),
                 ),
-                icon: Icon(
-                  Icons.expand_more,
-                  color: Colors.grey[400],
-                ),
-                style: TextStyle(fontSize: 14, color: _navyColor),
+                icon: const Icon(Icons.expand_more, color: _onSurfaceVariant),
+                style: const TextStyle(fontSize: 14, color: _onSurface),
                 dropdownColor: Colors.white,
                 items: facilities.map((facility) {
                   final id = facility.id;
@@ -526,11 +517,7 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
                     child: Text(name),
                   );
                 }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedWorkplace = value;
-                  });
-                },
+                onChanged: (value) => setState(() => _selectedWorkplace = value),
               ),
             );
           },
@@ -553,11 +540,12 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 6),
           child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
+            label.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: _navyColor,
+              color: _onSurfaceVariant,
+              letterSpacing: 1.2,
             ),
           ),
         ),
@@ -568,7 +556,8 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 4,
+                blurRadius: 16,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -576,23 +565,28 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
             initialValue: value,
             decoration: InputDecoration(
               hintText: placeholder,
-              hintStyle: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[400],
+              hintStyle:
+                  TextStyle(fontSize: 14, color: Colors.grey[400]),
+              prefixIcon: Icon(icon, color: _iconTeal, size: 20),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
               ),
-              prefixIcon: Icon(
-                icon,
-                color: Colors.grey[400],
-                size: 20,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
               ),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: _primary, width: 1.5),
+              ),
             ),
-            icon: Icon(
-              Icons.expand_more,
-              color: Colors.grey[400],
-            ),
-            style: TextStyle(fontSize: 14, color: _navyColor),
+            icon: const Icon(Icons.expand_more, color: _onSurfaceVariant),
+            style: const TextStyle(fontSize: 14, color: _onSurface),
             dropdownColor: Colors.white,
             items: items.map((item) {
               return DropdownMenuItem<String>(
@@ -610,17 +604,17 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
   Widget _buildSaveButton() {
     return Container(
       width: double.infinity,
-      height: 56,
+      height: 60,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_orangeColor, _secondaryColor],
+        gradient: const LinearGradient(
+          colors: [_primary, _darkGreen],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: _orangeColor.withValues(alpha: 0.2),
+            color: _primary.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -630,13 +624,13 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
         onPressed: _isLoading ? null : _handleSave,
         style: TextButton.styleFrom(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
           ),
         ),
         child: _isLoading
             ? const SizedBox(
-                height: 20,
-                width: 20,
+                height: 22,
+                width: 22,
                 child: CircularProgressIndicator(
                   color: Colors.white,
                   strokeWidth: 2,
@@ -645,18 +639,15 @@ class _StaffCreateScreenState extends State<StaffCreateScreen> {
             : const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.save,
-                    color: Colors.white,
-                    size: 20,
-                  ),
+                  Icon(Icons.check_circle, color: Colors.white, size: 20),
                   SizedBox(width: 8),
                   Text(
-                    'Thêm Nhân Viên',
+                    'T\u1ea1o t\u00e0i kho\u1ea3n',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ],

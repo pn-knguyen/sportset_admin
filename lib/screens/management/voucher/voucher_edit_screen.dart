@@ -20,9 +20,11 @@ class _VoucherEditScreenState extends State<VoucherEditScreen> {
   final VoucherService _voucherService = VoucherService();
   final AccessControlService _accessControlService = AccessControlService();
 
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF9800);
-  final Color _bgColor = const Color(0xFFFFF8F6);
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF5C615A);
 
   String? _voucherId;
   Voucher? _voucher;
@@ -233,218 +235,251 @@ class _VoucherEditScreenState extends State<VoucherEditScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _bgColor,
-        elevation: 0,
-        scrolledUnderElevation: 2,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: _navyColor),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Chỉnh sửa voucher',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: _navyColor,
-            letterSpacing: 0.5,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_lightGreen, Colors.white],
           ),
         ),
-        centerTitle: false,
-      ),
-      body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(color: _orangeColor),
-            )
-          : _voucher == null
-              ? const Center(child: Text('Không tìm thấy voucher'))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabeledInput(
-                          label: 'Tên voucher / Mã',
-                          icon: Icons.sell,
-                          controller: _voucherAndCodeController,
-                          hint: 'SPORTSET2024',
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Vui lòng nhập mã voucher';
-                            }
-                            return null;
-                          },
+        child: Column(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(4, 8, 20, 4),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back,
+                          size: 22, color: _onSurfaceVariant),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        'Chỉnh Sửa Voucher',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: _darkGreen,
                         ),
-                        const SizedBox(height: 20),
-                        _buildLabeledInput(
-                          label: 'Giá trị giảm (VND)',
-                          icon: Icons.payments,
-                          controller: _discountValueController,
-                          hint: '50000',
-                          keyboardType: TextInputType.number,
-                          validator: (value) {
-                            final parsed = _parseMoney(value ?? '');
-                            if (parsed == null || parsed <= 0) {
-                              return 'Giá trị giảm không hợp lệ';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildDateField(),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildLabeledInput(
-                                label: 'Số lượng còn lại',
-                                icon: Icons.inventory_2,
-                                controller: _remainingController,
-                                hint: '120',
-                                keyboardType: TextInputType.number,
-                                validator: (value) {
-                                  final parsed = _parseInt(value ?? '');
-                                  if (parsed == null || parsed < 0) {
-                                    return 'Không hợp lệ';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey[200]!),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.03),
-                                blurRadius: 6,
-                                offset: const Offset(0, 1),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.orange.shade50,
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: _primary),
+                    )
+                  : _voucher == null
+                      ? const Center(
+                          child: Text('Không tìm thấy voucher'),
+                        )
+                      : SingleChildScrollView(
+                          padding:
+                              const EdgeInsets.fromLTRB(20, 20, 20, 100),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabeledInput(
+                                  label: 'Tên voucher / Mã',
+                                  icon: Icons.sell,
+                                  controller: _voucherAndCodeController,
+                                  hint: 'SPORTSET2024',
+                                  validator: (value) {
+                                    if (value == null ||
+                                        value.trim().isEmpty) {
+                                      return 'Vui lòng nhập mã voucher';
+                                    }
+                                    return null;
+                                  },
                                 ),
-                                child: Icon(
-                                  Icons.bolt,
-                                  color: _orangeColor,
-                                  size: 20,
+                                const SizedBox(height: 20),
+                                _buildLabeledInput(
+                                  label: 'Giá trị giảm (VND)',
+                                  icon: Icons.payments,
+                                  controller: _discountValueController,
+                                  hint: '50000',
+                                  keyboardType: TextInputType.number,
+                                  validator: (value) {
+                                    final parsed =
+                                        _parseMoney(value ?? '');
+                                    if (parsed == null || parsed <= 0) {
+                                      return 'Giá trị giảm không hợp lệ';
+                                    }
+                                    return null;
+                                  },
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                const SizedBox(height: 20),
+                                Row(
                                   children: [
-                                    Text(
-                                      'Kích hoạt ngay',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: _navyColor,
-                                      ),
+                                    Expanded(
+                                      child: _buildDateField(),
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'Hiển thị voucher cho người dùng',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildLabeledInput(
+                                        label: 'Số lượng còn lại',
+                                        icon: Icons.inventory_2,
+                                        controller: _remainingController,
+                                        hint: '120',
+                                        keyboardType: TextInputType.number,
+                                        validator: (value) {
+                                          final parsed =
+                                              _parseInt(value ?? '');
+                                          if (parsed == null ||
+                                              parsed < 0) {
+                                            return 'Không hợp lệ';
+                                          }
+                                          return null;
+                                        },
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
-                              Switch(
-                                value: _isActive,
-                                activeColor: Colors.white,
-                                activeTrackColor: _orangeColor,
-                                inactiveThumbColor: Colors.white,
-                                inactiveTrackColor: Colors.grey[300],
-                                onChanged: (value) {
-                                  setState(() {
-                                    _isActive = value;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-                        SizedBox(
-                          width: double.infinity,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFFF9800), Color(0xFFFF5722)],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: _orangeColor.withValues(alpha: 0.28),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
+                                const SizedBox(height: 20),
+                                Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black
+                                            .withValues(alpha: 0.03),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          color: _lightGreen,
+                                        ),
+                                        child: const Icon(
+                                          Icons.bolt,
+                                          color: _primary,
+                                          size: 20,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Kích hoạt ngay',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                                color: _onSurface,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Hiển thị voucher cho người dùng',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Switch(
+                                        value: _isActive,
+                                        activeThumbColor: Colors.white,
+                                        activeTrackColor: _primary,
+                                        inactiveThumbColor: Colors.white,
+                                        inactiveTrackColor: Colors.grey[300],
+                                        onChanged: (value) {
+                                          setState(() {
+                                            _isActive = value;
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 28),
+                                Container(
+                                  width: double.infinity,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [_primary, _darkGreen],
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: _primary.withValues(alpha: 0.25),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 8),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ElevatedButton.icon(
+                                    onPressed:
+                                        _isSaving ? null : _submitUpdate,
+                                    style: ElevatedButton.styleFrom(
+                                      minimumSize:
+                                          const Size(double.infinity, 60),
+                                      elevation: 0,
+                                      shadowColor: Colors.transparent,
+                                      backgroundColor: Colors.transparent,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(20),
+                                      ),
+                                    ),
+                                    icon: _isSaving
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Icon(Icons.update),
+                                    label: Text(
+                                      _isSaving
+                                          ? 'Đang cập nhật...'
+                                          : 'Cập nhật thay đổi',
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                            child: ElevatedButton.icon(
-                              onPressed: _isSaving ? null : _submitUpdate,
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: const Size(double.infinity, 56),
-                                elevation: 0,
-                                shadowColor: Colors.transparent,
-                                backgroundColor: Colors.transparent,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              icon: _isSaving
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Icon(Icons.update),
-                              label: Text(
-                                _isSaving
-                                    ? 'Đang cập nhật...'
-                                    : 'Cập nhật thay đổi',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-      bottomNavigationBar: CommonBottomNav(currentIndex: 1),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: const CommonBottomNav(currentIndex: 1),
     );
   }
 
@@ -452,40 +487,40 @@ class _VoucherEditScreenState extends State<VoucherEditScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4),
+        const Padding(
+          padding: EdgeInsets.only(left: 4),
           child: Text(
             'Hạn sử dụng',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: _navyColor,
+              color: _darkGreen,
             ),
           ),
         ),
         const SizedBox(height: 8),
         InkWell(
           onTap: _pickExpiryDate,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[200]!),
+              borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 6,
-                  offset: const Offset(0, 1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: Text(
               _formatDateInput(_expiryDate),
-              style: TextStyle(
-                color: _navyColor,
+              style: const TextStyle(
+                color: _onSurface,
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
               ),
@@ -511,54 +546,54 @@ class _VoucherEditScreenState extends State<VoucherEditScreen> {
           padding: const EdgeInsets.only(left: 4),
           child: Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: _navyColor,
+              color: _darkGreen,
             ),
           ),
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 6,
-                offset: const Offset(0, 1),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
           child: TextFormField(
             controller: controller,
             keyboardType: keyboardType,
-            style: TextStyle(
-              color: _navyColor,
+            style: const TextStyle(
+              color: _onSurface,
               fontWeight: FontWeight.w700,
             ),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(color: Colors.grey[300]),
-              prefixIcon: Icon(icon, color: _orangeColor, size: 20),
+              prefixIcon: Icon(icon, color: _primary, size: 20),
               filled: true,
               fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14,
-                vertical: 16,
+                vertical: 18,
               ),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[200]!),
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide.none,
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[200]!),
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide.none,
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: _orangeColor,
+                borderRadius: BorderRadius.circular(20),
+                borderSide: const BorderSide(
+                  color: _primary,
                   width: 1.5,
                 ),
               ),

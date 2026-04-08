@@ -14,11 +14,15 @@ class SportEditScreen extends StatefulWidget {
 }
 
 class _SportEditScreenState extends State<SportEditScreen> {
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF5C615A);
+
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   final int _currentNavIndex = 1;
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF9800);
   final SportService _sportService = SportService();
   final AccessControlService _accessControlService = AccessControlService();
 
@@ -107,84 +111,66 @@ class _SportEditScreenState extends State<SportEditScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildIconSelector(),
-                  const SizedBox(height: 32),
-                  _buildNameField(),
-                  const SizedBox(height: 24),
-                  _buildDescriptionField(),
-                  const SizedBox(height: 24),
-                  _buildVisibilityToggle(),
-                  const SizedBox(height: 40),
-                  _buildSaveButton(),
-                  const SizedBox(height: 24),
-                ],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_lightGreen, Colors.white],
+          ),
+        ),
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildIconSelector(),
+                    const SizedBox(height: 32),
+                    _buildNameField(),
+                    const SizedBox(height: 24),
+                    _buildDescriptionField(),
+                    const SizedBox(height: 32),
+                    _buildSaveButton(),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
     );
   }
 
   Widget _buildHeader() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 48, 20, 16),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    height: 40,
-                    width: 40,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.arrow_back_ios_new,
-                      size: 24,
-                      color: _navyColor,
-                    ),
-                  ),
-                ),
-              ),
-              Text(
-                'Thông Tin Danh Mục',
-                style: TextStyle(
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 8, 20, 4),
+        child: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, size: 22, color: _onSurfaceVariant),
+              onPressed: () => Navigator.pop(context),
+            ),
+            Expanded(
+              child: Text(
+                'Chỉnh sửa danh mục',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  color: _navyColor,
-                  letterSpacing: -0.5,
+                  color: _darkGreen,
                 ),
               ),
-              const Align(
-                alignment: Alignment.centerRight,
-                child: SizedBox(width: 40),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 48),
+          ],
         ),
       ),
     );
@@ -194,12 +180,12 @@ class _SportEditScreenState extends State<SportEditScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Chọn Biểu Tượng',
           style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: _navyColor,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: _onSurface,
           ),
         ),
         const SizedBox(height: 16),
@@ -216,56 +202,30 @@ class _SportEditScreenState extends State<SportEditScreen> {
           itemBuilder: (context, index) {
             final isSelected = _selectedIconIndex == index;
             return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedIconIndex = index;
-                });
-              },
-              child: Container(
+              onTap: () => setState(() => _selectedIconIndex = index),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? const Color(0xFFFFF2E6)
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  color: isSelected ? _lightGreen : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isSelected
-                        ? const Color(0xFFFFCC80)
-                        : Colors.transparent,
-                    width: 2,
+                    color: isSelected ? _primary : Colors.grey.shade100,
+                    width: isSelected ? 2 : 1,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 4,
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ShaderMask(
-                      shaderCallback: (bounds) {
-                        if (isSelected) {
-                          return const LinearGradient(
-                            colors: [Color(0xFFFF9800), Color(0xFFF44336)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ).createShader(bounds);
-                        }
-                        return const LinearGradient(
-                          colors: [Color(0xFF0C1C46), Color(0xFF0C1C46)],
-                        ).createShader(bounds);
-                      },
-                      child: Icon(
-                        SportIconMapper.iconOptions[index]['icon'] as IconData,
-                        size: 32,
-                        color: isSelected
-                            ? Colors.white
-                            : _navyColor.withValues(alpha: 0.4),
-                      ),
-                    ),
-                  ],
+                child: Center(
+                  child: Icon(
+                    SportIconMapper.iconOptions[index]['icon'] as IconData,
+                    size: 32,
+                    color: isSelected ? _primary : Colors.grey[400],
+                  ),
                 ),
               ),
             );
@@ -279,45 +239,49 @@ class _SportEditScreenState extends State<SportEditScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 12),
           child: Text(
             'Tên môn thể thao',
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: _navyColor,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: _onSurface,
             ),
           ),
         ),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 4,
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 12,
                 offset: const Offset(0, 2),
               ),
             ],
           ),
           child: TextField(
             controller: _nameController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Nhập tên môn thể thao',
-              hintStyle: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
-              ),
+              hintStyle: TextStyle(fontSize: 16, color: Colors.grey[400]),
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+                borderSide: const BorderSide(color: _primary, width: 2),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             ),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: _navyColor,
+              color: _onSurface,
             ),
           ),
         ),
@@ -329,25 +293,25 @@ class _SportEditScreenState extends State<SportEditScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 12),
           child: Text(
             'Mô tả chi tiết',
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: _navyColor,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: _onSurface,
             ),
           ),
         ),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 4,
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 12,
                 offset: const Offset(0, 2),
               ),
             ],
@@ -355,20 +319,24 @@ class _SportEditScreenState extends State<SportEditScreen> {
           child: TextField(
             controller: _descriptionController,
             maxLines: 5,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Nhập mô tả chi tiết',
-              hintStyle: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
-              ),
+              hintStyle: TextStyle(fontSize: 16, color: Colors.grey[400]),
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+                borderSide: const BorderSide(color: _primary, width: 2),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             ),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: _navyColor,
+              color: _onSurface,
             ),
           ),
         ),
@@ -376,73 +344,20 @@ class _SportEditScreenState extends State<SportEditScreen> {
     );
   }
 
-  Widget _buildVisibilityToggle() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 12,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Hiển thị trên ứng dụng',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: _navyColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Người dùng sẽ nhìn thấy danh mục này',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[500],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: _isVisible,
-            onChanged: (value) {
-              setState(() {
-                _isVisible = value;
-              });
-            },
-            activeThumbColor: _orangeColor,
-            activeTrackColor: _orangeColor.withValues(alpha: 0.5),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSaveButton() {
     return Container(
       width: double.infinity,
-      height: 56,
+      height: 60,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_orangeColor, const Color(0xFFF44336)],
+        gradient: const LinearGradient(
+          colors: [_primary, _darkGreen],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: _orangeColor.withValues(alpha: 0.3),
+            color: _primary.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -517,22 +432,18 @@ class _SportEditScreenState extends State<SportEditScreen> {
               },
         style: TextButton.styleFrom(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(20),
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.save,
-              color: Colors.white,
-              size: 24,
-            ),
-            const SizedBox(width: 8),
+            const Icon(Icons.save, color: Colors.white, size: 24),
+            const SizedBox(width: 12),
             Text(
               _isSaving ? 'Đang lưu...' : 'Lưu Thông Tin',
               style: const TextStyle(
-                fontSize: 18,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),

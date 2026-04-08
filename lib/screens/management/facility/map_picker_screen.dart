@@ -26,7 +26,6 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   final _searchFocusNode = FocusNode();
 
   final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF9800);
 
   @override
   void initState() {

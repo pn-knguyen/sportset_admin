@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -31,8 +31,14 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
   );
   final TextEditingController _subCourtNameController = TextEditingController();
 
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF5722);
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF5C615A);
+  static const _tertiary = Color(0xFF994700);
+
+  int _selectedPricingTab = 0;
   final int _currentNavIndex = 1;
   final CourtService _courtService = CourtService();
   final FacilityService _facilityService = FacilityService();
@@ -43,8 +49,6 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
   bool _didLoadInitialData = false;
   bool _isSaving = false;
   bool _isLoadingFacilities = true;
-  bool _isLoadingSports = true;
-  bool _hasEditPermission = true;
 
   List<Facility> _facilities = <Facility>[];
   List<Sport> _sports = <Sport>[];
@@ -99,7 +103,6 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
       Navigator.pop(context);
     }
     
-    setState(() => _hasEditPermission = hasPermission);
   }
 
   @override
@@ -253,9 +256,7 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
       });
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoadingSports = false;
-        });
+        setState(() {});
       }
     }
   }
@@ -387,80 +388,76 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 24),
-                  _buildFacilitySelector(),
-                  const SizedBox(height: 24),
-                  _buildImageSection(),
-                  const SizedBox(height: 24),
-                  _buildCourtInfoSection(),
-                  const SizedBox(height: 32),
-                  _buildSubCourtsSection(),
-                  const SizedBox(height: 24),
-                  _buildPricingSection(),
-                  const SizedBox(height: 24),
-                  _buildDescriptionSection(),
-                  const SizedBox(height: 24),
-                  _buildAmenitiesSection(),
-                  const SizedBox(height: 32),
-                  _buildUpdateButton(),
-                  const SizedBox(height: 100),
-                ],
+      backgroundColor: _lightGreen,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_lightGreen, Colors.white],
+          ),
+        ),
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 24),
+                    _buildFacilitySelector(),
+                    const SizedBox(height: 24),
+                    _buildImageSection(),
+                    const SizedBox(height: 24),
+                    _buildCourtInfoSection(),
+                    const SizedBox(height: 32),
+                    _buildSubCourtsSection(),
+                    const SizedBox(height: 24),
+                    _buildPricingSection(),
+                    const SizedBox(height: 24),
+                    _buildDescriptionSection(),
+                    const SizedBox(height: 24),
+                    _buildAmenitiesSection(),
+                    const SizedBox(height: 32),
+                    _buildUpdateButton(),
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
     );
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
+    return SafeArea(
+      bottom: false,
+      child: SizedBox(
+        height: 56,
         child: Row(
           children: [
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Icon(
-                  Icons.arrow_back_ios_new,
-                  size: 24,
-                  color: _navyColor,
-                ),
-              ),
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.arrow_back, color: _darkGreen),
             ),
             Expanded(
               child: Text(
-                'Chỉnh Sửa Sân',
+                'Chỉnh sửa Sân',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: _navyColor,
-                  letterSpacing: -0.5,
+                  color: _darkGreen,
+                  letterSpacing: -0.3,
                 ),
               ),
             ),
-            const SizedBox(width: 32),
+            const SizedBox(width: 48),
           ],
         ),
       ),
@@ -480,25 +477,21 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
             'Cơ sở chủ quản',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: _navyColor,
-            ),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _onSurfaceVariant),
           ),
         ),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey[200]!),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -507,32 +500,23 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
           child: DropdownButtonFormField<String>(
             initialValue: _validatedFacilitySelection(),
             decoration: const InputDecoration(
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               border: InputBorder.none,
             ),
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Colors.black87,
+              color: _onSurface,
             ),
-            icon: const Icon(Icons.expand_more, color: Colors.grey),
+            icon: const Icon(Icons.expand_more, color: _onSurfaceVariant),
             dropdownColor: Colors.white,
             items: _facilities.map((facility) {
-                  return DropdownMenuItem(
-                    value: facility.id,
-                    child: Text(facility.name),
-                  );
-                })
-                .toList(),
+              return DropdownMenuItem(value: facility.id, child: Text(facility.name));
+            }).toList(),
             onChanged: _facilities.isEmpty
                 ? null
                 : (value) {
-                    final selected = _facilities.firstWhere(
-                      (facility) => facility.id == value,
-                    );
+                    final selected = _facilities.firstWhere((f) => f.id == value);
                     setState(() {
                       _selectedFacilityId = selected.id;
                       _selectedFacility = selected.name;
@@ -545,101 +529,78 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
   }
 
   Widget _buildImageSection() {
-    return Stack(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: double.infinity,
-          height: 200,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Stack(
-              children: [
-                if (_selectedImageFile != null)
-                  Image.file(
-                    _selectedImageFile!,
-                    width: double.infinity,
-                    height: double.infinity,
-                    fit: BoxFit.cover,
-                  )
-                else
-                  Image.network(
-                    _existingImage,
-                    width: double.infinity,
-                    height: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[200],
-                        child: const Icon(
-                          Icons.image,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      );
-                    },
-                  ),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        _navyColor.withValues(alpha: 0.1),
-                        _navyColor.withValues(alpha: 0.2),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'Hình ảnh thực tế',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _onSurfaceVariant),
           ),
         ),
-        Positioned(
-          bottom: 12,
-          right: 12,
-          child: GestureDetector(
-            onTap: _isUploadingImage
-                ? null
-                : () async {
-                    await _pickImage();
-                  },
+        GestureDetector(
+          onTap: _isUploadingImage ? null : _pickImage,
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.95),
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFBECAB9), width: 2),
+                color: Colors.white.withValues(alpha: 0.5),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.edit, size: 18, color: _orangeColor),
-                  const SizedBox(width: 6),
-                  Text(
-                    _selectedImageFile != null ? 'Thay đổi ảnh' : 'Thay đổi ảnh',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: _navyColor,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (_selectedImageFile != null)
+                      Image.file(_selectedImageFile!, fit: BoxFit.cover)
+                    else
+                      Image.network(
+                        _existingImage,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.image, size: 60, color: Colors.grey),
+                        ),
+                      ),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.45),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                    Center(
+                      child: _isUploadingImage
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(50),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.photo_camera, color: _primary, size: 20),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Thay đổi ảnh',
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: _onSurface),
+                                  ),
+                                ],
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -657,28 +618,20 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 4, bottom: 8),
+            const Padding(
+              padding: EdgeInsets.only(left: 4, bottom: 8),
               child: Text(
                 'Tên cụm sân',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: _navyColor,
-                ),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _onSurfaceVariant),
               ),
             ),
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey[200]!),
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2)),
                 ],
               ),
               child: TextField(
@@ -686,14 +639,11 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                 decoration: InputDecoration(
                   hintText: 'Ví dụ: Khu sân cỏ nhân tạo',
                   hintStyle: TextStyle(color: Colors.grey[400]),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   border: InputBorder.none,
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: _orangeColor, width: 2),
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: _primary, width: 2),
                   ),
                 ),
                 style: const TextStyle(fontWeight: FontWeight.w500),
@@ -706,63 +656,39 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 4, bottom: 8),
+            const Padding(
+              padding: EdgeInsets.only(left: 4, bottom: 8),
               child: Text(
                 'Loại môn thể thao',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: _navyColor,
-                ),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _onSurfaceVariant),
               ),
             ),
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey[200]!),
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2)),
                 ],
               ),
               child: DropdownButtonFormField<String>(
                 initialValue: _validatedSportSelection(sportNames),
-                decoration: InputDecoration(
-                  prefixIcon: Icon(Icons.sports_soccer, color: _orangeColor),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.sports_soccer, color: _primary),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   border: InputBorder.none,
-                  hintText: _sports.isEmpty
-                      ? 'Chưa có danh mục môn thể thao'
-                      : 'Chọn môn thể thao',
+                  hintText: 'Chọn môn thể thao',
                 ),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
-                icon: const Icon(Icons.expand_more, color: Colors.grey),
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _onSurface),
+                icon: const Icon(Icons.expand_more, color: _onSurfaceVariant),
                 dropdownColor: Colors.white,
                 items: sportNames
-                    .map((sportName) => DropdownMenuItem(
-                          value: sportName,
-                          child: Text(sportName),
-                        ))
+                    .map((name) => DropdownMenuItem(value: name, child: Text(name)))
                     .toList(),
                 onChanged: sportNames.isEmpty
                     ? null
-                    : (value) {
-                        setState(() {
-                          _selectedSport = value ?? '';
-                        });
-                      },
+                    : (value) => setState(() => _selectedSport = value ?? ''),
               ),
             ),
           ],
@@ -771,740 +697,236 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
     );
   }
 
-  Widget _buildSubCourtsSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 4,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: _orangeColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Danh sách sân con',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: _navyColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Add sub-court input
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.grey.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: TextField(
-                    controller: _subCourtNameController,
-                    decoration: InputDecoration(
-                      hintText: 'Nhập tên sân (A5, A6...)',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 14,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                      ),
-                      border: InputBorder.none,
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: _orangeColor, width: 2),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () {
-                  if (_subCourtNameController.text.isNotEmpty) {
-                    setState(() {
-                      _subCourts.add({
-                        'name': _subCourtNameController.text,
-                        'isActive': true,
-                      });
-                      _subCourtNameController.clear();
-                    });
-                  }
-                },
-                child: Container(
-                  height: 44,
-                  width: 44,
-                  decoration: BoxDecoration(
-                    color: _orangeColor,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _orangeColor.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.add, color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Sub-courts list
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _subCourts.length,
-            itemBuilder: (context, index) {
-              final court = _subCourts[index];
-              final isActive = court['isActive'] as bool;
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? const Color(0xFFFFF8F6)
-                        : Colors.red.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isActive
-                          ? Colors.grey.withValues(alpha: 0.2)
-                          : Colors.red.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          court['name'],
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: _navyColor,
-                          ),
-                        ),
-                      ),
-                      // Toggle switch
-                      Transform.scale(
-                        scale: 0.8,
-                        child: Switch(
-                          value: isActive,
-                          onChanged: (value) {
-                            setState(() {
-                              _subCourts[index]['isActive'] = value;
-                            });
-                          },
-                          activeThumbColor: Colors.green,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Status badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isActive
-                              ? Colors.green.withValues(alpha: 0.1)
-                              : Colors.red.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isActive
-                                ? Colors.green.withValues(alpha: 0.2)
-                                : Colors.red.withValues(alpha: 0.2),
-                          ),
-                        ),
-                        child: Text(
-                          isActive ? 'Sẵn sàng' : 'Đang bảo trì',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: isActive
-                                ? Colors.green[700]
-                                : Colors.red[600],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Delete button
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _subCourts.removeAt(index);
-                          });
-                        },
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: const BoxDecoration(
-                            color: Colors.transparent,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.delete,
-                            size: 20,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-          // Info message
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, size: 16, color: Colors.blue[500]),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: RichText(
-                    text: TextSpan(
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black87,
-                      ),
-                      children: [
-                        const TextSpan(text: 'Cho phép '),
-                        TextSpan(
-                          text: '${_subCourts.length} khách',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: _navyColor,
-                          ),
-                        ),
-                        const TextSpan(text: ' đặt cùng lúc trong khung giờ.'),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  TimeOfDay _parseTime(String t) {
+    final parts = t.split(':');
+    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
   }
 
-  Widget _buildPricingSection() {
+  String _formatTime(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  bool _timeInRange(TimeOfDay t, TimeOfDay open, TimeOfDay close) {
+    final tMins = t.hour * 60 + t.minute;
+    final oMins = open.hour * 60 + open.minute;
+    final cMins = close.hour * 60 + close.minute;
+    return tMins >= oMins && tMins <= cMins;
+  }
+
+  Future<void> _pickPricingTime(
+      List<Map<String, dynamic>> pricingList, int index) async {
+    final facility = _currentFacility();
+    final open = _parseTime(facility?.openTime ?? '06:00');
+    final close = _parseTime(facility?.closeTime ?? '22:00');
+
+    final currentStart = _parseTime(pricingList[index]['startTime'] as String);
+    final pickedStart = await showTimePicker(
+      context: context,
+      initialTime: currentStart,
+      helpText: 'Chọn giờ bắt đầu',
+    );
+    if (pickedStart == null || !mounted) return;
+    if (!_timeInRange(pickedStart, open, close)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Giờ bắt đầu phải trong khoảng ${_formatTime(open)} - ${_formatTime(close)}',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final currentEnd = _parseTime(pricingList[index]['endTime'] as String);
+    final pickedEnd = await showTimePicker(
+      context: context,
+      initialTime: currentEnd,
+      helpText: 'Chọn giờ kết thúc',
+    );
+    if (pickedEnd == null || !mounted) return;
+    if (!_timeInRange(pickedEnd, open, close)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Giờ kết thúc phải trong khoảng ${_formatTime(open)} - ${_formatTime(close)}',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    final startMins = pickedStart.hour * 60 + pickedStart.minute;
+    final endMins = pickedEnd.hour * 60 + pickedEnd.minute;
+    if (endMins <= startMins) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Giờ kết thúc phải sau giờ bắt đầu'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      pricingList[index]['startTime'] = _formatTime(pickedStart);
+      pricingList[index]['endTime'] = _formatTime(pickedEnd);
+    });
+  }
+
+  Widget _buildSubCourtsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 16),
-          child: Text(
-            'Bảng giá theo khung giờ',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: _navyColor,
+        const Text(
+          'Danh sách sân con',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _onSurface),
+        ),
+        if (_subCourts.isNotEmpty) const SizedBox(height: 12),
+        // Add input row
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[200]!),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4)],
+                ),
+                child: TextField(
+                  controller: _subCourtNameController,
+                  decoration: InputDecoration(
+                    hintText: 'Nhập tên sân (A5, A6...)',
+                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    border: InputBorder.none,
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: _primary, width: 2),
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-        // Weekday pricing
-        _buildPricingCard(
-          title: 'Ngày thường',
-          selectedDays: [true, true, true, true, true, false, false],
-          pricingList: _weekdayPricing,
-        ),
-        const SizedBox(height: 24),
-        // Weekend pricing
-        _buildPricingCard(
-          title: 'Cuối tuần',
-          selectedDays: [false, false, false, false, false, true, true],
-          pricingList: _weekendPricing,
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () {
+                if (_subCourtNameController.text.isNotEmpty) {
+                  setState(() {
+                    _subCourts.add({'name': _subCourtNameController.text, 'isActive': true});
+                    _subCourtNameController.clear();
+                  });
+                }
+              },
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: _primary,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [BoxShadow(color: _primary.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))],
+                ),
+                child: const Icon(Icons.add, color: Colors.white),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
-        // Add new pricing group button
-        Container(
-          width: double.infinity,
-          height: 48,
-          decoration: BoxDecoration(
-            color: _orangeColor.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: _orangeColor.withValues(alpha: 0.3),
-              style: BorderStyle.solid,
-              width: 1,
-            ),
-          ),
-          child: TextButton(
-            onPressed: () {
-              // TODO: Add new pricing group
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.library_add, size: 22, color: _orangeColor),
-                const SizedBox(width: 8),
-                Text(
-                  'Thêm nhóm bảng giá mới',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: _orangeColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPricingCard({
-    required String title,
-    required List<bool> selectedDays,
-    required List<Map<String, dynamic>> pricingList,
-  }) {
-    final days = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title.toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete, size: 20),
-                color: Colors.grey[400],
-                onPressed: () {
-                  // TODO: Delete pricing group
-                },
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Days selector
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(7, (index) {
-              final isSelected = selectedDays[index];
-              return GestureDetector(
-                onTap: () {
-                  // TODO: Toggle day selection
-                },
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: isSelected ? _orangeColor : Colors.grey[50],
-                    shape: BoxShape.circle,
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: _orangeColor.withValues(alpha: 0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Center(
-                    child: Text(
-                      days[index],
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.w500,
-                        color: isSelected ? Colors.white : Colors.grey[400],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 20),
-          // Time slots
-          ...pricingList.asMap().entries.map((entry) {
-            final pricing = entry.value;
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-                ),
-                child: Column(
-                  children: [
-                    // Time range
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTimeDropdown(pricing['startTime']),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Icon(
-                            Icons.arrow_forward,
-                            size: 20,
-                            color: Colors.grey[300],
-                          ),
-                        ),
-                        Expanded(child: _buildTimeDropdown(pricing['endTime'])),
-                        const SizedBox(width: 8),
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Colors.grey.withValues(alpha: 0.2),
-                            ),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.close,
-                              size: 20,
-                              color: Colors.red,
-                            ),
-                            onPressed: () {
-                              // TODO: Remove time slot
-                            },
-                            padding: EdgeInsets.zero,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // Price input
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.grey.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: TextField(
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(
-                            Icons.payments,
-                            color: Colors.grey,
-                          ),
-                          suffixText: 'VNĐ',
-                          suffixStyle: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black54,
-                          ),
-                          hintText: 'Nhập giá',
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          border: InputBorder.none,
-                        ),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                        controller: TextEditingController(
-                          text: pricing['price'].toString(),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
-          // Add time slot button
-          Container(
-            width: double.infinity,
-            height: 40,
-            decoration: BoxDecoration(
-              color: _orangeColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: _orangeColor.withValues(alpha: 0.2),
-                style: BorderStyle.solid,
-              ),
-            ),
-            child: TextButton(
-              onPressed: () {
-                // TODO: Add time slot
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add, size: 18, color: _orangeColor),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Thêm khung giờ',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: _orangeColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimeDropdown(String value) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-      ),
-      child: DropdownButtonFormField<String>(
-        initialValue: value,
-        decoration: const InputDecoration(
-          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          border: InputBorder.none,
-        ),
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: Colors.black87,
-        ),
-        icon: Icon(Icons.expand_more, size: 18, color: Colors.grey[400]),
-        dropdownColor: Colors.white,
-        items:
-            [
-              '05:00',
-              '06:00',
-              '07:00',
-              '08:00',
-              '09:00',
-              '10:00',
-              '11:00',
-              '12:00',
-              '13:00',
-              '14:00',
-              '15:00',
-              '16:00',
-              '17:00',
-              '18:00',
-              '19:00',
-              '20:00',
-              '21:00',
-              '22:00',
-              '23:00',
-            ].map((time) {
-              return DropdownMenuItem(value: time, child: Text(time));
-            }).toList(),
-        onChanged: (value) {
-          // TODO: Update time
-        },
-      ),
-    );
-  }
-
-  Widget _buildDescriptionSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            'Mô tả chi tiết',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: _navyColor,
-            ),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: TextField(
-            controller: _descriptionController,
-            maxLines: 4,
-            decoration: InputDecoration(
-              hintText: 'Nhập mô tả về tiện ích, mặt sân, lưu ý...',
-              hintStyle: TextStyle(color: Colors.grey[400]),
-              contentPadding: const EdgeInsets.all(16),
-              border: InputBorder.none,
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: _orangeColor, width: 2),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAmenitiesSection() {
-    final amenities = [
-      {'icon': Icons.wifi, 'name': 'Wifi'},
-      {'icon': Icons.local_parking, 'name': 'Gửi xe'},
-      {'icon': Icons.water_drop, 'name': 'Nước uống'},
-      {'icon': Icons.shower, 'name': 'Tắm rửa'},
-      {'icon': Icons.lightbulb, 'name': 'Đèn đêm'},
-      {'icon': Icons.chair, 'name': 'Khán đài'},
-      {'icon': Icons.local_cafe, 'name': 'Canteen'},
-      {'icon': Icons.medical_services, 'name': 'Y tế'},
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 12),
-          child: Text(
-            'Tiện ích đi kèm',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: _navyColor,
-            ),
-          ),
-        ),
-        GridView.builder(
+        // Sub-courts list
+        ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1,
-          ),
-          itemCount: amenities.length,
+          itemCount: _subCourts.length,
           itemBuilder: (context, index) {
-            final amenity = amenities[index];
-            final isSelected = _selectedAmenities.contains(amenity['name']);
+            final court = _subCourts[index];
+            final isActive = court['isActive'] as bool;
+            final name = court['name'] as String;
+            // Extract short label from name (e.g. "Sân A1" → "A1")
+            final raw = name.startsWith('Sân ') ? name.substring(4) : name;
+            final label = raw.split(' ').first;
+            final shortLabel = label.length <= 3 ? label : label.substring(0, 2).toUpperCase();
 
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (isSelected) {
-                    _selectedAmenities.remove(amenity['name']);
-                  } else {
-                    _selectedAmenities.add(amenity['name'] as String);
-                  }
-                });
-              },
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
               child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? _orangeColor.withValues(alpha: 0.1)
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected
-                        ? _orangeColor
-                        : Colors.grey.withValues(alpha: 0.2),
-                    width: isSelected ? 2 : 1,
-                  ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: _orangeColor.withValues(alpha: 0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Row(
                   children: [
-                    Icon(
-                      amenity['icon'] as IconData,
-                      size: 26,
-                      color: isSelected ? _orangeColor : Colors.grey[400],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      amenity['name'] as String,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w500,
-                        color: isSelected ? _orangeColor : Colors.grey[600],
+                    // Avatar
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? _primary.withValues(alpha: 0.1)
+                            : _tertiary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                      child: Center(
+                        child: Text(
+                          shortLabel,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: isActive ? _primary : _tertiary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Name
+                    Expanded(
+                      child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, color: _onSurface)),
+                    ),
+                    // Status toggle chip
+                    GestureDetector(
+                      onTap: () => setState(() => court['isActive'] = !(court['isActive'] as bool)),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? _primary.withValues(alpha: 0.12)
+                              : const Color(0xFFBA1A1A).withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isActive ? _primary : const Color(0xFFBA1A1A),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isActive ? Icons.check_circle : Icons.build_circle,
+                              size: 13,
+                              color: isActive ? _primary : const Color(0xFFBA1A1A),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              isActive ? 'Hoạt động' : 'Bảo trì',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: isActive ? _primary : const Color(0xFFBA1A1A),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    // Delete button
+                    IconButton(
+                      onPressed: () => setState(() => _subCourts.removeAt(index)),
+                      icon: const Icon(Icons.delete_outline, color: Color(0xFFBA1A1A), size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                     ),
                   ],
                 ),
@@ -1516,18 +938,315 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
     );
   }
 
+  Widget _buildPricingSection() {
+    final pricingList = _selectedPricingTab == 0 ? _weekdayPricing : _weekendPricing;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Bảng giá theo khung giờ',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _onSurface),
+        ),
+        const SizedBox(height: 12),
+        // Tab switcher
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Color(0xFFF4F4F4),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              _buildPricingTab('Ngày thường', 0),
+              _buildPricingTab('Cuối tuần', 1),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Slot rows
+        ...List.generate(pricingList.length, (index) {
+          final pricing = pricingList[index];
+          final timeText = '${pricing['startTime']} - ${pricing['endTime']}';
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              children: [
+                // Time field (flex 5) - tappable
+                Expanded(
+                  flex: 5,
+                  child: GestureDetector(
+                    onTap: () => _pickPricingTime(pricingList, index),
+                    child: Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFF5F5F5)),
+                        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              timeText,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: _onSurface),
+                            ),
+                          ),
+                          const Icon(Icons.edit, size: 16, color: _primary),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Price field (flex 5)
+                Expanded(
+                  flex: 5,
+                  child: Stack(
+                    alignment: Alignment.centerRight,
+                    children: [
+                      Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Color(0xFFF5F5F5)),
+                          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                        ),
+                        child: TextField(
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _onSurface),
+                          decoration: const InputDecoration(
+                            contentPadding: EdgeInsets.fromLTRB(12, 0, 48, 0),
+                            border: InputBorder.none,
+                          ),
+                          controller: TextEditingController(
+                            text: pricing['price'].toString(),
+                          ),
+                          onChanged: (value) {
+                            final price = int.tryParse(value.replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
+                            pricingList[index]['price'] = price;
+                          },
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.only(right: 12),
+                        child: Text('d/h', style: TextStyle(fontSize: 11, color: _onSurfaceVariant)),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Delete
+                SizedBox(
+                  width: 40,
+                  child: IconButton(
+                    onPressed: () => setState(() => pricingList.removeAt(index)),
+                    icon: Icon(Icons.remove_circle_outline, color: Colors.red[600]),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+        const SizedBox(height: 8),
+        // Add slot button
+        GestureDetector(
+          onTap: () {
+            final facility = _currentFacility();
+            final startTime = facility?.openTime ?? '06:00';
+            final endTime = facility?.closeTime ?? '22:00';
+            setState(() {
+              pricingList.add({'startTime': startTime, 'endTime': endTime, 'price': 0});
+            });
+          },
+          child: Container(
+            width: double.infinity,
+            height: 60,
+            decoration: BoxDecoration(
+              border: Border.all(color: _primary.withValues(alpha: 0.3), width: 2),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add_circle, color: _primary),
+                SizedBox(width: 8),
+                Text('Thêm khung giờ', style: TextStyle(fontWeight: FontWeight.bold, color: _primary)),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPricingTab(String label, int tabIndex) {
+    final isActive = _selectedPricingTab == tabIndex;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedPricingTab = tabIndex),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 44,
+          decoration: BoxDecoration(
+            color: isActive ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: isActive
+                ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 4)]
+                : null,
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: isActive ? _primary : _onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+  Widget _buildDescriptionSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'Mô tả chi tiết',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _onSurfaceVariant),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey[200]!),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2)),
+            ],
+          ),
+          child: TextField(
+            controller: _descriptionController,
+            maxLines: 4,
+            decoration: InputDecoration(
+              hintText: 'Nhập quy định sân, lưu ý khi đặt chỗ...',
+              hintStyle: TextStyle(color: Colors.grey[400]),
+              contentPadding: const EdgeInsets.all(16),
+              border: InputBorder.none,
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: _primary, width: 2),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAmenitiesSection() {
+    final amenities = [
+      {'icon': Icons.wifi, 'name': 'Wifi'},
+      {'icon': Icons.local_parking, 'name': 'G\u1eedi xe'},
+      {'icon': Icons.water_drop, 'name': 'N\u01b0\u1edbc'},
+      {'icon': Icons.shower, 'name': 'T\u1eafm'},
+      {'icon': Icons.restaurant, 'name': 'C\u0103n tin'},
+      {'icon': Icons.lightbulb, 'name': '\u0110\u00e8n \u0111\u00eam'},
+      {'icon': Icons.chair, 'name': 'Kh\u00e1n \u0111\u00e0i'},
+      {'icon': Icons.medical_services, 'name': 'Y t\u1ebf'},
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Ti\u1ec7n \u00edch \u0111i k\u00e8m',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _onSurface),
+        ),
+        const SizedBox(height: 16),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 0.85,
+          ),
+          itemCount: amenities.length,
+          itemBuilder: (context, index) {
+            final amenity = amenities[index];
+            final isSelected = _selectedAmenities.contains(amenity['name']);
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  if (isSelected) {
+                    _selectedAmenities.remove(amenity['name']);
+                  } else {
+                    _selectedAmenities.add(amenity['name'] as String);
+                  }
+                });
+              },
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: isSelected ? _primary : Colors.grey[200],
+                      borderRadius: BorderRadius.circular(26),
+                      boxShadow: isSelected
+                          ? [BoxShadow(color: _primary.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))]
+                          : null,
+                    ),
+                    child: Icon(
+                      amenity['icon'] as IconData,
+                      size: 24,
+                      color: isSelected ? Colors.white : Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    (amenity['name'] as String).toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      color: isSelected ? _primary : _onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
   Widget _buildUpdateButton() {
     return Container(
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_orangeColor, const Color(0xFFD32F2F)],
+        gradient: const LinearGradient(
+          colors: [_primary, _darkGreen],
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: _orangeColor.withValues(alpha: 0.3),
+            color: _primary.withValues(alpha: 0.25),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -1538,35 +1257,18 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (_isSaving)
-              const SizedBox(
+        child: _isSaving
+            ? const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
               )
-            else
-              const Icon(Icons.save, color: Colors.white),
-            const SizedBox(width: 8),
-            Text(
-              _isSaving ? 'Đang cập nhật...' : 'Cập nhật thông tin',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+            : const Text(
+                'Cập nhật thông tin',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
               ),
-            ),
-          ],
-        ),
       ),
     );
   }

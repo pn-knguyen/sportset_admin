@@ -13,7 +13,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-  final Color _orangeColor = const Color(0xFFFF9800);
+  static const Color _primaryColor = Color(0xFF4CAF50);
 
   late final List<Widget> _screens;
 
@@ -41,35 +41,40 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildBottomNav() {
     return Container(
-      height: 64,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withOpacity(0.95),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         border: Border(
-          top: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
+          top: BorderSide(color: Colors.grey.withValues(alpha: 0.08)),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
             offset: const Offset(0, -4),
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(0, Icons.home, 'Trang chủ'),
-          _buildNavItem(1, Icons.view_list, 'Quản lý'),
-          _buildNavItem(2, Icons.calendar_month, 'Đơn đặt'),
-          _buildNavItem(3, Icons.person, 'Tài khoản'),
-        ],
+      child: SafeArea(
+        child: SizedBox(
+          height: 68,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Trang chủ'),
+              _buildNavItem(1, Icons.grid_view_rounded, Icons.grid_view_outlined, 'Quản lý'),
+              _buildNavItem(2, Icons.confirmation_number_rounded, Icons.confirmation_number_outlined, 'Đơn đặt'),
+              _buildNavItem(3, Icons.person_rounded, Icons.person_outline_rounded, 'Tài khoản'),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
+  Widget _buildNavItem(int index, IconData activeIcon, IconData inactiveIcon, String label) {
     final isActive = _currentIndex == index;
-    final color = isActive ? _orangeColor : Colors.grey[400];
+    final color = isActive ? _primaryColor : const Color(0xFF9E9E9E);
 
     return Expanded(
       child: GestureDetector(
@@ -78,23 +83,21 @@ class _MainScreenState extends State<MainScreen> {
             _currentIndex = index;
           });
         },
-        child: Container(
-          color: Colors.transparent,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 26, color: color),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                  color: color,
-                ),
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(isActive ? activeIcon : inactiveIcon, size: 26, color: color),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                color: color,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

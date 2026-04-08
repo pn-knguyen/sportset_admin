@@ -5,6 +5,12 @@ import 'package:sportset_admin/services/facility_service.dart';
 import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/models/facility.dart';
 
+const _primary = Color(0xFF4CAF50);
+const _darkGreen = Color(0xFF2E7D32);
+const _lightGreen = Color(0xFFE8F5E9);
+const _onSurface = Color(0xFF1A1C1C);
+const _onSurfaceVariant = Color(0xFF5C615A);
+
 // 3.1. Trang danh sách cơ sở
 class FacilityListScreen extends StatefulWidget {
   const FacilityListScreen({super.key});
@@ -15,11 +21,10 @@ class FacilityListScreen extends StatefulWidget {
 
 class _FacilityListScreenState extends State<FacilityListScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final int _currentNavIndex = 1; // Active on Management tab
-  final Color _navyColor = const Color(0xFF0C1C46);
+  final int _currentNavIndex = 1;
   final FacilityService _facilityService = FacilityService();
   final AccessControlService _accessControlService = AccessControlService();
-  
+
   bool _canCreate = false;
   bool _canEdit = false;
   bool _canDelete = false;
@@ -30,7 +35,7 @@ class _FacilityListScreenState extends State<FacilityListScreen> {
     _searchController.addListener(_filterFacilities);
     _checkPermissions();
   }
-  
+
   Future<void> _checkPermissions() async {
     final permissionMap = await _accessControlService.getCurrentPermissionMap();
     setState(() {
@@ -53,177 +58,154 @@ class _FacilityListScreenState extends State<FacilityListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(),
-          _buildSearchBar(),
-          Expanded(
-            child: StreamBuilder<List<Facility>>(
-              stream: _facilityService.getAllFacilitiesStream(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFFF9800)),
-                  );
-                }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          size: 48,
-                          color: Colors.red,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Lỗi tải dữ liệu',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: _navyColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          snapshot.error.toString(),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.domain, size: 48, color: Colors.grey),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Chưa có cơ sở nào',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: _navyColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Nhấn + để tạo cơ sở mới',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                final facilities = snapshot.data!;
-                final filtered = _searchController.text.isEmpty
-                    ? facilities
-                    : facilities
-                          .where(
-                            (f) => f.name.toLowerCase().contains(
-                              _searchController.text.toLowerCase(),
-                            ),
-                          )
-                          .toList();
-
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  itemCount: filtered.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: _buildFacilityCard(filtered[index]),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: _canCreate ? Container(
-        margin: const EdgeInsets.only(bottom: 32),
-        child: FloatingActionButton(
-          onPressed: () {
-            Navigator.pushNamed(context, AppRoutes.facilityCreate);
-          },
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: Container(
-            height: 56,
-            width: 56,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFFFF9800), Color(0xFFF44336)],
-              ),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.orange.withValues(alpha: 0.4),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: const Icon(Icons.add, size: 32, color: Colors.white),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_lightGreen, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
-      ) : null,
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              _buildSearchBar(),
+              Expanded(
+                child: StreamBuilder<List<Facility>>(
+                  stream: _facilityService.getAllFacilitiesStream(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: _primary),
+                      );
+                    }
+
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Lỗi tải dữ liệu',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: _onSurface,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              snapshot.error.toString(),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: _onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.domain, size: 56, color: Colors.grey[300]),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Chưa có cơ sở nào',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: _onSurface,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Nhấn + để tạo cơ sở mới',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final facilities = snapshot.data!;
+                    final filtered = _searchController.text.isEmpty
+                        ? facilities
+                        : facilities
+                              .where(
+                                (f) => f.name.toLowerCase().contains(
+                                  _searchController.text.toLowerCase(),
+                                ),
+                              )
+                              .toList();
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 20),
+                          child: _buildFacilityCard(filtered[index]),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: _canCreate
+          ? Container(
+              margin: const EdgeInsets.only(bottom: 32),
+              child: FloatingActionButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, AppRoutes.facilityCreate);
+                },
+                backgroundColor: _primary,
+                elevation: 4,
+                child: const Icon(Icons.add, size: 30, color: Colors.white),
+              ),
+            )
+          : null,
       bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
     );
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-      ),
-      child: SafeArea(
-        bottom: false,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+      child: SizedBox(
+        height: 56,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            GestureDetector(
-              onTap: () {
-                Navigator.pop(context);
-              },
-              child: Container(
-                height: 40,
-                width: 40,
-                decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  shape: BoxShape.circle,
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.chevron_left, size: 28, color: _primary),
+            ),
+            const Expanded(
+              child: Text(
+                'Danh Sách Cơ Sở',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: _primary,
                 ),
-                child: Icon(Icons.chevron_left, size: 28, color: _navyColor),
               ),
             ),
-            Text(
-              'Danh Sách Cơ Sở',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: _navyColor,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(width: 40),
+            const SizedBox(width: 48),
           ],
         ),
       ),
@@ -231,9 +213,8 @@ class _FacilityListScreenState extends State<FacilityListScreen> {
   }
 
   Widget _buildSearchBar() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-      color: const Color(0xFFFFF8F6),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
       child: Row(
         children: [
           Expanded(
@@ -243,8 +224,8 @@ class _FacilityListScreenState extends State<FacilityListScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.05),
-                    blurRadius: 4,
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
@@ -253,50 +234,40 @@ class _FacilityListScreenState extends State<FacilityListScreen> {
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: 'Tìm tên cơ sở...',
-                  hintStyle: TextStyle(
-                    color: Colors.grey[400],
+                  hintStyle: const TextStyle(
+                    color: Color(0xFF9CA3AF),
                     fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w400,
                   ),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: Colors.grey[400],
-                    size: 22,
-                  ),
+                  prefixIcon: const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 22),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
                   ),
                 ),
-                style: TextStyle(
-                  color: _navyColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: const TextStyle(color: _onSurface, fontSize: 14),
               ),
             ),
           ),
           const SizedBox(width: 12),
           Container(
-            height: 52,
-            width: 52,
+            height: 50,
+            width: 50,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withValues(alpha: 0.05),
-                  blurRadius: 4,
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
               ],
             ),
             child: IconButton(
-              icon: Icon(Icons.filter_list, color: _navyColor, size: 24),
-              onPressed: () {
-                // TODO: Implement filter
-              },
+              icon: const Icon(Icons.filter_list, color: _onSurface, size: 22),
+              onPressed: () {},
             ),
           ),
         ],
@@ -318,263 +289,236 @@ class _FacilityListScreenState extends State<FacilityListScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.05)),
+          borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 24,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image Section
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(24),
-                    topRight: Radius.circular(24),
-                  ),
-                  child: Container(
-                    height: 176,
-                    width: double.infinity,
-                    color: Colors.grey[100],
-                    child: facility.imageUrl != null
-                        ? Image.network(
-                            facility.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey[200],
-                                child: const Icon(
-                                  Icons.image,
-                                  size: 50,
-                                  color: Colors.grey,
-                                ),
-                              );
-                            },
-                          )
-                        : Container(
-                            color: Colors.grey[200],
-                            child: const Icon(
-                              Icons.image,
-                              size: 50,
-                              color: Colors.grey,
-                            ),
-                          ),
-                  ),
-                ),
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          height: 8,
-                          width: 8,
-                          decoration: BoxDecoration(
-                            color: isOpen ? Colors.green : Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          isOpen ? 'ĐANG MỞ' : 'ĐÓNG CỬA',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: _navyColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            // Content Section
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image
+              Stack(
                 children: [
-                  Text(
-                    facility.name,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: _navyColor,
-                      height: 1.2,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: SizedBox(
+                      height: 180,
+                      width: double.infinity,
+                      child: facility.imageUrl != null
+                          ? Image.network(
+                              facility.imageUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  _imagePlaceholder(),
+                            )
+                          : _imagePlaceholder(),
                     ),
                   ),
-                  const SizedBox(height: 8),
-
-                  // Address
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(
-                        Icons.location_on,
-                        size: 16,
-                        color: Color(0xFFFF5722),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          facility.address,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[500],
-                            height: 1.5,
+                  // Status badge
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(99),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 6,
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Info badges
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _buildInfoBadge(
-                        Icons.schedule,
-                        '${facility.openTime} - ${facility.closeTime}',
-                      ),
-                      if (facility.amenities.isNotEmpty)
-                        _buildInfoBadge(
-                          Icons.local_activity,
-                          '${facility.amenities.length} tiện ích',
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Action buttons
-                  Container(
-                    padding: const EdgeInsets.only(top: 16),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(
-                          color: Colors.grey.withValues(alpha: 0.05),
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _canEdit ? () {
-                              Navigator.pushNamed(
-                                context,
-                                AppRoutes.facilityEdit,
-                                arguments: {'id': facility.id},
-                              );
-                            } : null,
-                            icon: const Icon(Icons.edit_square, size: 18),
-                            label: const Text(
-                              'Chỉnh sửa',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _navyColor.withValues(
-                                alpha: 0.05,
-                              ),
-                              foregroundColor: _navyColor,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: isOpen ? _primary : Colors.red,
+                              shape: BoxShape.circle,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _canDelete ? () {
-                              _showDeleteDialog(facility.id, facility.name);
-                            } : null,
-                            icon: const Icon(Icons.delete, size: 18),
-                            label: const Text(
-                              'Xóa',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.withValues(
-                                alpha: 0.05,
-                              ),
-                              foregroundColor: Colors.red,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                          const SizedBox(width: 5),
+                          Text(
+                            isOpen ? 'ĐANG MỞ' : 'ĐÓNG CẮA',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: isOpen ? _darkGreen : Colors.red,
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 14),
+              // Name
+              Text(
+                facility.name,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: _onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Address
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.location_on, size: 15, color: _primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      facility.address,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: _onSurfaceVariant,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Info chips
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildInfoChip(
+                      Icons.schedule,
+                      '${facility.openTime} - ${facility.closeTime}',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (facility.amenities.isNotEmpty)
+                    Expanded(
+                      child: _buildInfoChip(
+                        Icons.local_activity,
+                        '${facility.amenities.length} tiện ích',
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              // Action buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildActionButton(
+                      icon: Icons.edit_note,
+                      label: 'Chỉnh sửa',
+                      bgColor: _lightGreen,
+                      textColor: _primary,
+                      onTap: _canEdit
+                          ? () => Navigator.pushNamed(
+                                context,
+                                AppRoutes.facilityEdit,
+                                arguments: {'id': facility.id},
+                              )
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildActionButton(
+                      icon: Icons.delete,
+                      label: 'Xóa',
+                      bgColor: const Color(0xFFFFF1F2),
+                      textColor: const Color(0xFFF43F5E),
+                      onTap: _canDelete
+                          ? () => _showDeleteDialog(facility.id, facility.name)
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildInfoBadge(IconData icon, String text) {
+  Widget _imagePlaceholder() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      color: _lightGreen,
+      child: const Center(
+        child: Icon(Icons.image, size: 50, color: _primary),
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+        color: _lightGreen.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: Colors.grey[600]),
+          Icon(icon, size: 16, color: _primary),
           const SizedBox(width: 6),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
+          Expanded(
+            child: Text(
+              text,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: _onSurface,
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color bgColor,
+    required Color textColor,
+    required VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: onTap != null ? bgColor : Colors.grey[100],
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 18, color: onTap != null ? textColor : Colors.grey),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: onTap != null ? textColor : Colors.grey,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -584,33 +528,32 @@ class _FacilityListScreenState extends State<FacilityListScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Text(
             'Xác nhận xóa',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.bold, color: _onSurface),
           ),
           content: Text('Bạn có chắc chắn muốn xóa "$facilityName"?'),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text('Hủy', style: TextStyle(color: Colors.grey[600])),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Hủy', style: TextStyle(color: _onSurfaceVariant)),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _deleteFacility(facilityId, facilityName);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _deleteFacility(facilityId, facilityName);
+                },
+                child: const Text(
+                  'Xóa',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                 ),
               ),
-              child: const Text('Xóa'),
             ),
           ],
         );
@@ -625,7 +568,7 @@ class _FacilityListScreenState extends State<FacilityListScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Đã xóa "$facilityName"'),
-            backgroundColor: Colors.green,
+            backgroundColor: _darkGreen,
           ),
         );
       }
@@ -633,7 +576,7 @@ class _FacilityListScreenState extends State<FacilityListScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.message ?? 'Không thể xóa cơ sở do còn dữ liệu liên quan'),
+            content: Text(e.message.isEmpty ? 'Không thể xóa cơ sở do còn dữ liệu liên quan' : e.message),
             backgroundColor: Colors.orange,
           ),
         );

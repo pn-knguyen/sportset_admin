@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
@@ -23,8 +23,12 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _subCourtNameController = TextEditingController();
 
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF5722);
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF5C615A);
+  int _selectedPricingTab = 0;
   final int _currentNavIndex = 1;
   final CourtService _courtService = CourtService();
   final FacilityService _facilityService = FacilityService();
@@ -34,7 +38,6 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
   bool _isSaving = false;
   bool _isLoadingFacilities = true;
   bool _isLoadingSports = true;
-  bool _hasCreatePermission = true;
   bool _isUploadingImage = false;
 
   List<Facility> _facilities = <Facility>[];
@@ -45,23 +48,15 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
 
   String _selectedSport = '';
 
-  final List<Map<String, dynamic>> _subCourts = [
-    {'name': 'Sân A1', 'isActive': true},
-    {'name': 'Sân A2', 'isActive': true},
-    {'name': 'Sân A3', 'isActive': false},
-    {'name': 'Sân A4', 'isActive': true},
-  ];
+  final List<Map<String, dynamic>> _subCourts = [];
 
-  final List<String> _selectedAmenities = ['Wifi', 'Gửi xe'];
+  final List<String> _selectedAmenities = [];
 
-  final List<Map<String, dynamic>> _weekdayPricing = [
-    {'startTime': '05:00', 'endTime': '16:00', 'price': 150000},
-    {'startTime': '17:00', 'endTime': '22:00', 'price': 250000},
-  ];
+  final List<Map<String, dynamic>> _weekdayPricing = [];
+  final List<TextEditingController> _weekdayPriceControllers = [];
 
-  final List<Map<String, dynamic>> _weekendPricing = [
-    {'startTime': '05:00', 'endTime': '22:00', 'price': 300000},
-  ];
+  final List<Map<String, dynamic>> _weekendPricing = [];
+  final List<TextEditingController> _weekendPriceControllers = [];
 
   @override
   void initState() {
@@ -84,8 +79,6 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
       );
       Navigator.pop(context);
     }
-    
-    setState(() => _hasCreatePermission = hasPermission);
   }
 
   Future<void> _loadSports() async {
@@ -201,86 +194,88 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
     _courtNameController.dispose();
     _descriptionController.dispose();
     _subCourtNameController.dispose();
+    for (final c in _weekdayPriceControllers) {
+      c.dispose();
+    }
+    for (final c in _weekendPriceControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 24),
-                  _buildFacilitySelector(),
-                  const SizedBox(height: 24),
-                  _buildImageUploadSection(),
-                  const SizedBox(height: 24),
-                  _buildCourtInfoSection(),
-                  const SizedBox(height: 32),
-                  _buildSubCourtsSection(),
-                  const SizedBox(height: 24),
-                  _buildPricingSection(),
-                  const SizedBox(height: 24),
-                  _buildDescriptionSection(),
-                  const SizedBox(height: 24),
-                  _buildAmenitiesSection(),
-                  const SizedBox(height: 24),
-                  _buildSaveButton(),
-                  const SizedBox(height: 24),
-                ],
+      backgroundColor: _lightGreen,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_lightGreen, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 24),
+                    _buildFacilitySelector(),
+                    const SizedBox(height: 24),
+                    _buildImageUploadSection(),
+                    const SizedBox(height: 24),
+                    _buildCourtInfoSection(),
+                    const SizedBox(height: 32),
+                    _buildSubCourtsSection(),
+                    const SizedBox(height: 24),
+                    _buildPricingSection(),
+                    const SizedBox(height: 24),
+                    _buildDescriptionSection(),
+                    const SizedBox(height: 24),
+                    _buildAmenitiesSection(),
+                    const SizedBox(height: 24),
+                    _buildSaveButton(),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
     );
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
+    return SafeArea(
+      bottom: false,
+      child: SizedBox(
+        height: 56,
         child: Row(
           children: [
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Icon(
-                  Icons.arrow_back_ios_new,
-                  size: 24,
-                  color: _navyColor,
-                ),
-              ),
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: _darkGreen),
+              onPressed: () => Navigator.pop(context),
             ),
             Expanded(
               child: Text(
-                'Thêm Sân Mới',
+                'Th\u00eam S\u00e2n M\u1edbi',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  color: _navyColor,
+                  color: _darkGreen,
                   letterSpacing: -0.5,
                 ),
               ),
             ),
-            const SizedBox(width: 32),
+            const SizedBox(width: 48),
           ],
         ),
       ),
@@ -304,17 +299,18 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
             'Cơ sở chủ quản',
-            style: TextStyle(
-              fontSize: 14,
+            style: const TextStyle(
+              fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: _navyColor,
+              color: _onSurfaceVariant,
+              letterSpacing: 0.5,
             ),
           ),
         ),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
             boxShadow: [
               BoxShadow(
@@ -386,7 +382,7 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
           color: _selectedImageFile != null ? Colors.transparent : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: _orangeColor.withValues(alpha: 0.3),
+            color: _primary.withValues(alpha: 0.3),
             width: 2,
             style: BorderStyle.solid,
           ),
@@ -430,7 +426,7 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                             color: Colors.white.withValues(alpha: 0.9),
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(Icons.edit, size: 32, color: _orangeColor),
+                          child: const Icon(Icons.edit, size: 32, color: _primary),
                         ),
                         const SizedBox(height: 12),
                         const Text(
@@ -452,10 +448,10 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                     height: 56,
                     width: 56,
                     decoration: BoxDecoration(
-                      color: _orangeColor.withValues(alpha: 0.1),
+                      color: _primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.add_a_photo, size: 32, color: _orangeColor),
+                    child: Icon(Icons.add_a_photo, size: 32, color: _primary),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -483,10 +479,11 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
               padding: const EdgeInsets.only(left: 4, bottom: 8),
               child: Text(
                 'Tên cụm sân',
-                style: TextStyle(
-                  fontSize: 14,
+                style: const TextStyle(
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: _navyColor,
+                  color: _onSurfaceVariant,
+                  letterSpacing: 0.5,
                 ),
               ),
             ),
@@ -515,7 +512,7 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                   border: InputBorder.none,
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: _orangeColor, width: 2),
+                    borderSide: BorderSide(color: _primary, width: 2),
                   ),
                 ),
               ),
@@ -531,10 +528,11 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
               padding: const EdgeInsets.only(left: 4, bottom: 8),
               child: Text(
                 'Loại môn thể thao',
-                style: TextStyle(
-                  fontSize: 14,
+                style: const TextStyle(
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: _navyColor,
+                  color: _onSurfaceVariant,
+                  letterSpacing: 0.5,
                 ),
               ),
             ),
@@ -559,7 +557,7 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                   : DropdownButtonFormField<String>(
                       initialValue: _selectedSport.isEmpty ? null : _selectedSport,
                       decoration: InputDecoration(
-                        prefixIcon: Icon(Icons.sports_soccer, color: _orangeColor),
+                        prefixIcon: Icon(Icons.sports_soccer, color: _primary),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 12,
@@ -600,317 +598,358 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
   }
 
   Widget _buildSubCourtsSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Danh s\u00e1ch s\u00e2n con',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: _onSurface,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 4,
-                height: 16,
+        ),
+        const SizedBox(height: 8),
+        // Add sub-court input row
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: 44,
                 decoration: BoxDecoration(
-                  color: _orangeColor,
-                  borderRadius: BorderRadius.circular(2),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Danh sách sân con',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: _navyColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Add sub-court input
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.grey.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: TextField(
-                    controller: _subCourtNameController,
-                    decoration: InputDecoration(
-                      hintText: 'Nhập tên sân (A1, A2...)',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 14,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                      ),
-                      border: InputBorder.none,
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: _orangeColor, width: 2),
-                      ),
+                child: TextField(
+                  controller: _subCourtNameController,
+                  decoration: InputDecoration(
+                    hintText: 'Nh\u1eadp t\u00ean s\u00e2n (A1, A2...)',
+                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    border: InputBorder.none,
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: _primary, width: 2),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () {
-                  if (_subCourtNameController.text.isNotEmpty) {
-                    setState(() {
-                      _subCourts.add({
-                        'name': _subCourtNameController.text,
-                        'isActive': true,
-                      });
-                      _subCourtNameController.clear();
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () {
+                if (_subCourtNameController.text.isNotEmpty) {
+                  setState(() {
+                    _subCourts.add({
+                      'name': _subCourtNameController.text,
+                      'isActive': true,
                     });
-                  }
-                },
-                child: Container(
-                  height: 44,
-                  width: 44,
-                  decoration: BoxDecoration(
-                    color: _orangeColor,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _orangeColor.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.add, color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Sub-courts list
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _subCourts.length,
-            itemBuilder: (context, index) {
-              final court = _subCourts[index];
-              final isActive = court['isActive'] as bool;
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? const Color(0xFFFFF8F6)
-                        : Colors.red.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isActive
-                          ? Colors.grey.withValues(alpha: 0.2)
-                          : Colors.red.withValues(alpha: 0.1),
+                    _subCourtNameController.clear();
+                  });
+                }
+              },
+              child: Container(
+                height: 44,
+                width: 44,
+                decoration: BoxDecoration(
+                  color: _primary,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _primary.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
                     ),
+                  ],
+                ),
+                child: const Icon(Icons.add, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        if (_subCourts.isNotEmpty) const SizedBox(height: 12),
+        // Sub-courts list
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _subCourts.length,
+          itemBuilder: (context, index) {
+            final court = _subCourts[index];
+            final isActive = court['isActive'] as bool;
+            final label = (court['name'] as String).length <= 3
+                ? court['name'] as String
+                : (court['name'] as String).substring(0, 2);
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: _primary.withValues(alpha: 0.08),
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // Avatar
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? _primary.withValues(alpha: 0.1)
+                            : Colors.grey[100],
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
                         child: Text(
-                          court['name'],
+                          label,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: _navyColor,
+                            color: isActive ? _primary : Colors.grey[500],
                           ),
                         ),
                       ),
-                      // Toggle switch
-                      Transform.scale(
-                        scale: 0.8,
-                        child: Switch(
-                          value: isActive,
-                          onChanged: (value) {
-                            setState(() {
-                              _subCourts[index]['isActive'] = value;
-                            });
-                          },
-                          activeThumbColor: Colors.green,
+                    ),
+                    const SizedBox(width: 12),
+                    // Name
+                    Expanded(
+                      child: Text(
+                        court['name'] as String,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: _onSurface,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // Status badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
+                    ),
+                    // Status toggle chip
+                    GestureDetector(
+                      onTap: () => setState(
+                          () => court['isActive'] = !(court['isActive'] as bool)),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: isActive
-                              ? Colors.green.withValues(alpha: 0.1)
-                              : Colors.red.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                              ? _primary.withValues(alpha: 0.12)
+                              : const Color(0xFFBA1A1A).withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: isActive
-                                ? Colors.green.withValues(alpha: 0.2)
-                                : Colors.red.withValues(alpha: 0.2),
+                            color: isActive ? _primary : const Color(0xFFBA1A1A),
+                            width: 1.2,
                           ),
                         ),
-                        child: Text(
-                          isActive ? 'Sẵn sàng' : 'Đang bảo trì',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: isActive
-                                ? Colors.green[700]
-                                : Colors.red[600],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Delete button
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _subCourts.removeAt(index);
-                          });
-                        },
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            size: 20,
-                            color: Colors.grey,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isActive ? Icons.check_circle : Icons.build_circle,
+                              size: 13,
+                              color: isActive ? _primary : const Color(0xFFBA1A1A),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              isActive ? 'Ho\u1ea1t \u0111\u1ed9ng' : 'B\u1ea3o tr\u00ec',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: isActive ? _primary : const Color(0xFFBA1A1A),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-          // Info message
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, size: 16, color: Colors.blue[500]),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: RichText(
-                    text: TextSpan(
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black87,
-                      ),
-                      children: [
-                        const TextSpan(text: 'Cho phép '),
-                        TextSpan(
-                          text: '${_subCourts.length} khách',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: _navyColor,
-                          ),
-                        ),
-                        const TextSpan(text: ' đặt cùng lúc trong khung giờ.'),
-                      ],
                     ),
-                  ),
+                    const SizedBox(width: 4),
+                    // Delete button
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Color(0xFFBA1A1A), size: 20),
+                      onPressed: () => setState(() => _subCourts.removeAt(index)),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
   Widget _buildPricingSection() {
+    final pricingList = _selectedPricingTab == 0 ? _weekdayPricing : _weekendPricing;
+    final priceControllers = _selectedPricingTab == 0 ? _weekdayPriceControllers : _weekendPriceControllers;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 16),
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 12),
           child: Text(
-            'Bảng giá theo khung giờ',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: _navyColor,
-            ),
+            'B\u1ea3ng gi\u00e1 theo khung gi\u1edd',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _onSurface),
           ),
         ),
-        // Weekday pricing
-        _buildPricingCard(
-          title: 'Ngày thường',
-          selectedDays: [true, true, true, true, true, false, false],
-          pricingList: _weekdayPricing,
-        ),
-        const SizedBox(height: 24),
-        // Weekend pricing
-        _buildPricingCard(
-          title: 'Cuối tuần',
-          selectedDays: [false, false, false, false, false, true, true],
-          pricingList: _weekendPricing,
+        // Tab switcher
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF4F4F4),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              _buildPricingTab('Ng\u00e0y th\u01b0\u1eddng', 0),
+              _buildPricingTab('Cu\u1ed1i tu\u1ea7n', 1),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
-        // Add new pricing group button
-        Container(
-          width: double.infinity,
-          height: 48,
-          decoration: BoxDecoration(
-            color: _orangeColor.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: _orangeColor.withValues(alpha: 0.3),
-              style: BorderStyle.solid,
-              width: 1,
-            ),
-          ),
-          child: TextButton(
-            onPressed: () {
-              // TODO: Add new pricing group
-            },
+        // Slot rows
+        ...List.generate(pricingList.length, (index) {
+          final pricing = pricingList[index];
+          final timeText = '${pricing['startTime']} - ${pricing['endTime']}';
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.library_add, size: 22, color: _orangeColor),
+                // Time card (flex 5) - tappable
+                Expanded(
+                  flex: 5,
+                  child: GestureDetector(
+                    onTap: () => _pickPricingTime(pricingList, index),
+                    child: Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFF5F5F5)),
+                        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              timeText,
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _onSurfaceVariant),
+                            ),
+                          ),
+                          const Icon(Icons.edit, size: 16, color: _primary),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 8),
-                Text(
-                  'Thêm nhóm bảng giá mới',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: _orangeColor,
+                // Price card (flex 5) - editable
+                Expanded(
+                  flex: 5,
+                  child: Container(
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFF5F5F5)),
+                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: priceControllers[index],
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _onSurface),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                              hintText: '0',
+                            ),
+                            onChanged: (v) {
+                              pricing['price'] = int.tryParse(v) ?? 0;
+                            },
+                          ),
+                        ),
+                        const Icon(Icons.payments, size: 16, color: _primary),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Delete (flex 2)
+                SizedBox(
+                  width: 36,
+                  child: IconButton(
+                    onPressed: () => setState(() {
+                      priceControllers[index].dispose();
+                      priceControllers.removeAt(index);
+                      pricingList.removeAt(index);
+                    }),
+                    icon: const Icon(Icons.close, color: Color(0xFF6F7A6B)),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                   ),
                 ),
               ],
+            ),
+          );
+        }),
+        const SizedBox(height: 8),
+        // Add slot button
+        GestureDetector(
+          onTap: () {
+            final facility = _currentFacility();
+            final startTime = facility?.openTime ?? '06:00';
+            final endTime = facility?.closeTime ?? '22:00';
+            setState(() {
+              pricingList.add({'startTime': startTime, 'endTime': endTime, 'price': 0});
+              priceControllers.add(TextEditingController(text: '0'));
+            });
+          },
+          child: Container(
+            width: double.infinity,
+            height: 56,
+            decoration: BoxDecoration(
+              border: Border.all(color: _primary.withValues(alpha: 0.3), width: 2),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add, color: _primary),
+                SizedBox(width: 8),
+                Text('Th\u00eam khung gi\u1edd', style: TextStyle(fontWeight: FontWeight.bold, color: _primary)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Add pricing group text button
+        SizedBox(
+          width: double.infinity,
+          child: TextButton.icon(
+            onPressed: () {},
+            icon: const Icon(Icons.library_add, color: _primary, size: 20),
+            label: const Text(
+              'TH\u00caM NH\u00d3M B\u1ea2NG GI\u00c1 M\u1edaI',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _primary, letterSpacing: 1),
             ),
           ),
         ),
@@ -918,282 +957,109 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
     );
   }
 
-  Widget _buildPricingCard({
-    required String title,
-    required List<bool> selectedDays,
-    required List<Map<String, dynamic>> pricingList,
-  }) {
-    final days = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+  Widget _buildPricingTab(String label, int tabIndex) {
+    final isActive = _selectedPricingTab == tabIndex;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedPricingTab = tabIndex),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 44,
+          decoration: BoxDecoration(
+            color: isActive ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: isActive
+                ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 4)]
+                : null,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title.toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete, size: 20),
-                color: Colors.grey[400],
-                onPressed: () {
-                  // TODO: Delete pricing group
-                },
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Days selector
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(7, (index) {
-              final isSelected = selectedDays[index];
-              return GestureDetector(
-                onTap: () {
-                  // TODO: Toggle day selection
-                },
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: isSelected ? _orangeColor : Colors.grey[50],
-                    shape: BoxShape.circle,
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: _orangeColor.withValues(alpha: 0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Center(
-                    child: Text(
-                      days[index],
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.w500,
-                        color: isSelected ? Colors.white : Colors.grey[400],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 20),
-          // Time slots
-          ...pricingList.asMap().entries.map((entry) {
-            final pricing = entry.value;
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-                ),
-                child: Column(
-                  children: [
-                    // Time range
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTimeDropdown(pricing['startTime']),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Icon(
-                            Icons.arrow_forward,
-                            size: 20,
-                            color: Colors.grey[300],
-                          ),
-                        ),
-                        Expanded(child: _buildTimeDropdown(pricing['endTime'])),
-                        const SizedBox(width: 8),
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Colors.grey.withValues(alpha: 0.2),
-                            ),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.close,
-                              size: 20,
-                              color: Colors.red,
-                            ),
-                            onPressed: () {
-                              // TODO: Remove time slot
-                            },
-                            padding: EdgeInsets.zero,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // Price input
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.grey.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: TextField(
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(
-                            Icons.payments,
-                            color: Colors.grey,
-                          ),
-                          suffixText: 'VNĐ',
-                          suffixStyle: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black54,
-                          ),
-                          hintText: 'Nhập giá',
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          border: InputBorder.none,
-                        ),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                        controller: TextEditingController(
-                          text: pricing['price'].toString(),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
-          // Add time slot button
-          Container(
-            width: double.infinity,
-            height: 40,
-            decoration: BoxDecoration(
-              color: _orangeColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: _orangeColor.withValues(alpha: 0.2),
-                style: BorderStyle.solid,
-              ),
-            ),
-            child: TextButton(
-              onPressed: () {
-                // TODO: Add time slot
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add, size: 18, color: _orangeColor),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Thêm khung giờ',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: _orangeColor,
-                    ),
-                  ),
-                ],
-              ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: isActive ? _primary : _onSurfaceVariant,
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildTimeDropdown(String value) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-      ),
-      child: DropdownButtonFormField<String>(
-        initialValue: value,
-        decoration: const InputDecoration(
-          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          border: InputBorder.none,
-        ),
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: Colors.black87,
-        ),
-        icon: Icon(Icons.expand_more, size: 18, color: Colors.grey[400]),
-        dropdownColor: Colors.white,
-        items:
-            [
-              '05:00',
-              '06:00',
-              '07:00',
-              '08:00',
-              '09:00',
-              '10:00',
-              '11:00',
-              '12:00',
-              '13:00',
-              '14:00',
-              '15:00',
-              '16:00',
-              '17:00',
-              '18:00',
-              '19:00',
-              '20:00',
-              '21:00',
-              '22:00',
-              '23:00',
-            ].map((time) {
-              return DropdownMenuItem(value: time, child: Text(time));
-            }).toList(),
-        onChanged: (value) {
-          // TODO: Update time
-        },
-      ),
+  TimeOfDay _parseTime(String t) {
+    final parts = t.split(':');
+    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+  }
+
+  String _formatTime(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  bool _timeInRange(TimeOfDay t, TimeOfDay open, TimeOfDay close) {
+    final tMins = t.hour * 60 + t.minute;
+    final oMins = open.hour * 60 + open.minute;
+    final cMins = close.hour * 60 + close.minute;
+    return tMins >= oMins && tMins <= cMins;
+  }
+
+  Future<void> _pickPricingTime(
+      List<Map<String, dynamic>> pricingList, int index) async {
+    final facility = _currentFacility();
+    final open = _parseTime(facility?.openTime ?? '06:00');
+    final close = _parseTime(facility?.closeTime ?? '22:00');
+
+    final currentStart = _parseTime(pricingList[index]['startTime'] as String);
+    final pickedStart = await showTimePicker(
+      context: context,
+      initialTime: currentStart,
+      helpText: 'Chọn giờ bắt đầu',
     );
+    if (pickedStart == null || !mounted) return;
+    if (!_timeInRange(pickedStart, open, close)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Giờ bắt đầu phải trong khoảng ${_formatTime(open)} - ${_formatTime(close)}',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final currentEnd = _parseTime(pricingList[index]['endTime'] as String);
+    final pickedEnd = await showTimePicker(
+      context: context,
+      initialTime: currentEnd,
+      helpText: 'Chọn giờ kết thúc',
+    );
+    if (pickedEnd == null || !mounted) return;
+    if (!_timeInRange(pickedEnd, open, close)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Giờ kết thúc phải trong khoảng ${_formatTime(open)} - ${_formatTime(close)}',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    final startMins = pickedStart.hour * 60 + pickedStart.minute;
+    final endMins = pickedEnd.hour * 60 + pickedEnd.minute;
+    if (endMins <= startMins) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Giờ kết thúc phải sau giờ bắt đầu'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      pricingList[index]['startTime'] = _formatTime(pickedStart);
+      pricingList[index]['endTime'] = _formatTime(pickedEnd);
+    });
   }
 
   Widget _buildDescriptionSection() {
@@ -1204,10 +1070,11 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
             'Mô tả chi tiết',
-            style: TextStyle(
-              fontSize: 14,
+            style: const TextStyle(
+              fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: _navyColor,
+              color: _onSurfaceVariant,
+              letterSpacing: 0.5,
             ),
           ),
         ),
@@ -1234,7 +1101,7 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
               border: InputBorder.none,
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: _orangeColor, width: 2),
+                borderSide: BorderSide(color: _primary, width: 2),
               ),
             ),
           ),
@@ -1246,26 +1113,26 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
   Widget _buildAmenitiesSection() {
     final amenities = [
       {'icon': Icons.wifi, 'name': 'Wifi'},
-      {'icon': Icons.local_parking, 'name': 'Gửi xe'},
-      {'icon': Icons.water_drop, 'name': 'Nước uống'},
-      {'icon': Icons.shower, 'name': 'Tắm rửa'},
-      {'icon': Icons.lightbulb, 'name': 'Đèn đêm'},
-      {'icon': Icons.chair, 'name': 'Khán đài'},
-      {'icon': Icons.local_cafe, 'name': 'Canteen'},
-      {'icon': Icons.medical_services, 'name': 'Y tế'},
+      {'icon': Icons.local_parking, 'name': 'G\u1eedi xe'},
+      {'icon': Icons.water_drop, 'name': 'N\u01b0\u1edbc'},
+      {'icon': Icons.shower, 'name': 'T\u1eafm r\u1eeda'},
+      {'icon': Icons.lightbulb, 'name': '\u0110\u00e8n \u0111\u00eam'},
+      {'icon': Icons.stadium, 'name': 'Kh\u00e1n \u0111\u00e0i'},
+      {'icon': Icons.restaurant, 'name': 'Canteen'},
+      {'icon': Icons.medical_services, 'name': 'Y t\u1ebf'},
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 2),
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
           child: Text(
-            'Tiện ích đi kèm',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: _navyColor,
+            'Ti\u1ec7n \u00edch \u0111i k\u00e8m',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: _onSurface,
             ),
           ),
         ),
@@ -1274,9 +1141,9 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 4,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            childAspectRatio: 0.95,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 0.85,
           ),
           itemCount: amenities.length,
           itemBuilder: (context, index) {
@@ -1293,49 +1160,43 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
                   }
                 });
               },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? _orangeColor.withValues(alpha: 0.1)
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected
-                        ? _orangeColor
-                        : Colors.grey.withValues(alpha: 0.2),
-                    width: isSelected ? 2 : 1,
-                  ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: _orangeColor.withValues(alpha: 0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: isSelected ? _primary : Colors.grey[200],
+                      shape: BoxShape.circle,
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: _primary.withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Icon(
                       amenity['icon'] as IconData,
-                      size: 26,
-                      color: isSelected ? _orangeColor : Colors.grey[400],
+                      size: 24,
+                      color: isSelected ? Colors.white : const Color(0xFF6F7A6B),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      amenity['name'] as String,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w500,
-                        color: isSelected ? _orangeColor : Colors.grey[600],
-                      ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    amenity['name'] as String,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: isSelected ? _primary : _onSurfaceVariant,
+                      letterSpacing: 0.3,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             );
           },
@@ -1349,13 +1210,13 @@ class _CourtCreateScreenState extends State<CourtCreateScreen> {
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_orangeColor, const Color(0xFFD32F2F)],
+        gradient: const LinearGradient(
+          colors: [_primary, _darkGreen],
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: _orangeColor.withValues(alpha: 0.3),
+            color: _primary.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),

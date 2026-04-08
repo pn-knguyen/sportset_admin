@@ -16,14 +16,17 @@ class _StaffListScreenState extends State<StaffListScreen> {
   final TextEditingController _searchController = TextEditingController();
   final StaffService _staffService = StaffService();
   final AccessControlService _accessControlService = AccessControlService();
-  final int _currentNavIndex = 1;
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF9800);
-  final Color _statusGreen = const Color(0xFF22C55E);
-  final Color _deleteRed = const Color(0xFFFFEBEE);
-  final Color _deleteIconColor = const Color(0xFFEF4444);
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF5C615A);
+  static const _secondary = Color(0xFF00696B);
+
   String _searchQuery = '';
-  
+  int _selectedChip = 0;
+  final List<String> _chips = ['Tất cả', 'Quản lý', 'Trực sân', 'Kế toán'];
+
   bool _canCreate = false;
   bool _canEdit = false;
   bool _canDelete = false;
@@ -52,167 +55,219 @@ class _StaffListScreenState extends State<StaffListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: StreamBuilder<List<Staff>>(
-              stream: _staffService.getAllStaffStream(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(
-                    child: CircularProgressIndicator(color: _orangeColor),
-                  );
-                }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Lỗi: ${snapshot.error}'),
-                  );
-                }
-
-                final allStaff = snapshot.data ?? [];
-                final filteredStaff = allStaff
-                    .where((staff) =>
-                        staff.name
-                            .toLowerCase()
-                            .contains(_searchQuery.toLowerCase()) ||
-                        staff.email
-                            .toLowerCase()
-                            .contains(_searchQuery.toLowerCase()))
-                    .toList();
-
-                return ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_lightGreen, Colors.white],
+          ),
+        ),
+        child: Column(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
+                child: Row(
                   children: [
-                    _buildSearchBar(),
-                    const SizedBox(height: 24),
-                    if (filteredStaff.isEmpty)
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32.0),
-                          child: Text(
-                            'Không tìm thấy nhân viên',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[500],
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back,
+                          size: 22, color: _onSurfaceVariant),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        'Qu\u1ea3n l\u00fd nh\u00e2n vi\u00ean',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: _darkGreen,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.more_vert,
+                          size: 22, color: _darkGreen),
+                      onPressed: null,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: StreamBuilder<List<Staff>>(
+                stream: _staffService.getAllStaffStream(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: _primary),
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('L\u1ed7i: ${snapshot.error}'));
+                  }
+                  final allStaff = snapshot.data ?? [];
+                  final filtered = _applyFilters(allStaff);
+                  return ListView(
+                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
+                    children: [
+                      Padding(
+                        padding:
+                            const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (v) =>
+                              setState(() => _searchQuery = v),
+                          decoration: InputDecoration(
+                            hintText: 'T\u00ecm ki\u1ebfm nh\u00e2n vi\u00ean...',
+                            hintStyle:
+                                TextStyle(color: Colors.grey[400]),
+                            prefixIcon: Icon(Icons.search,
+                                color: Colors.grey[400]),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 0, vertical: 12),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: const BorderSide(
+                                  color: _primary, width: 2),
                             ),
                           ),
                         ),
                       ),
-                    ...filteredStaff.map(
-                      (staff) => Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: _buildStaffCard(staff),
+                      SizedBox(
+                        height: 48,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          itemCount: _chips.length,
+                          itemBuilder: (context, index) {
+                            final isSelected = _selectedChip == index;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 4),
+                              child: GestureDetector(
+                                onTap: () => setState(
+                                    () => _selectedChip = index),
+                                child: AnimatedContainer(
+                                  duration:
+                                      const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? _primary
+                                        : Colors.white,
+                                    borderRadius:
+                                        BorderRadius.circular(20),
+                                    border: isSelected
+                                        ? null
+                                        : Border.all(
+                                            color: Colors.grey.shade200),
+                                    boxShadow: isSelected
+                                        ? [
+                                            BoxShadow(
+                                              color: _primary.withValues(
+                                                  alpha: 0.2),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            )
+                                          ]
+                                        : [
+                                            BoxShadow(
+                                              color: Colors.black
+                                                  .withValues(alpha: 0.03),
+                                              blurRadius: 4,
+                                            )
+                                          ],
+                                  ),
+                                  child: Text(
+                                    _chips[index],
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.w500,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.grey[500],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: _buildFAB(),
-      bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 40, 20, 16),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  height: 40,
-                  width: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 4,
-                      ),
+                      const SizedBox(height: 16),
+                      if (filtered.isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Text(
+                              'Kh\u00f4ng t\u00ecm th\u1ea5y nh\u00e2n vi\u00ean',
+                              style: TextStyle(
+                                  fontSize: 16, color: Colors.grey[500]),
+                            ),
+                          ),
+                        ),
+                      ...filtered.map((staff) => Padding(
+                            padding:
+                                const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                            child: _buildStaffCard(staff),
+                          )),
                     ],
-                  ),
-                  child: Icon(Icons.chevron_left, color: _navyColor, size: 24),
-                ),
+                  );
+                },
               ),
-              const Expanded(
-                child: Text(
-                  'Quản Lý Nhân Viên',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0C1C46),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 40),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _canCreate
+            ? () => Navigator.pushNamed(context, AppRoutes.staffCreate)
+            : null,
+        backgroundColor: _primary,
+        elevation: 6,
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
+      ),
+      bottomNavigationBar: const CommonBottomNav(currentIndex: 1),
     );
   }
 
-  Widget _buildSearchBar() {
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: _searchController,
-        onChanged: (value) {
-          setState(() {
-            _searchQuery = value;
-          });
-        },
-        decoration: InputDecoration(
-          hintText: 'Tìm kiếm nhân viên...',
-          hintStyle: TextStyle(fontSize: 14, color: Colors.grey[400]),
-          prefixIcon: Icon(Icons.search, color: Colors.grey[400], size: 20),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? GestureDetector(
-                  onTap: () {
-                    _searchController.clear();
-                    setState(() {
-                      _searchQuery = '';
-                    });
-                  },
-                  child: Icon(Icons.close, color: Colors.grey[400], size: 20),
-                )
-              : null,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
-          ),
-        ),
-        style: const TextStyle(fontSize: 14),
-      ),
-    );
+  List<Staff> _applyFilters(List<Staff> allStaff) {
+    var filtered = allStaff.where((staff) {
+      final q = _searchQuery.toLowerCase();
+      return staff.name.toLowerCase().contains(q) ||
+          staff.email.toLowerCase().contains(q);
+    }).toList();
+    if (_selectedChip == 1) {
+      filtered = filtered
+          .where((s) => s.position == 'admin' || s.position == 'manager')
+          .toList();
+    } else if (_selectedChip == 2) {
+      filtered =
+          filtered.where((s) => s.position == 'staff').toList();
+    } else if (_selectedChip == 3) {
+      filtered = filtered
+          .where(
+              (s) => s.position == 'receptionist' || s.position == 'coach')
+          .toList();
+    }
+    return filtered;
   }
 
   String _getPositionLabel(String position) {
@@ -235,170 +290,178 @@ class _StaffListScreenState extends State<StaffListScreen> {
     return statuses[status] ?? status;
   }
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'active':
-        return _statusGreen;
-      case 'inactive':
-        return Colors.grey;
-      case 'suspended':
-        return Colors.orange;
-      default:
-        return Colors.grey;
-    }
-  }
-
   Widget _buildStaffCard(Staff staff) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(
-          context,
-          AppRoutes.staffEdit,
-          arguments: {'id': staff.id},
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
+    final isActive = staff.status == 'active';
+    final roleColor = isActive ? _primary : _secondary;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: _primary.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 30,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
           children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.orange[50]!, width: 2),
-                color: Colors.grey[200],
-              ),
-              child: staff.avatar != null
-                  ? ClipOval(
-                      child: Image.network(
-                        staff.avatar!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.grey[200],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: staff.avatar != null && staff.avatar!.isNotEmpty
+                      ? Image.network(
+                          staff.avatar!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, err, stack) => Icon(
                             Icons.person,
-                            size: 28,
+                            size: 36,
                             color: Colors.grey[400],
-                          );
-                        },
-                      ),
-                    )
-                  : Icon(
-                      Icons.person,
-                      size: 28,
-                      color: Colors.grey[400],
-                    ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    staff.name,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: _navyColor,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _getPositionLabel(staff.position),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey[500],
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    staff.facilityName,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[400]),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
+                          ),
+                        )
+                      : Icon(
+                          Icons.person,
+                          size: 36,
+                          color: Colors.grey[400],
+                        ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(staff.status),
-                          shape: BoxShape.circle,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              staff.name,
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: _onSurface,
+                                height: 1.2,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? _lightGreen
+                                  : Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              isActive
+                                  ? '\u0110ang ho\u1ea1t \u0111\u1ed9ng'
+                                  : _getStatusLabel(staff.status),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isActive
+                                    ? _darkGreen
+                                    : Colors.grey.shade600,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _getPositionLabel(staff.position).toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: roleColor,
+                          letterSpacing: 1.2,
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _getStatusLabel(staff.status),
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: _getStatusColor(staff.status),
-                          letterSpacing: 0.5,
-                        ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Icon(Icons.location_on_outlined,
+                              size: 14, color: _onSurfaceVariant),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              staff.facilityName,
+                              style: const TextStyle(
+                                  fontSize: 13, color: _onSurfaceVariant),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.call_outlined,
+                              size: 14, color: _onSurfaceVariant),
+                          const SizedBox(width: 6),
+                          Text(
+                            staff.phone.isNotEmpty
+                                ? staff.phone
+                                : staff.email,
+                            style: const TextStyle(
+                                fontSize: 13, color: _onSurfaceVariant),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Column(
+            const SizedBox(height: 16),
+            Divider(height: 1, color: Colors.grey.shade200),
+            const SizedBox(height: 12),
+            Row(
               children: [
-                GestureDetector(
-                  onTap: _canEdit
-                      ? () {
-                          Navigator.pushNamed(
-                            context,
-                            AppRoutes.staffEdit,
-                            arguments: {'id': staff.id},
-                          );
-                        }
-                      : null,
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: _canEdit ? Colors.grey[50] : Colors.grey[200],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.edit,
-                      size: 20,
-                      color: _canEdit ? _navyColor : Colors.grey,
-                    ),
+                Expanded(
+                  child: _buildCardAction(
+                    icon: Icons.edit,
+                    label: 'Ch\u1ec9nh s\u1eeda',
+                    bgColor: Colors.grey.shade100,
+                    textColor: _onSurface,
+                    enabled: _canEdit,
+                    onTap: _canEdit
+                        ? () => Navigator.pushNamed(
+                              context,
+                              AppRoutes.staffEdit,
+                              arguments: {'id': staff.id},
+                            )
+                        : null,
                   ),
                 ),
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: _canDelete
-                      ? () {
-                          _showDeleteDialog(staff.name, staff.id);
-                        }
-                      : null,
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: _canDelete ? _deleteRed : Colors.grey[200],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.delete,
-                      size: 20,
-                      color: _canDelete ? _deleteIconColor : Colors.grey,
-                    ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildCardAction(
+                    icon: Icons.delete_outline,
+                    label: 'X\u00f3a',
+                    bgColor:
+                        const Color(0xFFFFDAD6).withValues(alpha: 0.4),
+                    textColor: const Color(0xFFBA1A1A),
+                    enabled: _canDelete,
+                    onTap: _canDelete
+                        ? () => _showDeleteDialog(staff.name, staff.id)
+                        : null,
                   ),
                 ),
               ],
@@ -409,40 +472,47 @@ class _StaffListScreenState extends State<StaffListScreen> {
     );
   }
 
-  Widget _buildFAB() {
-    return Container(
-      height: 56,
-      width: 56,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_orangeColor, const Color(0xFFF44336)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  Widget _buildCardAction({
+    required IconData icon,
+    required String label,
+    required Color bgColor,
+    required Color textColor,
+    required bool enabled,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: enabled ? bgColor : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
         ),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: _orangeColor.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, AppRoutes.staffCreate);
-        },
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: const Icon(Icons.add, size: 32, color: Colors.white),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon,
+                size: 16,
+                color: enabled ? textColor : Colors.grey[400]),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: enabled ? textColor : Colors.grey[400],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   void _showDeleteDialog(String staffName, String staffId) {
-    final scaffoldContext = context; // Save outer context reference
+    final messenger = ScaffoldMessenger.of(context);
     showDialog(
-      context: scaffoldContext,
+      context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
@@ -466,7 +536,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
                 try {
                   await _staffService.deleteStaff(staffId);
                   if (mounted) {
-                    ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text('Đã xóa "$staffName"'),
                         backgroundColor: Colors.green,
@@ -475,7 +545,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text('Lỗi: $e'),
                         backgroundColor: Colors.red,

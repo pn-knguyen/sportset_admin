@@ -15,14 +15,16 @@ class VoucherDetailScreen extends StatefulWidget {
 class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
   final VoucherService _voucherService = VoucherService();
   final AccessControlService _accessControlService = AccessControlService();
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF9800);
-  final Color _bgColor = const Color(0xFFFFF8F6);
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF5C615A);
+  static const _secondary = Color(0xFF00696B);
 
   String? _voucherId;
   bool _didReadArgs = false;
   bool _canEdit = false;
-  bool _canDelete = false;
 
   @override
   void initState() {
@@ -34,7 +36,6 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
     final permissionMap = await _accessControlService.getCurrentPermissionMap();
     setState(() {
       _canEdit = _accessControlService.can(permissionMap, 'vouchers', 'update');
-      _canDelete = _accessControlService.can(permissionMap, 'vouchers', 'delete');
     });
   }
 
@@ -60,19 +61,6 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
         return 'Đã kết thúc';
       default:
         return 'Không xác định';
-    }
-  }
-
-  Color _statusColor(Voucher voucher) {
-    switch (voucher.status) {
-      case 'active':
-        return Colors.green;
-      case 'upcoming':
-        return Colors.blue;
-      case 'ended':
-        return Colors.grey;
-      default:
-        return Colors.grey;
     }
   }
 
@@ -110,41 +98,41 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
       _UsageHistoryItem(
         customerName: 'Hoàng Minh',
         orderCode: '#ORD-9921',
-        timeLabel: '10:30 Hôm nay',
-        avatarBg: Colors.blue.shade50,
-        avatarFg: Colors.blue.shade600,
+        timeLabel: '14:30 - 24/05',
+        avatarBg: _lightGreen,
+        avatarFg: _darkGreen,
         reducedText: _discountDisplay(voucher),
       ),
       _UsageHistoryItem(
         customerName: 'Thùy Linh',
-        orderCode: '#ORD-9882',
-        timeLabel: '14:15 Hôm qua',
-        avatarBg: Colors.pink.shade50,
-        avatarFg: Colors.pink.shade600,
+        orderCode: '#ORD-9918',
+        timeLabel: '10:15 - 24/05',
+        avatarBg: Colors.teal.shade50,
+        avatarFg: _secondary,
         reducedText: _discountDisplay(voucher),
       ),
       _UsageHistoryItem(
         customerName: 'Tuấn Anh',
-        orderCode: '#ORD-9755',
-        timeLabel: '09:20 ${now.day}/${now.month}',
-        avatarBg: Colors.orange.shade50,
-        avatarFg: Colors.orange.shade600,
+        orderCode: '#ORD-9915',
+        timeLabel: '08:45 - 24/05',
+        avatarBg: _lightGreen,
+        avatarFg: _darkGreen,
         reducedText: _discountDisplay(voucher),
       ),
       _UsageHistoryItem(
-        customerName: 'Khánh Vân',
-        orderCode: '#ORD-9630',
-        timeLabel: '18:45 ${now.day - 2}/${now.month}',
-        avatarBg: Colors.purple.shade50,
-        avatarFg: Colors.purple.shade600,
-        reducedText: _discountDisplay(voucher),
-      ),
-      _UsageHistoryItem(
-        customerName: 'Đức Huy',
-        orderCode: '#ORD-9512',
-        timeLabel: '08:00 ${now.day - 3}/${now.month}',
+        customerName: 'Quang Huy',
+        orderCode: '#ORD-9910',
+        timeLabel: '19:20 - ${now.day - 1}/${now.month}',
         avatarBg: Colors.teal.shade50,
-        avatarFg: Colors.teal.shade600,
+        avatarFg: _secondary,
+        reducedText: _discountDisplay(voucher),
+      ),
+      _UsageHistoryItem(
+        customerName: 'Minh Ngọc',
+        orderCode: '#ORD-9905',
+        timeLabel: '16:10 - ${now.day - 1}/${now.month}',
+        avatarBg: _lightGreen,
+        avatarFg: _darkGreen,
         reducedText: _discountDisplay(voucher),
       ),
     ];
@@ -152,62 +140,81 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Widget header = SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(4, 8, 20, 4),
+        child: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back,
+                  size: 22, color: _onSurfaceVariant),
+              onPressed: () => Navigator.pop(context),
+            ),
+            const Expanded(
+              child: Text(
+                'Chi Tiết Voucher',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: _darkGreen,
+                ),
+              ),
+            ),
+            const SizedBox(width: 48),
+          ],
+        ),
+      ),
+    );
+
+    Widget bg = Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [_lightGreen, Colors.white],
+        ),
+      ),
+    );
+
     if (_voucherId == null) {
       return Scaffold(
-        backgroundColor: _bgColor,
-        appBar: AppBar(
-          backgroundColor: _bgColor,
-          elevation: 0,
-          scrolledUnderElevation: 2,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: _navyColor),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: Text(
-            'Chi tiết voucher',
-            style: TextStyle(
-              color: _navyColor,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
-          centerTitle: false,
+        body: Stack(
+          children: [
+            bg,
+            Column(children: [
+              header,
+              const Expanded(child: Center(
+                child: Text('Không tìm thấy voucher'),
+              )),
+            ]),
+          ],
         ),
-        body: const Center(
-          child: Text('Không tìm thấy voucher'),
-        ),
+        bottomNavigationBar: const CommonBottomNav(currentIndex: 1),
       );
     }
 
     return StreamBuilder<Voucher?>(
       stream: _voucherService.getVoucherByIdStream(_voucherId!),
       builder: (context, snapshot) {
-        final voucher = snapshot.data;
-
         return Scaffold(
-          backgroundColor: _bgColor,
-          appBar: AppBar(
-            backgroundColor: _bgColor,
-            elevation: 0,
-            scrolledUnderElevation: 2,
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back, color: _navyColor),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: Text(
-              'Chi tiết voucher',
-              style: TextStyle(
-                color: _navyColor,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [_lightGreen, Colors.white],
               ),
             ),
-            centerTitle: false,
+            child: Column(
+              children: [
+                header,
+                Expanded(child: _buildBody(snapshot)),
+              ],
+            ),
           ),
-          body: _buildBody(snapshot),
-          bottomNavigationBar: CommonBottomNav(currentIndex: 1),
+          bottomNavigationBar: const CommonBottomNav(currentIndex: 1),
         );
       },
     );
@@ -215,8 +222,8 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
 
   Widget _buildBody(AsyncSnapshot<Voucher?> snapshot) {
     if (snapshot.connectionState == ConnectionState.waiting) {
-      return Center(
-        child: CircularProgressIndicator(color: _orangeColor),
+      return const Center(
+        child: CircularProgressIndicator(color: _primary),
       );
     }
 
@@ -251,15 +258,15 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
                 width: 4,
                 height: 20,
                 decoration: BoxDecoration(
-                  color: _navyColor,
+                  color: _darkGreen,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
+              const Text(
                 'Lịch sử sử dụng',
                 style: TextStyle(
-                  color: _navyColor,
+                  color: _darkGreen,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -270,18 +277,20 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
           ...fakeHistory.map(_buildHistoryItem),
           const SizedBox(height: 20),
           Container(
+            width: double.infinity,
+            height: 56,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFFF9800), Color(0xFFFF5722)],
+                colors: [_primary, _darkGreen],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               ),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: _orangeColor.withValues(alpha: 0.3),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
+                  color: _primary.withValues(alpha: 0.25),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
@@ -301,18 +310,25 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
               style: ElevatedButton.styleFrom(
                 elevation: 0,
                 shadowColor: Colors.transparent,
-                backgroundColor: _canEdit ? Colors.transparent : Colors.grey.withValues(alpha: 0.5),
-                foregroundColor: _canEdit ? Colors.white : Colors.grey[400],
-                minimumSize: const Size(double.infinity, 54),
+                backgroundColor: _canEdit
+                    ? Colors.transparent
+                    : Colors.grey.withValues(alpha: 0.5),
+                foregroundColor:
+                    _canEdit ? Colors.white : Colors.grey[400],
+                minimumSize: const Size(double.infinity, 56),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                 ),
               ),
-              icon: Icon(Icons.edit_square, size: 22, color: _canEdit ? Colors.white : Colors.grey[400]),
+              icon: Icon(
+                Icons.edit,
+                size: 22,
+                color: _canEdit ? Colors.white : Colors.grey[400],
+              ),
               label: Text(
                 'Chỉnh sửa voucher',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                   color: _canEdit ? Colors.white : Colors.grey[400],
                 ),
@@ -325,19 +341,20 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
   }
 
   Widget _buildHeroCard(Voucher voucher) {
-    final statusColor = _statusColor(voucher);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: _primary.withValues(alpha: 0.08),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 30,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -350,76 +367,51 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Mã code',
+                    const Text(
+                      'MÃ CODE',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: Colors.grey[400],
-                        letterSpacing: 1,
+                        color: _onSurfaceVariant,
+                        letterSpacing: 1.5,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.confirmation_number,
-                          color: _orangeColor,
-                          size: 28,
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            voucher.code,
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w900,
-                              color: _navyColor,
-                              height: 1,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      voucher.code,
+                      style: const TextStyle(
+                        fontSize: 34,
+                        fontWeight: FontWeight.w900,
+                        color: _darkGreen,
+                        height: 1.1,
+                        letterSpacing: -1,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
+                  color: _lightGreen,
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: statusColor.withValues(alpha: 0.25)),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: statusColor,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _statusText(voucher),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: statusColor,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  _statusText(voucher),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: _darkGreen,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Divider(height: 1, color: Colors.grey[100]),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Row(
             children: [
               Expanded(
@@ -427,7 +419,7 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
                   'Đã dùng',
                   '${voucher.usedQuantity}',
                   suffix: 'lần',
-                  valueColor: _navyColor,
+                  valueColor: _onSurface,
                 ),
               ),
               Container(
@@ -440,7 +432,7 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
                 child: _buildMetric(
                   'Tổng giảm',
                   _totalReducedDisplay(voucher),
-                  valueColor: _orangeColor,
+                  valueColor: _secondary,
                 ),
               ),
             ],
@@ -510,13 +502,12 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[100]!),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 1),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -539,77 +530,40 @@ class _VoucherDetailScreenState extends State<VoucherDetailScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   item.customerName,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: _navyColor,
+                    color: _onSurface,
                   ),
                 ),
                 const SizedBox(height: 3),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        item.orderCode,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        item.timeLabel,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey[500],
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                Text(
+                  '${item.orderCode} • ${item.timeLabel}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _onSurfaceVariant.withValues(alpha: 0.7),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                item.reducedText,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Giảm giá',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.grey[500],
-                ),
-              ),
-            ],
+          Text(
+            item.reducedText,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFBA1A1A),
+            ),
           ),
         ],
       ),

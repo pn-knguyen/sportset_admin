@@ -4,6 +4,7 @@ import 'package:sportset_admin/models/voucher.dart';
 import 'package:sportset_admin/services/facility_service.dart';
 import 'package:sportset_admin/services/voucher_service.dart';
 import 'package:sportset_admin/services/access_control_service.dart';
+import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 import 'dart:math';
 
 class VoucherCreateScreen extends StatefulWidget {
@@ -21,6 +22,12 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
   final _minOrderController = TextEditingController();
   final _quantityController = TextEditingController();
 
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF5C615A);
+
   String _discountType = 'fixed'; // 'fixed' or 'percent'
   DateTime? _startDate;
   DateTime? _endDate;
@@ -28,10 +35,6 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
   List<Facility> _facilities = [];
   bool _isLoading = false;
   bool _isFacilitiesLoading = true;
-
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF9800);
-  final Color _bgColor = const Color(0xFFFFF8F6);
 
   late VoucherService _voucherService;
   late FacilityService _facilityService;
@@ -203,34 +206,51 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _bgColor,
-        elevation: 0,
-        scrolledUnderElevation: 2,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: _navyColor),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Thêm Voucher Mới',
-          style: TextStyle(
-            color: _navyColor,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.5,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_lightGreen, Colors.white],
           ),
         ),
-        centerTitle: false,
-      ),
-      body: _isFacilitiesLoading
-          ? Center(
-              child: CircularProgressIndicator(color: _orangeColor),
-            )
-          : SingleChildScrollView(
+        child: Column(
+          children: [
+            SafeArea(
+              bottom: false,
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Form(
+                padding: const EdgeInsets.fromLTRB(4, 8, 20, 4),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back,
+                          size: 22, color: _onSurfaceVariant),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Thêm Voucher Mới',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: _darkGreen,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: _isFacilitiesLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: _primary),
+                    )
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                      child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,44 +259,42 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Tên chương trình',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: _navyColor,
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4, bottom: 8),
+                            child: Text(
+                              'Tên chương trình',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: _onSurface,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 8),
                           TextFormField(
                             controller: _nameController,
                             decoration: InputDecoration(
                               hintText: 'VD: Khuyến mãi mùa hè 2024',
                               hintStyle: TextStyle(color: Colors.grey[400]),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.grey[100]!,
-                                ),
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none,
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.grey[100]!,
-                                ),
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none,
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: _orangeColor,
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: const BorderSide(
+                                  color: _primary,
                                   width: 2,
                                 ),
                               ),
                               filled: true,
                               fillColor: Colors.white,
                               contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
+                                horizontal: 20,
+                                vertical: 18,
                               ),
                             ),
                             validator: (value) {
@@ -293,44 +311,42 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Mã Voucher',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: _navyColor,
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4, bottom: 8),
+                            child: Text(
+                              'Mã Voucher',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: _onSurface,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 8),
                           TextFormField(
                             controller: _codeController,
                             decoration: InputDecoration(
                               hintText: 'SUMMER2024',
                               hintStyle: TextStyle(color: Colors.grey[400]),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.grey[100]!,
-                                ),
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none,
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.grey[100]!,
-                                ),
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none,
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: _orangeColor,
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: const BorderSide(
+                                  color: _primary,
                                   width: 2,
                                 ),
                               ),
                               filled: true,
                               fillColor: Colors.white,
                               contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
+                                horizontal: 20,
+                                vertical: 18,
                               ),
                               suffixIcon: Padding(
                                 padding: const EdgeInsets.all(8.0),
@@ -342,24 +358,24 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                                     });
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.orange[50],
+                                    backgroundColor: _lightGreen,
                                     elevation: 0,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  child: Text(
+                                  child: const Text(
                                     'Tạo ngẫu nhiên',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      color: _orangeColor,
+                                      color: _primary,
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.5,
                             ),
@@ -378,57 +394,52 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Loại giảm giá',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: _navyColor,
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4, bottom: 8),
+                            child: Text(
+                              'Loại giảm giá',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: _onSurface,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 8),
                           Container(
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.grey[100]!,
-                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.04),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
                             padding: const EdgeInsets.all(4),
                             child: Row(
                               children: [
                                 Expanded(
                                   child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _discountType = 'fixed';
-                                      });
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 10,
-                                      ),
+                                    onTap: () => setState(() => _discountType = 'fixed'),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
                                       decoration: BoxDecoration(
                                         color: _discountType == 'fixed'
-                                            ? Colors.orange[50]
+                                            ? _lightGreen
                                             : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: _discountType == 'fixed'
-                                            ? Border.all(
-                                                color: Colors.orange[100]!,
-                                              )
-                                            : null,
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
                                       child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                        mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
                                           Icon(
                                             Icons.attach_money,
                                             size: 18,
                                             color: _discountType == 'fixed'
-                                                ? _orangeColor
+                                                ? _primary
                                                 : Colors.grey[500],
                                           ),
                                           const SizedBox(width: 6),
@@ -438,7 +449,7 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                                               fontSize: 12,
                                               fontWeight: FontWeight.bold,
                                               color: _discountType == 'fixed'
-                                                  ? _orangeColor
+                                                  ? _primary
                                                   : Colors.grey[500],
                                             ),
                                           ),
@@ -450,35 +461,24 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                                 const SizedBox(width: 2),
                                 Expanded(
                                   child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _discountType = 'percent';
-                                      });
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 10,
-                                      ),
+                                    onTap: () => setState(() => _discountType = 'percent'),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
                                       decoration: BoxDecoration(
                                         color: _discountType == 'percent'
-                                            ? Colors.orange[50]
+                                            ? _lightGreen
                                             : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: _discountType == 'percent'
-                                            ? Border.all(
-                                                color: Colors.orange[100]!,
-                                              )
-                                            : null,
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
                                       child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                        mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
                                           Icon(
                                             Icons.percent,
                                             size: 18,
                                             color: _discountType == 'percent'
-                                                ? _orangeColor
+                                                ? _primary
                                                 : Colors.grey[500],
                                           ),
                                           const SizedBox(width: 6),
@@ -488,7 +488,7 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                                               fontSize: 12,
                                               fontWeight: FontWeight.bold,
                                               color: _discountType == 'percent'
-                                                  ? _orangeColor
+                                                  ? _primary
                                                   : Colors.grey[500],
                                             ),
                                           ),
@@ -510,15 +510,17 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Giá trị giảm',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey[600],
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 4, bottom: 8),
+                                  child: Text(
+                                    'Giá trị giảm',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: _onSurface,
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(height: 6),
                                 TextFormField(
                                   controller: _discountValueController,
                                   keyboardType:
@@ -527,45 +529,36 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                                   ),
                                   decoration: InputDecoration(
                                     hintText: '0',
-                                    hintStyle: TextStyle(
-                                      color: Colors.grey[400],
-                                    ),
-                                    suffixText:
-                                        _discountType == 'percent' ? '%' : 'đ',
+                                    hintStyle: TextStyle(color: Colors.grey[400]),
+                                    suffixText: _discountType == 'percent' ? '%' : 'đ',
                                     border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color: Colors.grey[100]!,
-                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      borderSide: BorderSide.none,
                                     ),
                                     enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color: Colors.grey[100]!,
-                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      borderSide: BorderSide.none,
                                     ),
                                     focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color: _orangeColor,
+                                      borderRadius: BorderRadius.circular(20),
+                                      borderSide: const BorderSide(
+                                        color: _primary,
                                         width: 2,
                                       ),
                                     ),
                                     filled: true,
                                     fillColor: Colors.white,
                                     contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 10,
+                                      horizontal: 20,
+                                      vertical: 18,
                                     ),
                                   ),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 13,
+                                    fontSize: 14,
                                   ),
                                   validator: (value) {
-                                    if (value?.isEmpty ?? true) {
-                                      return 'Bắt buộc';
-                                    }
+                                    if (value?.isEmpty ?? true) return 'Bắt buộc';
                                     return null;
                                   },
                                 ),
@@ -577,15 +570,17 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Đơn hàng tối thiểu',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey[600],
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 4, bottom: 8),
+                                  child: Text(
+                                    'Đơn hàng tối thiểu',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: _onSurface,
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(height: 6),
                                 TextFormField(
                                   controller: _minOrderController,
                                   keyboardType:
@@ -594,44 +589,36 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                                   ),
                                   decoration: InputDecoration(
                                     hintText: '0',
-                                    hintStyle: TextStyle(
-                                      color: Colors.grey[400],
-                                    ),
+                                    hintStyle: TextStyle(color: Colors.grey[400]),
                                     suffixText: 'đ',
                                     border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color: Colors.grey[100]!,
-                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      borderSide: BorderSide.none,
                                     ),
                                     enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color: Colors.grey[100]!,
-                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      borderSide: BorderSide.none,
                                     ),
                                     focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color: _orangeColor,
+                                      borderRadius: BorderRadius.circular(20),
+                                      borderSide: const BorderSide(
+                                        color: _primary,
                                         width: 2,
                                       ),
                                     ),
                                     filled: true,
                                     fillColor: Colors.white,
                                     contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 10,
+                                      horizontal: 20,
+                                      vertical: 18,
                                     ),
                                   ),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 13,
+                                    fontSize: 14,
                                   ),
                                   validator: (value) {
-                                    if (value?.isEmpty ?? true) {
-                                      return 'Bắt buộc';
-                                    }
+                                    if (value?.isEmpty ?? true) return 'Bắt buộc';
                                     return null;
                                   },
                                 ),
@@ -645,50 +632,69 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Thời gian áp dụng',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: _navyColor,
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4, bottom: 8),
+                            child: Text(
+                              'Thời gian áp dụng',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: _onSurface,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 8),
                           Row(
                             children: [
                               Expanded(
                                 child: GestureDetector(
                                   onTap: () => _selectDate(true),
                                   child: Container(
-                                    padding: const EdgeInsets.all(12),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 12),
                                     decoration: BoxDecoration(
                                       color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.grey[100]!,
-                                      ),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Ngày bắt đầu',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey[500],
-                                          ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.04),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 2),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          _startDate != null
-                                              ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
-                                              : 'Chọn ngày',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.grey[800],
-                                          ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Ngày bắt đầu',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.grey[500],
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              _startDate != null
+                                                  ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
+                                                  : 'Chọn ngày',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: _onSurface,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const Icon(
+                                          Icons.calendar_today,
+                                          size: 18,
+                                          color: _onSurfaceVariant,
                                         ),
                                       ],
                                     ),
@@ -700,35 +706,52 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                                 child: GestureDetector(
                                   onTap: () => _selectDate(false),
                                   child: Container(
-                                    padding: const EdgeInsets.all(12),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 12),
                                     decoration: BoxDecoration(
                                       color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.grey[100]!,
-                                      ),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Ngày kết thúc',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey[500],
-                                          ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.04),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 2),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          _endDate != null
-                                              ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
-                                              : 'Chọn ngày',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.grey[800],
-                                          ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Ngày kết thúc',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.grey[500],
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              _endDate != null
+                                                  ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
+                                                  : 'Chọn ngày',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: _onSurface,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const Icon(
+                                          Icons.calendar_today,
+                                          size: 18,
+                                          color: _onSurfaceVariant,
                                         ),
                                       ],
                                     ),
@@ -744,59 +767,64 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Giới hạn',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: _navyColor,
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4, bottom: 8),
+                            child: Text(
+                              'Giới hạn',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: _onSurface,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 8),
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.grey[100]!,
-                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.04),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: Row(
                               children: [
                                 Container(
-                                  width: 40,
-                                  height: 40,
+                                  width: 48,
+                                  height: 48,
                                   decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.blue[50],
+                                    color: _lightGreen,
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: Icon(
+                                  child: const Icon(
                                     Icons.inventory_2,
-                                    color: Colors.blue[600],
-                                    size: 20,
+                                    color: _primary,
+                                    size: 24,
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                Expanded(
+                                const Expanded(
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Số lượng mã phát hành',
                                         style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.grey[800],
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: _onSurface,
                                         ),
                                       ),
-                                      const SizedBox(height: 2),
+                                      SizedBox(height: 2),
                                       Text(
                                         'Tổng số voucher có thể dùng',
                                         style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.grey[500],
+                                          fontSize: 12,
+                                          color: _onSurfaceVariant,
                                         ),
                                       ),
                                     ],
@@ -804,7 +832,7 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                                 ),
                                 const SizedBox(width: 12),
                                 SizedBox(
-                                  width: 70,
+                                  width: 72,
                                   child: TextFormField(
                                     controller: _quantityController,
                                     keyboardType: TextInputType.number,
@@ -812,40 +840,34 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                                     decoration: InputDecoration(
                                       hintText: '∞',
                                       border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        borderSide: BorderSide(
-                                          color: Colors.grey[200]!,
-                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide.none,
                                       ),
                                       enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        borderSide: BorderSide(
-                                          color: Colors.grey[200]!,
-                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide.none,
                                       ),
                                       focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        borderSide: BorderSide(
-                                          color: _orangeColor,
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(
+                                          color: _primary,
                                           width: 2,
                                         ),
                                       ),
                                       filled: true,
-                                      fillColor: Colors.grey[50],
+                                      fillColor: Colors.grey[100],
                                       contentPadding:
                                           const EdgeInsets.symmetric(
                                         horizontal: 8,
-                                        vertical: 8,
+                                        vertical: 12,
                                       ),
                                     ),
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
                                     ),
                                     validator: (value) {
-                                      if (value?.isEmpty ?? true) {
-                                        return 'Bắt buộc';
-                                      }
+                                      if (value?.isEmpty ?? true) return 'Bắt buộc';
                                       return null;
                                     },
                                   ),
@@ -860,25 +882,31 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Áp dụng cho',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: _navyColor,
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4, bottom: 8),
+                            child: Text(
+                              'Áp dụng cho',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: _onSurface,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 8),
                           Container(
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.grey[100]!,
-                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.04),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
+                              horizontal: 16,
                               vertical: 4,
                             ),
                             child: DropdownButton<String>(
@@ -909,10 +937,10 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                                             const SizedBox(width: 8),
                                             Text(
                                               facility.name,
-                                              style: TextStyle(
+                                              style: const TextStyle(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w500,
-                                                color: Colors.grey[800],
+                                                color: _onSurface,
                                               ),
                                             ),
                                           ],
@@ -925,62 +953,58 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                       ),
                       const SizedBox(height: 32),
                       // Submit button
-                      SizedBox(
+                      Container(
                         width: double.infinity,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [_orangeColor, Colors.red[700]!],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: _orangeColor.withOpacity(0.3),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                        height: 60,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [_primary, _darkGreen],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _createVoucher,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _primary.withValues(alpha: 0.25),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
                             ),
-                            child: _isLoading
-                                ? SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.rocket_launch,
+                          ],
+                        ),
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _createVoucher,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 22,
+                                  width: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.rocket_launch,
+                                        color: Colors.white, size: 24),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      'Phát hành Voucher',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
                                         color: Colors.white,
                                       ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Phát hành Voucher',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                          ),
+                                    ),
+                                  ],
+                                ),
                         ),
                       ),
                       const SizedBox(height: 32),
@@ -989,34 +1013,10 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
                 ),
               ),
             ),
-      bottomNavigationBar: _buildBottomNav(),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return BottomNavigationBar(
-      currentIndex: 1,
-      type: BottomNavigationBarType.fixed,
-      backgroundColor: Colors.white,
-      elevation: 8,
-      items: [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Trang chủ',
+          ],
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.view_list),
-          label: 'Quản lý',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_month),
-          label: 'Đơn đặt',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person),
-          label: 'Tài khoản',
-        ),
-      ],
+      ),
+      bottomNavigationBar: const CommonBottomNav(currentIndex: 1),
     );
   }
 }

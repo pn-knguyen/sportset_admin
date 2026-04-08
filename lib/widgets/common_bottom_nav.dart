@@ -1,56 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:sportset_admin/routes/app_routes.dart';
 
+const _primary = Color(0xFF4CAF50);
+const _inactive = Color(0xFF9E9E9E);
+
 class CommonBottomNav extends StatelessWidget {
   final int currentIndex;
-  final Color navyColor;
-  final Color orangeColor;
 
   const CommonBottomNav({
     super.key,
     required this.currentIndex,
-    this.navyColor = const Color(0xFF0C1C46),
-    this.orangeColor = const Color(0xFFFF9800),
+    // Legacy params kept for backward compat — unused
+    @Deprecated('') Color navyColor = const Color(0xFF0C1C46),
+    @Deprecated('') Color orangeColor = const Color(0xFFFF9800),
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 64,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         border: Border(
-          top: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
+          top: BorderSide(color: Colors.grey.withValues(alpha: 0.08)),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
             offset: const Offset(0, -4),
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(context, 0, Icons.home, 'Trang chủ', AppRoutes.home),
-          _buildNavItem(context, 1, Icons.view_list, 'Quản lý', AppRoutes.management),
-          _buildNavItem(context, 2, Icons.calendar_month, 'Đơn đặt', AppRoutes.bookings),
-          _buildNavItem(context, 3, Icons.person, 'Tài khoản', AppRoutes.account),
-        ],
+      child: SafeArea(
+        child: SizedBox(
+          height: 68,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(context, 0, Icons.home_rounded, Icons.home_outlined, 'Trang chủ', AppRoutes.home),
+              _buildNavItem(context, 1, Icons.grid_view_rounded, Icons.grid_view_outlined, 'Quản lý', AppRoutes.management),
+              _buildNavItem(context, 2, Icons.confirmation_number_rounded, Icons.confirmation_number_outlined, 'Đơn đặt', AppRoutes.bookings),
+              _buildNavItem(context, 3, Icons.person_rounded, Icons.person_outline_rounded, 'Tài khoản', AppRoutes.account),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildNavItem(BuildContext context, int index, IconData icon, String label, String route) {
+  Widget _buildNavItem(BuildContext context, int index, IconData activeIcon,
+      IconData inactiveIcon, String label, String route) {
     final isActive = currentIndex == index;
-    final color = isActive ? orangeColor : Colors.grey[400];
+    final color = isActive ? _primary : _inactive;
 
     return Expanded(
       child: GestureDetector(
         onTap: () {
           if (!isActive) {
-            // Navigate to the main screen with the selected tab
             Navigator.pushNamedAndRemoveUntil(
               context,
               route,
@@ -63,7 +70,7 @@ class CommonBottomNav extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 26, color: color),
+              Icon(isActive ? activeIcon : inactiveIcon, size: 26, color: color),
               const SizedBox(height: 4),
               Text(
                 label,
@@ -80,4 +87,3 @@ class CommonBottomNav extends StatelessWidget {
     );
   }
 }
-

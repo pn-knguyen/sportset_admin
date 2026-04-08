@@ -6,6 +6,13 @@ import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 class AccountDetailScreen extends StatelessWidget {
   const AccountDetailScreen({super.key});
 
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _secondary = Color(0xFF18A5A7);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF5C615A);
+
   @override
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)?.settings.arguments as Map?;
@@ -18,68 +25,65 @@ class AccountDetailScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(child: _buildBody(context, uid)),
-        ],
+      backgroundColor: Colors.white,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_lightGreen, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Column(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: _darkGreen,
+                        size: 20,
+                      ),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        'Chi tiết tài khoản',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: _darkGreen,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(child: _buildBody(context, uid)),
+          ],
+        ),
       ),
       bottomNavigationBar: const CommonBottomNav(currentIndex: 1),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
-          child: Row(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(
-                  Icons.arrow_back_ios_new,
-                  color: Color(0xFF0C1C46),
-                  size: 20,
-                ),
-              ),
-              const Expanded(
-                child: Text(
-                  'Chi tiết tài khoản',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0C1C46),
-                    letterSpacing: -0.4,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 40),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildBody(BuildContext context, String uid) {
-    final firestore = FirebaseFirestore.instance;
-
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      stream: firestore.collection('admin_accounts').doc(uid).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('admin_accounts')
+          .doc(uid)
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-            child: CircularProgressIndicator(color: Color(0xFFFF9800)),
+            child: CircularProgressIndicator(color: _primary),
           );
         }
 
@@ -100,144 +104,198 @@ class AccountDetailScreen extends StatelessWidget {
         final permissionGroupId = (data['permissionGroupId'] ?? '') as String;
         final isActive = data['isActive'] == true;
         final createdAt = data['createdAt'] as Timestamp?;
+        final avatarUrl = data['avatarUrl'] as String?;
+        final isAdmin = username == 'admin';
 
         return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           children: [
-            _buildInfoCard(
-              title: 'Thông tin tài khoản',
-              children: [
-                _buildInfoRow('Username', username),
-                _buildInfoRow('Email đăng nhập', authEmail),
-                _buildPermissionGroupRow(permissionGroupId),
-                _buildInfoRow('Trạng thái', isActive ? 'Hoạt động' : 'Khóa'),
-                _buildInfoRow('Tạo lúc', _formatTimestamp(createdAt)),
-              ],
+            // Avatar
+            Center(
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white, width: 4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: avatarUrl != null
+                          ? Image.network(
+                              avatarUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(
+                                Icons.person,
+                                size: 40,
+                                color: Color(0xFFBECAB9),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.person,
+                              size: 40,
+                              color: Color(0xFFBECAB9),
+                            ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: -4,
+                    right: -4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isActive ? _primary : Colors.red,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: Text(
+                        isActive ? 'Hoạt động' : 'Đã khóa',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
-            _buildInfoCard(
-              title: 'Liên kết hệ thống',
+            // Username
+            Center(
+              child: Text(
+                username,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: _onSurface,
+                ),
+              ),
+            ),
+            if (staffName.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Center(
+                child: Text(
+                  staffName,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: _onSurfaceVariant.withValues(alpha: 0.8),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            // Card: Thông tin tài khoản
+            _buildCard(
+              icon: Icons.account_circle,
+              title: 'THÔNG TIN TÀI KHOẢN',
               children: [
-                _buildInfoRow('UID', uid),
-                _buildInfoRow('Nhân viên', staffName),
-                _buildInfoRow('Staff ID', staffId),
+                _buildRow(Icons.alternate_email, 'Email đăng nhập', authEmail),
+                _buildPermissionRow(permissionGroupId),
+                _buildRow(
+                  isActive ? Icons.check_circle : Icons.cancel,
+                  'Trạng thái',
+                  isActive ? 'Hoạt động' : 'Đã khóa',
+                  valueColor: isActive ? _primary : Colors.red,
+                ),
+                _buildRow(
+                    Icons.calendar_today, 'Ngày tạo', _formatTimestamp(createdAt)),
               ],
             ),
             const SizedBox(height: 16),
-            Row(
+            // Card: Liên kết hệ thống
+            _buildCard(
+              icon: Icons.link,
+              title: 'LIÊN KẾT HỆ THỐNG',
               children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 56,
-                    child: OutlinedButton(
-                      onPressed: username == 'admin'
-                          ? null
-                          : () async {
-                              final deleted = await Navigator.pushNamed(
-                                context,
-                                AppRoutes.accountDelete,
-                                arguments: {
-                                  'uid': uid,
-                                  'username': username,
-                                },
-                              );
-
-                              if (deleted == true && context.mounted) {
-                                Navigator.pop(context, true);
-                              }
-                            },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: username == 'admin' ? Colors.grey : Colors.red,
-                        side: BorderSide(
-                          color: username == 'admin'
-                              ? Colors.grey.withValues(alpha: 0.3)
-                              : Colors.red,
-                          width: 2,
-                        ),
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: Text(
-                        'Xóa tài khoản',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: username == 'admin'
-                              ? Colors.grey[400]
-                              : Colors.red,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    height: 56,
-                    decoration: BoxDecoration(
-                      gradient: username == 'admin'
-                          ? LinearGradient(
-                              colors: [
-                                Colors.grey.withValues(alpha: 0.5),
-                                Colors.grey.withValues(alpha: 0.5),
-                              ],
-                            )
-                          : const LinearGradient(
-                              colors: [Color(0xFFFF9500), Color(0xFFF44336)],
-                            ),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: username == 'admin'
-                          ? null
-                          : [
-                              BoxShadow(
-                                color: Colors.orange.withValues(alpha: 0.2),
-                                blurRadius: 12,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: username == 'admin'
-                            ? null
-                            : () async {
-                                final updated = await Navigator.pushNamed(
-                                  context,
-                                  AppRoutes.accountEdit,
-                                  arguments: {'uid': uid},
-                                );
-
-                                if (updated == true && context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Đã cập nhật tài khoản'),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                }
-                              },
-                        child: Center(
-                          child: Text(
-                            username == 'admin'
-                                ? 'Tài khoản Admin (Bảo vệ)'
-                                : 'Chỉnh sửa tài khoản',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                _buildRow(Icons.badge, 'Nhân viên', staffName),
+                _buildRow(Icons.fingerprint, 'UID', uid, mono: true),
+                _buildRow(Icons.person_pin, 'Staff ID', staffId, mono: true),
               ],
+            ),
+            const SizedBox(height: 32),
+            // Edit button
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.edit, color: Colors.white),
+                label: Text(
+                  isAdmin ? 'Tài khoản Admin (Bảo vệ)' : 'Chỉnh sửa tài khoản',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isAdmin
+                      ? _onSurfaceVariant.withValues(alpha: 0.4)
+                      : _primary,
+                  shadowColor: _primary.withValues(alpha: 0.3),
+                  elevation: isAdmin ? 0 : 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                onPressed: isAdmin
+                    ? null
+                    : () async {
+                        final updated = await Navigator.pushNamed(
+                          context,
+                          AppRoutes.accountEdit,
+                          arguments: {'uid': uid},
+                        );
+                        if (updated == true && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Đã cập nhật tài khoản'),
+                              backgroundColor: _primary,
+                            ),
+                          );
+                        }
+                      },
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Delete button
+            TextButton(
+              onPressed: isAdmin
+                  ? null
+                  : () async {
+                      final deleted = await Navigator.pushNamed(
+                        context,
+                        AppRoutes.accountDelete,
+                        arguments: {'uid': uid, 'username': username},
+                      );
+                      if (deleted == true && context.mounted) {
+                        Navigator.pop(context, true);
+                      }
+                    },
+              style: TextButton.styleFrom(
+                foregroundColor: isAdmin
+                    ? _onSurfaceVariant.withValues(alpha: 0.3)
+                    : Colors.red.withValues(alpha: 0.7),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: const Text(
+                'Xóa tài khoản nhân viên',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         );
@@ -245,58 +303,89 @@ class AccountDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoCard({
+  Widget _buildCard({
+    required IconData icon,
     required String title,
     required List<Widget> children,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 24,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF0C1C46),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
+              children: [
+                Icon(icon, color: _secondary, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: _onSurfaceVariant,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          ...children,
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              children: children,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildRow(
+    IconData icon,
+    String label,
+    String value, {
+    Color? valueColor,
+    bool mono = false,
+  }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Icon(icon, size: 16, color: _onSurfaceVariant.withValues(alpha: 0.6)),
+          const SizedBox(width: 10),
           SizedBox(
-            width: 130,
+            width: 120,
             child: Text(
-              '$label:',
+              label,
               style: const TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF6B7280),
+                color: _onSurfaceVariant,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value.isEmpty ? '--' : value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF111827),
+                fontWeight: FontWeight.w600,
+                color: valueColor ?? _onSurface,
+                fontFamily: mono ? 'monospace' : null,
               ),
             ),
           ),
@@ -305,36 +394,30 @@ class AccountDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPermissionGroupRow(String permissionGroupId) {
+  Widget _buildPermissionRow(String permissionGroupId) {
     return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       future: FirebaseFirestore.instance
           .collection('permissions')
           .doc(permissionGroupId)
           .get(),
       builder: (context, snapshot) {
-        final permissionName = snapshot.data?.data()?['name'] as String?;
+        final name = snapshot.data?.data()?['name'] as String?;
         final display = permissionGroupId.isEmpty
             ? '--'
-            : permissionName == null
-                ? permissionGroupId
-                : '$permissionName ($permissionGroupId)';
-
-        return _buildInfoRow('Nhóm quyền', display);
+            : name ?? permissionGroupId;
+        return _buildRow(Icons.shield, 'Nhóm quyền', display,
+            valueColor: _secondary);
       },
     );
   }
 
   String _formatTimestamp(Timestamp? value) {
-    if (value == null) {
-      return '--';
-    }
-
-    final date = value.toDate();
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final year = date.year.toString();
-    final hour = date.hour.toString().padLeft(2, '0');
-    final minute = date.minute.toString().padLeft(2, '0');
-    return '$day/$month/$year $hour:$minute';
+    if (value == null) return '--';
+    final d = value.toDate();
+    final day = d.day.toString().padLeft(2, '0');
+    final month = d.month.toString().padLeft(2, '0');
+    final hour = d.hour.toString().padLeft(2, '0');
+    final minute = d.minute.toString().padLeft(2, '0');
+    return '$day/$month/${d.year} $hour:$minute';
   }
 }

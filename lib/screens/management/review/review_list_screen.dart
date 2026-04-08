@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../widgets/common_bottom_nav.dart';
 
-// 3.8. Trang quản lý đánh giá
 class ReviewListScreen extends StatefulWidget {
   const ReviewListScreen({super.key});
 
@@ -9,8 +8,53 @@ class ReviewListScreen extends StatefulWidget {
   State<ReviewListScreen> createState() => _ReviewListScreenState();
 }
 
-class _ReviewListScreenState extends State<ReviewListScreen> with SingleTickerProviderStateMixin {
+class _ReviewListScreenState extends State<ReviewListScreen>
+    with SingleTickerProviderStateMixin {
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _secondary = Color(0xFF18A5A7);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF5C615A);
+
   late TabController _tabController;
+
+  final List<Map<String, dynamic>> _reviews = [
+    {
+      'name': 'Nguyễn Minh Quân',
+      'avatar': 'https://i.pravatar.cc/150?img=11',
+      'rating': 5,
+      'timeAgo': '2 giờ trước',
+      'comment':
+          'Sân cỏ rất đẹp và mới, đèn chiếu sáng cực tốt cho các trận đá đêm. Nhân viên hỗ trợ nhiệt tình, giá cả hợp lý so với chất lượng. Sẽ quay lại nhiều lần!',
+      'facility': 'Sân Chảo Lửa - Sân A1',
+      'replied': false,
+      'reply': null,
+    },
+    {
+      'name': 'Lê Thị Thu Thảo',
+      'avatar': 'https://i.pravatar.cc/150?img=5',
+      'rating': 4,
+      'timeAgo': 'Hôm qua',
+      'comment':
+          'Khu vực khán đài hơi bụi một chút, nhưng chất lượng mặt sân thì không có gì để chê. Mong sân cải thiện thêm phần vệ sinh xung quanh.',
+      'facility': 'Sân Chảo Lửa - Sân B2',
+      'replied': false,
+      'reply': null,
+    },
+    {
+      'name': 'Trần Hoàng Long',
+      'avatar': 'https://i.pravatar.cc/150?img=15',
+      'rating': 5,
+      'timeAgo': '2 ngày trước',
+      'comment':
+          'Tuyệt vời! Sân vận hành chuyên nghiệp nhất khu vực Tân Bình.',
+      'facility': 'Sân Chảo Lửa - Sân A2',
+      'replied': true,
+      'reply': 'Cảm ơn anh Long đã tin tưởng và ủng hộ hệ thống sân Chảo Lửa ạ!',
+    },
+  ];
+
   int _selectedTab = 0;
 
   @override
@@ -18,9 +62,9 @@ class _ReviewListScreenState extends State<ReviewListScreen> with SingleTickerPr
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
-      setState(() {
-        _selectedTab = _tabController.index;
-      });
+      if (!_tabController.indexIsChanging) {
+        setState(() => _selectedTab = _tabController.index);
+      }
     });
   }
 
@@ -30,206 +74,215 @@ class _ReviewListScreenState extends State<ReviewListScreen> with SingleTickerPr
     super.dispose();
   }
 
+  List<Map<String, dynamic>> get _filtered {
+    if (_selectedTab == 1) {
+      return _reviews.where((r) => r['replied'] == false).toList();
+    } else if (_selectedTab == 2) {
+      return _reviews.where((r) => r['replied'] == true).toList();
+    }
+    return _reviews;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(),
-          _buildTabBar(),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildReviewList(),
-                _buildReviewList(),
-                _buildReviewList(),
-              ],
-            ),
+      backgroundColor: Colors.white,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_lightGreen, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
-        ],
+        ),
+        child: Column(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: SizedBox(
+                height: 56,
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon:
+                          const Icon(Icons.arrow_back, color: _primary),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        'Đánh giá & Nhận xét',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: _primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                children: [
+                  _buildTabBar(),
+                  const SizedBox(height: 20),
+                  _buildStatsRow(),
+                  const SizedBox(height: 24),
+                  ..._filtered.map((r) => Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _buildReviewCard(r),
+                      )),
+                  if (_filtered.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 48),
+                      child: Center(
+                        child: Text(
+                          'Không có đánh giá nào',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: _onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: const CommonBottomNav(currentIndex: 1),
     );
   }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 48, 20, 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-        border: const Border(
-          bottom: BorderSide(color: Color(0xFFE5E7EB), width: 0.5),
-        ),
-      ),
-      child: SizedBox(
-        height: 40,
-        child: Stack(
-          children: [
-            Positioned(
-              left: -8,
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  height: 40,
-                  width: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Icon(
-                    Icons.arrow_back,
-                    color: Color(0xFF0C1C46),
-                    size: 24,
-                  ),
-                ),
-              ),
-            ),
-            const Center(
-              child: Text(
-                'Quản Lý Đánh Giá',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0C1C46),
-                  letterSpacing: -0.3,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildTabBar() {
+    const tabs = ['Tất cả', 'Chưa phản hồi', 'Đã phản hồi'];
     return Container(
-      color: const Color(0xFFFFF8F6),
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-      child: Container(
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1),
-          ),
-        ),
-        child: Row(
-          children: [
-            _buildTab('Tất cả', 0),
-            _buildTab('Chưa phản hồi', 1),
-            _buildTab('Đã phản hồi', 2),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTab(String title, int index) {
-    final isSelected = _selectedTab == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          _tabController.animateTo(index);
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: isSelected ? const Color(0xFFFF9800) : Colors.transparent,
-                width: 2,
-              ),
-            ),
-          ),
-          child: Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? const Color(0xFF0C1C46) : const Color(0xFF9CA3AF),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReviewList() {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 112),
-      children: [
-        _buildReviewCard(
-          name: 'Lê Minh Anh',
-          avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAa6ogy6_V5b8NcsjkE0McJ3udKYYawJOjapLA_W0x64MJrPDoJHOBzn5O7S-dmCml_pUHIm7IkzV0o99fPtQAknyKZmv7acQeQgQ5_j15fXj1R8a3YhcJlCkhidDgbdFATWjfiD3-I7hiBTZMSLsl0FCzjeeQagV3FxJWammWD16KrRBpx0-ZZNBYCGu8BhBn99PK0B_rFYlLkMyyJwu4mw_j2sMt-AG4rvjDOiPXZ38bGPoueIjrP1CUMmIbx6iK389p-zhfjf0v_',
-          rating: 5,
-          time: '10:30',
-          date: '20/10/2023',
-          comment: 'Sân đẹp, ánh sáng tốt, mặt cỏ êm ái. Nhân viên phục vụ nhiệt tình. Sẽ quay lại ủng hộ dài dài!',
-          facility: 'Sân Chảo Lửa - Sân A1',
-          icon: Icons.stadium,
-        ),
-        const SizedBox(height: 16),
-        _buildReviewCard(
-          name: 'Trần Văn Bảo',
-          avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD2WbmxaxJh1iIt0YZ6H_RShn1eZVGkyP4D3tmgkbiilB55g1sKqb43b-ctuOtJhJinv3fKvdaeZ_6Ya8zBiL-rDAJ6DRExsrkp1pVFgdGP4FUF70zYJg4-kkXxjY-ziHfmR_1WsCoNKaM1vSrYf1x420L08KGlpjmnkRVASv3oTtEo0YubtHVq85Wuz2yV-N97sHXa8blsxZ-8tdPJE32poxV43Gg4mRILIe3oXG8pi3PSEUaDcKcMrMXPQHgk61VXEYv59buvn_w2',
-          rating: 4,
-          time: '09:15',
-          date: '19/10/2023',
-          comment: 'Chất lượng mặt sân khá ổn, tuy nhiên khu vực để xe hơi chật chội vào giờ cao điểm. Mong ban quản lý cải thiện.',
-          facility: 'Sân K34 - Sân 7',
-          icon: Icons.sports_soccer,
-        ),
-        const SizedBox(height: 16),
-        _buildReviewCard(
-          name: 'Nguyễn Thu Hà',
-          avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuApPrDcjBKqE3W-m475GdytKSSl7Jpq_aoAXwqlpWS9XxzWE-Dr_MNEkqhQvnwGa_pdQQkz3f4uXHc-a6QwypEVjnQPqYED3hPRMVfGC71BOr07oPPQYiLeIGF3VjC-Io2Cad3nDM_ptbkUCFgRLjVtxma39s0Qb9YpK-35cJyS9nGfG-8dKMAXh65289WZUNk045k4krGNdlT4CQhrr2BnO0BUg72andzMaz5-5rv_MRyqnzKvpouTwAaKg7Kx3h0Bqv9UxNpZojAK',
-          rating: 5,
-          time: '18:45',
-          date: '18/10/2023',
-          comment: 'Dịch vụ tuyệt vời! Mình quên đồ ở sân mà các bạn nhân viên giữ giúp rất cẩn thận. Cảm ơn team SPORTSET nhiều! ❤️',
-          facility: 'Sân Tennis T2',
-          icon: Icons.sports_tennis,
-        ),
-        const SizedBox(height: 16),
-        _buildReviewCard(
-          name: 'Phạm Tuấn Hùng',
-          avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDbi376epVpD3GuPWMN57YjvCYAvXpWpqn49zVvEVETrfPcbfLLfno34qEQ00bAFuy-UP90b_a9UFz2wj3RspiZW1NpAsZ4wMfvpc3UiMSJkvRFjuyFF_cJEWi4HPdF9dldp7NPfc2RgGQsRoy4zZ-apgdKQvxe8BOBq7bTgyHGYNwYF2yOrQCEqF_Hj9hGkQ6wtql-26aQzRlw-fz1fgcAb54FrV95ahhD4UCCO_AaEgR-6BqhxEdouV89nXnzuAfRs7VF-SSPzgHk',
-          rating: 5,
-          time: '14:20',
-          date: '17/10/2023',
-          comment: 'Mọi thứ đều ổn, giá cả hợp lý so với mặt bằng chung.',
-          facility: 'Sân Cầu Lông C1',
-          icon: Icons.sports_volleyball,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildReviewCard({
-    required String name,
-    required String avatar,
-    required int rating,
-    required String time,
-    required String date,
-    required String comment,
-    required String facility,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFE5E7EB).withValues(alpha: 0.8),
-          width: 1,
-        ),
+        color: Colors.white.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(50),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: Row(
+        children: List.generate(tabs.length, (i) {
+          final active = _selectedTab == i;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () {
+                _tabController.animateTo(i);
+                setState(() => _selectedTab = i);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: active ? _primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: Text(
+                  tabs[i],
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight:
+                        active ? FontWeight.bold : FontWeight.w500,
+                    color: active ? Colors.white : _onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildStatsRow() {
+    final stats = [
+      {'label': 'Trung bình', 'value': '4.8', 'color': _primary, 'star': true},
+      {'label': 'Tổng số', 'value': '1.248', 'color': _onSurface, 'star': false},
+      {'label': 'Mới nhất', 'value': '12', 'color': _secondary, 'star': false},
+      {'label': 'Tỉ lệ phản hồi', 'value': '92%', 'color': _primary, 'star': false},
+    ];
+    return Row(
+      children: stats.map((s) {
+        return Expanded(
+          child: Container(
+            margin: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 16,
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  s['label'] as String,
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: _onSurfaceVariant,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      s['value'] as String,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: s['color'] as Color,
+                      ),
+                    ),
+                    if (s['star'] == true)
+                      const Padding(
+                        padding: EdgeInsets.only(left: 2),
+                        child: Icon(Icons.star,
+                            size: 13, color: Color(0xFFFFB300)),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildReviewCard(Map<String, dynamic> review) {
+    final rating = review['rating'] as int;
+    final replied = review['replied'] as bool;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 24,
           ),
         ],
       ),
@@ -240,178 +293,182 @@ class _ReviewListScreenState extends State<ReviewListScreen> with SingleTickerPr
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: Image.network(
-                          avatar,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: const Color(0xFFE5E7EB),
-                              child: const Icon(Icons.person, color: Colors.white),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF0C1C46),
-                              height: 1.2,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: List.generate(5, (index) {
-                              return Icon(
-                                index < rating ? Icons.star : Icons.star_border,
-                                size: 16,
-                                color: index < rating ? const Color(0xFFFF9800) : const Color(0xFFD1D5DB),
-                              );
-                            }),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              Row(
                 children: [
-                  Text(
-                    time,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF9CA3AF),
+                  ClipOval(
+                    child: Image.network(
+                      review['avatar'] as String,
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Container(
+                        width: 48,
+                        height: 48,
+                        color: _lightGreen,
+                        child: const Icon(Icons.person, color: _primary),
+                      ),
                     ),
                   ),
-                  Text(
-                    date,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Color(0xFF9CA3AF),
-                    ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        review['name'] as String,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: _onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        review['timeAgo'] as String,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: _onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
+              Row(
+                children: List.generate(5, (i) {
+                  return Icon(
+                    i < rating ? Icons.star : Icons.star_border,
+                    size: 18,
+                    color: const Color(0xFFFFB300),
+                  );
+                }),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
-            comment,
+            review['comment'] as String,
             style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF6B7280),
-              height: 1.5,
+              fontSize: 13,
+              height: 1.6,
+              color: _onSurface,
             ),
           ),
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(6),
+              color: _lightGreen,
+              borderRadius: BorderRadius.circular(50),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 14, color: const Color(0xFF6B7280)),
+                const Icon(Icons.sports_soccer,
+                    size: 14, color: _secondary),
                 const SizedBox(width: 6),
                 Text(
-                  facility,
+                  review['facility'] as String,
                   style: const TextStyle(
                     fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF6B7280),
+                    fontWeight: FontWeight.bold,
+                    color: _secondary,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.only(top: 12),
-            margin: const EdgeInsets.only(top: 4),
-            decoration: const BoxDecoration(
-              border: Border(
-                top: BorderSide(color: Color(0xFFF9FAFB), width: 1),
+          if (replied) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _lightGreen.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(16),
+                border: const Border(
+                    left: BorderSide(color: _primary, width: 4)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'PHẢN HỒI CỦA BẠN:',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: _primary,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    review['reply'] as String,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.5,
+                      fontStyle: FontStyle.italic,
+                      color: _onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
+          ],
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: Color(0xFFF5F5F5)),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: _showDeleteDialog,
+                child: Container(
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     color: const Color(0xFFFEF2F2),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(50),
                   ),
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFF87171)),
-                    onPressed: () {
-                      _showDeleteDialog();
-                    },
-                  ),
+                  child: const Icon(Icons.delete_outline,
+                      size: 20, color: Color(0xFFEF4444)),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              ),
+              GestureDetector(
+                onTap: () {},
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 28, vertical: 10),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFF9800), Color(0xFFFF5722)],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFFF9800).withValues(alpha: 0.2),
-                        blurRadius: 4,
-                      ),
-                    ],
+                    gradient: replied
+                        ? null
+                        : const LinearGradient(
+                            colors: [_primary, _darkGreen],
+                          ),
+                    color: replied ? const Color(0xFFF0F0F0) : null,
+                    borderRadius: BorderRadius.circular(50),
+                    boxShadow: replied
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: _primary.withValues(alpha: 0.25),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                   ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.reply, size: 16, color: Colors.white),
-                      SizedBox(width: 6),
-                      Text(
-                        'Phản hồi',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    replied ? 'Chỉnh sửa' : 'Phản hồi',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: replied ? _onSurface : Colors.white,
+                    ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -421,69 +478,45 @@ class _ReviewListScreenState extends State<ReviewListScreen> with SingleTickerPr
   void _showDeleteDialog() {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Text(
-            'Xóa đánh giá',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0C1C46),
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text(
+          'Xóa đánh giá',
+          style: TextStyle(
+              fontWeight: FontWeight.bold, color: _onSurface),
+        ),
+        content: const Text(
+          'Bạn có chắc chắn muốn xóa đánh giá này không?',
+          style: TextStyle(color: _onSurfaceVariant, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Hủy',
+              style: TextStyle(color: _onSurfaceVariant),
             ),
           ),
-          content: const Text(
-            'Bạn có chắc chắn muốn xóa đánh giá này không?',
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF6B7280),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Đã xóa đánh giá')),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
+            child: const Text('Xóa'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Hủy',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF6B7280),
-                ),
-              ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF9800), Color(0xFFFF5722)],
-                ),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Đã xóa đánh giá'),
-                      backgroundColor: Color(0xFF0C1C46),
-                    ),
-                  );
-                },
-                child: const Text(
-                  'Xóa',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+        ],
+      ),
     );
   }
 }
-

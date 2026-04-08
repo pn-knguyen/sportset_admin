@@ -40,8 +40,16 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
+      bottomNavigationBar: widget.showBottomNav ? _buildBottomNav() : null,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFE8F5E9), Colors.white],
+          ),
+        ),
+        child: Column(
         children: [
           // Header
           _buildHeader(),
@@ -68,16 +76,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: widget.showBottomNav ? _buildBottomNav() : null,
+      ),
     );
   }
 
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-      ),
+      color: Colors.transparent,
       child: SafeArea(
         bottom: false,
         child: Row(
@@ -86,31 +92,27 @@ class _HomeScreenState extends State<HomeScreen> {
             // Logo Section
             Row(
               children: [
-                ShaderMask(
-                  shaderCallback: (bounds) => const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFFFF9800), Color(0xFFF44336)],
-                  ).createShader(bounds),
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2E7D32).withOpacity(0.10),
+                    shape: BoxShape.circle,
+                  ),
                   child: const Icon(
                     Icons.sports_soccer,
-                    size: 32,
-                    color: Colors.white,
+                    size: 22,
+                    color: Color(0xFF2E7D32),
                   ),
                 ),
                 const SizedBox(width: 10),
-                ShaderMask(
-                  shaderCallback: (bounds) => const LinearGradient(
-                    colors: [Color(0xFFFF9800), Color(0xFFF44336)],
-                  ).createShader(bounds),
-                  child: const Text(
-                    'SPORTSET',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: -0.5,
-                    ),
+                const Text(
+                  'SPORTSET',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF2E7D32),
+                    letterSpacing: -0.5,
                   ),
                 ),
               ],
@@ -126,8 +128,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       'Chào buổi sáng,',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey,
-                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF5C615A),
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                     Text(
@@ -135,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1C0E0D),
+                        color: Color(0xFF1A1C1C),
                       ),
                     ),
                   ],
@@ -144,22 +146,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 Stack(
                   children: [
                     Container(
-                      height: 40,
-                      width: 40,
+                      height: 48,
+                      width: 48,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.white,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.grey.withValues(alpha: 0.1),
+                            color: Colors.black.withValues(alpha: 0.08),
                             blurRadius: 4,
                             spreadRadius: 1,
                           ),
                         ],
-                        border: Border.all(
-                          color: Colors.grey.withValues(alpha: 0.1),
-                          width: 1,
-                        ),
+                        border: Border.all(color: Colors.white, width: 2),
                       ),
                       child: ClipOval(
                         child: Image.network(
@@ -178,10 +177,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       bottom: 0,
                       right: 0,
                       child: Container(
-                        height: 10,
-                        width: 10,
+                        height: 12,
+                        width: 12,
                         decoration: BoxDecoration(
-                          color: Colors.green,
+                          color: const Color(0xFF4CAF50),
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2),
                         ),
@@ -211,13 +210,13 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.orange.withValues(alpha: 0.1)),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFF4CAF50).withValues(alpha: 0.08)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
+                    color: Colors.grey.withValues(alpha: 0.04),
+                    blurRadius: 24,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -229,16 +228,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        height: 32,
-                        width: 32,
+                        height: 40,
+                        width: 40,
                         decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          color: const Color(0xFF4CAF50).withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
                           Icons.payments,
-                          size: 18,
-                          color: Color(0xFFFF9800),
+                          size: 20,
+                          color: Color(0xFF1A1C1C),
                         ),
                       ),
                       const Icon(
@@ -251,21 +250,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Doanh thu hôm nay',
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFFFF9800),
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF5C615A),
                         ),
                       ),
                       const SizedBox(height: 4),
                       const Text(
                         '4.850.000đ',
                         style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFFF9800),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF1A1C1C),
                           letterSpacing: -0.5,
                         ),
                       ),
@@ -289,13 +288,13 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.orange.withValues(alpha: 0.1)),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFF4CAF50).withValues(alpha: 0.08)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
+                    color: Colors.grey.withValues(alpha: 0.04),
+                    blurRadius: 24,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -307,35 +306,34 @@ class _HomeScreenState extends State<HomeScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        height: 32,
-                        width: 32,
+                        height: 40,
+                        width: 40,
                         decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          color: const Color(0xFF4CAF50).withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
                           Icons.receipt_long,
-                          size: 18,
-                          color: Color(0xFFFF9800),
+                          size: 20,
+                          color: Color(0xFF4CAF50),
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.green.withValues(alpha: 0.1)),
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(99),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.arrow_upward, size: 10, color: Colors.green),
+                            Icon(Icons.north, size: 10, color: Color(0xFF4CAF50)),
                             SizedBox(width: 2),
                             Text(
                               '12%',
                               style: TextStyle(
                                 fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF4CAF50),
                               ),
                             ),
                           ],
@@ -346,12 +344,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Tổng số đơn đặt',
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey[500],
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF5C615A),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -361,21 +359,21 @@ class _HomeScreenState extends State<HomeScreen> {
                           const Text(
                             '24',
                             style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1C0E0D),
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF1A1C1C),
                               letterSpacing: -0.5,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
+                          const SizedBox(width: 6),
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 5),
                             child: Text(
                               'đơn',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
-                                color: Colors.grey[400],
+                                color: Color(0xFF5C615A),
                               ),
                             ),
                           ),
@@ -409,20 +407,20 @@ class _HomeScreenState extends State<HomeScreen> {
         const Text(
           'Lối tắt quản lý',
           style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1C0E0D),
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF1A1C1C),
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 20),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 4,
             crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            childAspectRatio: 0.85,
+            mainAxisSpacing: 20,
+            childAspectRatio: 0.80,
           ),
           itemCount: shortcuts.length,
           itemBuilder: (context, index) {
@@ -450,19 +448,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     child: Icon(
                       shortcut['icon'] as IconData,
-                      size: 28,
-                      color: const Color(0xFFFF9800),
+                      size: 26,
+                      color: const Color(0xFF18A5A7),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     shortcut['label'] as String,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey[600],
-                      height: 1.2,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF5C615A),
+                      height: 1.3,
                     ),
                   ),
                 ],
@@ -484,9 +482,9 @@ class _HomeScreenState extends State<HomeScreen> {
             const Text(
               'Hoạt động gần đây',
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1C0E0D),
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1A1C1C),
               ),
             ),
             TextButton(
@@ -498,7 +496,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFFFF9800),
+                  color: Color(0xFF4CAF50),
                 ),
               ),
             ),
@@ -509,15 +507,15 @@ class _HomeScreenState extends State<HomeScreen> {
           final activity = _recentActivities[index];
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.05)),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFF4F4F5)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withValues(alpha: 0.05),
-                  blurRadius: 4,
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
               ],
@@ -525,25 +523,24 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               children: [
                 Container(
-                  height: 40,
-                  width: 40,
+                  height: 48,
+                  width: 48,
                   decoration: BoxDecoration(
-                    color: (activity['color'] as Color).withValues(alpha: 0.1),
+                    color: (activity['color'] as Color).withValues(alpha: 0.08),
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
                   ),
                   child: Center(
                     child: Text(
                       activity['initials'] as String,
                       style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
                         color: activity['color'] as Color,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -552,37 +549,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         activity['name'] as String,
                         style: const TextStyle(
                           fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1C0E0D),
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A1C1C),
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              activity['court'] as String,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey[500],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '• ${activity['time']}',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey[400],
-                            ),
-                          ),
-                        ],
+                      Text(
+                        '${activity['court']} • ${activity['time']}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF5C615A),
+                        ),
                       ),
                     ],
                   ),
@@ -590,16 +568,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
+                    color: Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
+                    border: Border.all(color: const Color(0xFF4CAF50)),
                   ),
                   child: const Text(
                     'Chi tiết',
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFFFF9800),
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF4CAF50),
                     ),
                   ),
                 ),
@@ -614,28 +592,29 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBottomNav() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withOpacity(0.95),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         border: Border(
-          top: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
+          top: BorderSide(color: Colors.grey.withValues(alpha: 0.08)),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
             offset: const Offset(0, -4),
           ),
         ],
       ),
       child: SafeArea(
         child: SizedBox(
-          height: 64,
+          height: 68,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(0, Icons.home, 'Trang chủ', null),
-              _buildNavItem(1, Icons.view_list, 'Quản lý', AppRoutes.management),
-              _buildNavItem(2, Icons.calendar_month, 'Đơn đặt', AppRoutes.bookings),
-              _buildNavItem(3, Icons.person, 'Tài khoản', AppRoutes.account),
+              _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Trang chủ', null),
+              _buildNavItem(1, Icons.grid_view_rounded, Icons.grid_view_outlined, 'Quản lý', AppRoutes.management),
+              _buildNavItem(2, Icons.confirmation_number_rounded, Icons.confirmation_number_outlined, 'Đơn đặt', AppRoutes.bookings),
+              _buildNavItem(3, Icons.person_rounded, Icons.person_outline_rounded, 'Tài khoản', AppRoutes.account),
             ],
           ),
         ),
@@ -643,37 +622,27 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label, String? route) {
+  Widget _buildNavItem(int index, IconData activeIcon, IconData inactiveIcon, String label, String? route) {
     final isActive = _currentNavIndex == index;
+    final color = isActive ? const Color(0xFF4CAF50) : const Color(0xFF9E9E9E);
     return Expanded(
-      child: InkWell(
+      child: GestureDetector(
         onTap: () {
-          setState(() {
-            _currentNavIndex = index;
-          });
-          if (route != null) {
-            if (index == 0) {
-              // Stay on home, just update state
-            } else {
-              Navigator.pushNamed(context, route);
-            }
-          }
+          setState(() => _currentNavIndex = index);
+          if (route != null) Navigator.pushNamed(context, route);
         },
+        behavior: HitTestBehavior.opaque,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 26,
-              color: isActive ? const Color(0xFFFF9800) : Colors.grey[400],
-            ),
+            Icon(isActive ? activeIcon : inactiveIcon, size: 26, color: color),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                color: isActive ? const Color(0xFFFF9800) : Colors.grey[400],
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                color: color,
               ),
             ),
           ],

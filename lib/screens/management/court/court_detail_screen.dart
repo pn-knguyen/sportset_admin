@@ -14,8 +14,12 @@ class CourtDetailScreen extends StatefulWidget {
 }
 
 class _CourtDetailScreenState extends State<CourtDetailScreen> {
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF5722);
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF5C615A);
+  static const _tertiary = Color(0xFF994700);
   final int _currentNavIndex = 1;
   final CourtService _courtService = CourtService();
   final AccessControlService _accessControlService = AccessControlService();
@@ -45,59 +49,69 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
     final courtId = args is Map ? args['id'] as String? : null;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: SafeArea(
-        bottom: false,
-        child: Column(
+      backgroundColor: _lightGreen,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_lightGreen, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Stack(
           children: [
-            _buildHeader(),
-            Expanded(
-              child: courtId == null || courtId.isEmpty
-                  ? const Center(child: Text('Không tìm thấy mã sân'))
-                  : StreamBuilder<Court?>(
-                      stream: _courtService.getCourtByIdStream(courtId),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
-
-                        if (snapshot.hasError) {
-                          return Center(
-                            child: Text(
-                              'Không thể tải dữ liệu sân',
-                              style: TextStyle(color: Colors.red[400]),
-                            ),
-                          );
-                        }
-
+            courtId == null || courtId.isEmpty
+                ? const Center(child: Text('Kh\u00f4ng t\u00ecm th\u1ea5y m\u00e3 s\u00e2n'))
+                : StreamBuilder<Court?>(
+                    stream: _courtService.getCourtByIdStream(courtId),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator(color: _primary));
+                      }
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text(
+                            'Kh\u00f4ng th\u1ec3 t\u1ea3i d\u1eef li\u1ec7u s\u00e2n',
+                            style: TextStyle(color: Colors.red[400]),
+                          ),
+                        );
+                      }
                       final court = snapshot.data;
                       if (court == null) {
                         return const Center(
-                          child: Text('Sân không tồn tại hoặc đã bị xóa'),
+                          child: Text('S\u00e2n kh\u00f4ng t\u1ed3n t\u1ea1i ho\u1eb7c \u0111\u00e3 b\u1ecb x\u00f3a'),
                         );
                       }
-
                       final images = _imageList(court);
                       return SingleChildScrollView(
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildImageCarousel(images),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                              child: Column(
-                                children: [
-                                  const SizedBox(height: 20),
-                                  _buildCourtInfoSection(court),
-                                  const SizedBox(height: 20),
-                                  _buildSubCourtsSection(court),
-                                  const SizedBox(height: 20),
-                                  _buildPricingSection(court),
-                                  const SizedBox(height: 20),
-                                  _buildAmenitiesSection(court),
-                                  const SizedBox(height: 20),
-                                  _buildActionButtons(court),
-                                  const SizedBox(height: 100),
-                                ],
+                            Transform.translate(
+                              offset: const Offset(0, -40),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24),
+                                child: _buildCourtInfoSection(court),
+                              ),
+                            ),
+                            Transform.translate(
+                              offset: const Offset(0, -20),
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildSubCourtsSection(court),
+                                    const SizedBox(height: 32),
+                                    _buildPricingSection(court),
+                                    const SizedBox(height: 32),
+                                    _buildAmenitiesSection(court),
+                                    const SizedBox(height: 32),
+                                    _buildActionButtons(court),
+                                    const SizedBox(height: 32),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -105,58 +119,45 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
                       );
                     },
                   ),
-          ),
-        ],
-      ),
+            _buildHeader(),
+          ],
+        ),
       ),
       bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
     );
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
+    return SafeArea(
+      bottom: false,
+      child: SizedBox(
+        height: 56,
+        child: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: _darkGreen),
+              onPressed: () => Navigator.pop(context),
+            ),
+            Expanded(
+              child: const Text(
+                'Chi ti\u1ebft S\u00e2n',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: _darkGreen,
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.share, color: _darkGreen),
+              onPressed: () {
+                // TODO: Implement share functionality
+              },
+            ),
+          ],
         ),
-      ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Icon(
-                Icons.arrow_back_ios_new,
-                size: 24,
-                color: _navyColor,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              'Chi Tiết Sân',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: _navyColor,
-                letterSpacing: -0.5,
-              ),
-            ),
-          ),
-          GestureDetector(
-            onTap: () {
-              // TODO: Implement share functionality
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Icon(Icons.share, size: 24, color: _navyColor),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -164,11 +165,9 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
   Widget _buildImageCarousel(List<String> images) {
     return Stack(
       children: [
-        Container(
+        SizedBox(
           width: double.infinity,
-          height:
-              MediaQuery.of(context).size.width * 0.625, // 16:10 aspect ratio
-          color: Colors.grey[200],
+          height: 256,
           child: PageView.builder(
             itemCount: images.isEmpty ? 1 : images.length,
             onPageChanged: (index) {
@@ -179,12 +178,8 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
             itemBuilder: (context, index) {
               if (images.isEmpty) {
                 return Container(
-                  color: Colors.grey[200],
-                  child: const Icon(
-                    Icons.image,
-                    size: 50,
-                    color: Colors.grey,
-                  ),
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.image, size: 50, color: Colors.grey),
                 );
               }
               return Image.network(
@@ -192,30 +187,26 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    color: Colors.grey[200],
-                    child: const Icon(
-                      Icons.image,
-                      size: 50,
-                      color: Colors.grey,
-                    ),
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.image, size: 50, color: Colors.grey),
                   );
                 },
               );
             },
           ),
         ),
-        // Gradient overlay at bottom
+        // Gradient overlay bottom: black/40 → transparent
         Positioned(
           bottom: 0,
           left: 0,
           right: 0,
           child: Container(
-            height: 96,
-            decoration: BoxDecoration(
+            height: 128,
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.transparent, const Color(0xFFFFF8F6)],
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [Color(0x66000000), Colors.transparent],
               ),
             ),
           ),
@@ -223,7 +214,7 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
         // Page indicators
         if (images.length > 1)
           Positioned(
-            bottom: 32,
+            bottom: 16,
             left: 0,
             right: 0,
             child: Row(
@@ -238,12 +229,6 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
                         ? Colors.white
                         : Colors.white.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(3),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 4,
-                      ),
-                    ],
                   ),
                 );
               }),
@@ -257,162 +242,176 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
     final isActive = court.status == 'available';
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF1B5E20).withValues(alpha: 0.05),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Name + location
+          Text(
+            court.name,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: _onSurface,
+              height: 1.2,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Icon(Icons.location_on, size: 16, color: _onSurfaceVariant),
+              const SizedBox(width: 4),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      court.name,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        color: _navyColor,
-                        height: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.location_on, size: 18, color: _orangeColor),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            court.address,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                child: Text(
+                  court.address,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: _onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              const Icon(Icons.business, size: 16, color: _primary),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  court.facilityName.isNotEmpty ? court.facilityName : 'Chưa xác định',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _darkGreen,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
+          // Tags
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: _orangeColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _orangeColor.withValues(alpha: 0.1),
-                  ),
+                  color: _lightGreen.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: _primary.withValues(alpha: 0.3)),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.sports_soccer, size: 14, color: _orangeColor),
-                    const SizedBox(width: 4),
-                    Text(
-                      court.sportType,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange[700],
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  court.sportType,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _darkGreen,
+                  ),
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
+                  color: const Color(0xFF80F5F6).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF00696B).withValues(alpha: 0.3)),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.wb_sunny, size: 14, color: Colors.blue[700]),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Ngoài trời',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue[700],
-                      ),
-                    ),
-                  ],
+                child: const Text(
+                  'Ngo\u00e0i tr\u1eddi',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF004F50),
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 20),
+          // Status row
           Container(
-            padding: const EdgeInsets.only(top: 16),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
-              ),
+              color: const Color(0xFFF3F3F3),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Trạng thái chung',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: _navyColor,
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: _primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check_circle, color: _primary, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'TR\u1ea0NG TH\u00c1I CHUNG',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: _onSurfaceVariant,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isActive ? '\u0110ang ho\u1ea1t \u0111\u1ed9ng' : '\u0110ang b\u1ea3o tr\u00ec',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: isActive ? _primary : _tertiary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                Row(
-                  children: [
-                    Text(
-                      isActive ? 'Đang hoạt động' : 'Đang bảo trì',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: _orangeColor,
+                // Custom toggle
+                GestureDetector(
+                  onTap: _isStatusUpdating
+                      ? null
+                      : () => _toggleCourtStatus(court, !isActive),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 48,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: isActive ? _primary : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: Align(
+                      alignment: isActive ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        width: 20,
+                        height: 20,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Transform.scale(
-                      scale: 0.9,
-                      child: Switch(
-                        value: isActive,
-                        onChanged: _isStatusUpdating
-                            ? null
-                            : (value) => _toggleCourtStatus(court, value),
-                        activeThumbColor: _orangeColor,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -425,424 +424,381 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
   Widget _buildSubCourtsSection(Court court) {
     final subCourts = court.subCourts;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 4,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: _orangeColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Danh sách sân con (${subCourts.length})',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: _navyColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: subCourts.length,
-            itemBuilder: (context, index) {
-              final subCourt = subCourts[index];
-              final isAvailable = (subCourt['status'] ?? 'available') ==
-                  'available';
-              final name = (subCourt['name'] ?? '').toString();
-              final fullName = name.isEmpty ? 'Sân ${index + 1}' : name;
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isAvailable
-                        ? Colors.grey[50]
-                        : Colors.red.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isAvailable
-                          ? Colors.grey.withValues(alpha: 0.1)
-                          : Colors.red.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        height: 40,
-                        width: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.grey.withValues(alpha: 0.1),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.02),
-                              blurRadius: 4,
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Text(
-                            name.isEmpty ? '${index + 1}' : name,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: isAvailable
-                                  ? _navyColor
-                                  : Colors.grey[400],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          fullName,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: isAvailable ? _navyColor : Colors.grey[500],
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isAvailable
-                              ? Colors.green.withValues(alpha: 0.1)
-                              : Colors.red.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isAvailable
-                                ? Colors.green.withValues(alpha: 0.2)
-                                : Colors.red.withValues(alpha: 0.2),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.02),
-                              blurRadius: 4,
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          isAvailable ? 'Sẵn sàng' : 'Bảo trì',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: isAvailable
-                                ? Colors.green[700]
-                                : Colors.red[600],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPricingSection(Court court) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 4,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: _orangeColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Bảng giá niêm yết',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: _navyColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Weekday pricing
-          _buildPricingGroup(
-            title: 'THỨ 2 - THỨ 6',
-            pricing: court.weekdayPricing,
-            isWeekend: false,
-          ),
-          const SizedBox(height: 16),
-          // Weekend pricing
-          _buildPricingGroup(
-            title: 'CUỐI TUẦN',
-            pricing: court.weekendPricing,
-            isWeekend: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPricingGroup({
-    required String title,
-    required List<Map<String, dynamic>> pricing,
-    required bool isWeekend,
-  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: isWeekend ? Colors.orange[400] : Colors.grey,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Container(
-                height: 1,
-                color: Colors.grey.withValues(alpha: 0.1),
-              ),
-            ),
-          ],
+        Text(
+          'Danh s\u00e1ch s\u00e2n con (${subCourts.length})',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: _onSurface,
+          ),
         ),
-        const SizedBox(height: 8),
-        if (pricing.isEmpty)
-          _buildPricingItem('Chưa có khung giờ', '0đ', isWeekend)
-        else
-          ...pricing.map((item) {
-            final start = (item['startTime'] ?? '').toString();
-            final end = (item['endTime'] ?? '').toString();
-            final priceValue = (item['price'] as num?)?.toInt() ?? 0;
-            final timeText = start.isEmpty || end.isEmpty
-                ? 'Toàn thời gian'
-                : '$start - $end';
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _buildPricingItem(
-                timeText,
-                '${_formatCurrency(priceValue)}đ',
-                isWeekend,
+        const SizedBox(height: 16),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.8,
+          ),
+          itemCount: subCourts.length,
+          itemBuilder: (context, index) {
+            final subCourt = subCourts[index];
+            final isAvailable = (subCourt['status'] ?? 'available') == 'available';
+            final name = (subCourt['name'] ?? '').toString();
+            final fullName = name.isEmpty ? 'S\u00e2n ${index + 1}' : name;
+
+            return Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFFBECAB9).withValues(alpha: 0.3),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        fullName,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: isAvailable ? _onSurface : _onSurfaceVariant,
+                        ),
+                      ),
+                      Icon(
+                        Icons.fiber_manual_record,
+                        size: 14,
+                        color: isAvailable ? _primary : _tertiary,
+                      ),
+                    ],
+                  ),
+                  Text(
+                    isAvailable ? 'S\u1eb5n s\u00e0ng' : 'B\u1ea3o tr\u00ec',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isAvailable ? _primary : _tertiary,
+                    ),
+                  ),
+                ],
               ),
             );
-          }),
+          },
+        ),
       ],
     );
   }
 
-  Widget _buildPricingItem(String time, String price, bool isWeekend) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isWeekend
-            ? _orangeColor.withValues(alpha: 0.05)
-            : Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isWeekend
-              ? _orangeColor.withValues(alpha: 0.1)
-              : Colors.grey.withValues(alpha: 0.1),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            time,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: isWeekend ? _navyColor : Colors.grey[600],
-            ),
+  Widget _buildPricingSection(Court court) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'B\u1ea3ng gi\u00e1 ni\u00eam y\u1ebft',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: _onSurface,
           ),
-          RichText(
-            text: TextSpan(
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: isWeekend ? Colors.orange[600] : _navyColor,
-              ),
+        ),
+        const SizedBox(height: 16),
+        // Weekday pricing card
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFBECAB9).withValues(alpha: 0.2)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextSpan(text: price),
-                TextSpan(
-                  text: '/giờ',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.normal,
-                    color: isWeekend ? Colors.orange[400] : Colors.grey[400],
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _primary.withValues(alpha: 0.05),
+                    border: Border(
+                      bottom: BorderSide(color: _primary.withValues(alpha: 0.1)),
+                    ),
+                  ),
+                  child: const Text(
+                    'TH\u1ee8 2 - TH\u1ee8 6',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: _primary,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: court.weekdayPricing.isEmpty
+                        ? [_buildPricingRow('Ch\u01b0a c\u00f3 khung gi\u1edd', '0\u0111', false)]
+                        : court.weekdayPricing.map((item) {
+                            final start = (item['startTime'] ?? '').toString();
+                            final end = (item['endTime'] ?? '').toString();
+                            final priceValue = (item['price'] as num?)?.toInt() ?? 0;
+                            final timeText = start.isEmpty || end.isEmpty
+                                ? 'To\u00e0n th\u1eddi gian'
+                                : '$start - $end';
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildPricingRow(
+                                timeText,
+                                '${_formatCurrency(priceValue)}\u0111',
+                                false,
+                              ),
+                            );
+                          }).toList(),
                   ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAmenitiesSection(Court court) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 4,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: _orangeColor,
-                  borderRadius: BorderRadius.circular(2),
+        ),
+        const SizedBox(height: 16),
+        // Weekend pricing card
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _tertiary.withValues(alpha: 0.2), width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Tiện ích & Mô tả',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: _navyColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Amenities horizontal scroll
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: court.amenities.map((amenity) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 16),
-                  child: Column(
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _tertiary.withValues(alpha: 0.05),
+                    border: Border(
+                      bottom: BorderSide(color: _tertiary.withValues(alpha: 0.1)),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        height: 48,
-                        width: 48,
-                        decoration: BoxDecoration(
-                          color: _orangeColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: _orangeColor.withValues(alpha: 0.1),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.02),
-                              blurRadius: 4,
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          _amenityIcon(amenity),
-                          size: 24,
-                          color: _orangeColor,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        amenity,
+                      const Text(
+                        'CU\u1ed0I TU\u1ea6N',
                         style: TextStyle(
                           fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w700,
+                          color: _tertiary,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _tertiary,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'HOT',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                );
-              }).toList(),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: court.weekendPricing.isEmpty
+                        ? [_buildPricingRow('Ch\u01b0a c\u00f3 khung gi\u1edd', '0\u0111', true)]
+                        : court.weekendPricing.map((item) {
+                            final start = (item['startTime'] ?? '').toString();
+                            final end = (item['endTime'] ?? '').toString();
+                            final priceValue = (item['price'] as num?)?.toInt() ?? 0;
+                            final timeText = start.isEmpty || end.isEmpty
+                                ? 'To\u00e0n th\u1eddi gian'
+                                : '$start - $end';
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildPricingRow(
+                                timeText,
+                                '${_formatCurrency(priceValue)}\u0111',
+                                true,
+                              ),
+                            );
+                          }).toList(),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          // Description
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPricingRow(String time, String price, bool isWeekend) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          time,
+          style: const TextStyle(
+            fontSize: 13,
+            color: _onSurfaceVariant,
+          ),
+        ),
+        RichText(
+          text: TextSpan(
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: isWeekend ? _tertiary : _onSurface,
             ),
-            child: Text(
-              court.description.isEmpty
-                  ? 'Chưa có mô tả cho sân này.'
-                  : court.description,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-                height: 1.5,
+            children: [
+              TextSpan(text: price),
+              TextSpan(
+                text: '/gi\u1edd',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w400,
+                  color: _onSurfaceVariant,
+                ),
               ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAmenitiesSection(Court court) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Tiện ích & Mô tả',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: _onSurface,
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Amenities horizontal scroll
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: court.amenities.map((amenity) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        _amenityIcon(amenity),
+                        size: 24,
+                        color: _onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      amenity.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        color: _onSurfaceVariant,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Description
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFFBECAB9).withValues(alpha: 0.2),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 4,
+              ),
+            ],
+          ),
+          child: Text(
+            court.description.isEmpty
+                ? 'Chưa có mô tả cho sân này.'
+                : '“${court.description}”',
+            style: const TextStyle(
+              fontSize: 13,
+              color: _onSurfaceVariant,
+              height: 1.6,
+              fontStyle: FontStyle.italic,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -850,37 +806,25 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
     return Row(
       children: [
         Expanded(
-          flex: 1,
-          child: Container(
-            height: 52,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 4,
-                ),
-              ],
-            ),
+          child: SizedBox(
+            height: 56,
             child: ElevatedButton(
-              onPressed: _canDelete ? () {
-                _showDeleteDialog(court);
-              } : null,
+              onPressed: _canDelete ? () => _showDeleteDialog(court) : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
+                foregroundColor: _onSurfaceVariant,
                 shadowColor: Colors.transparent,
+                elevation: 0,
+                side: const BorderSide(color: Color(0xFFBECAB9), width: 2),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
               child: const Text(
                 'Xóa sân',
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
@@ -888,47 +832,50 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
         ),
         const SizedBox(width: 12),
         Expanded(
-          flex: 2,
           child: Container(
-            height: 52,
+            height: 56,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [_orangeColor, const Color(0xFFD32F2F)],
+              gradient: const LinearGradient(
+                colors: [_darkGreen, _primary],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
               ),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: _orangeColor.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
+                  color: _primary.withValues(alpha: 0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
             child: ElevatedButton(
-              onPressed: _canEdit ? () {
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.courtEdit,
-                  arguments: {'id': court.id},
-                );
-              } : null,
+              onPressed: _canEdit
+                  ? () {
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.courtEdit,
+                        arguments: {'id': court.id},
+                      );
+                    }
+                  : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.edit_square, size: 20, color: Colors.white),
-                  SizedBox(width: 8),
+                  Icon(Icons.edit, size: 18, color: Colors.white),
+                  SizedBox(width: 6),
                   Text(
                     'Chỉnh sửa',
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                       color: Colors.white,
                     ),
                   ),

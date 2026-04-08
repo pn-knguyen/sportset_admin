@@ -11,11 +11,17 @@ class PermissionCreateScreen extends StatefulWidget {
 }
 
 class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _secondary = Color(0xFF18A5A7);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF3F4A3C);
+
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final PermissionService _permissionService = PermissionService();
 
-  final int _currentNavIndex = 1;
   bool _isLoading = false;
 
   late Map<String, dynamic> _permissions;
@@ -42,6 +48,7 @@ class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
       'title': 'Quản lý Đơn hàng',
       'icon': Icons.receipt_long,
       'items': [
+        {'label': 'Xem đơn hàng', 'enabled': false},
         {'label': 'Duyệt đơn', 'enabled': true},
         {'label': 'Hủy đơn', 'enabled': true},
         {'label': 'Check-in khách', 'enabled': true},
@@ -96,6 +103,14 @@ class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
         {'label': 'Xóa', 'enabled': false},
       ],
     },
+    {
+      'title': 'Cài đặt hệ thống',
+      'icon': Icons.settings,
+      'items': [
+        {'label': 'Xem cài đặt', 'enabled': false},
+        {'label': 'Cập nhật cài đặt', 'enabled': false},
+      ],
+    },
   ];
 
   @override
@@ -108,301 +123,339 @@ class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildFormCard(),
-                  const SizedBox(height: 16),
-                  _buildPermissionTitle(),
-                  const SizedBox(height: 12),
-                  ...List.generate(
-                    _sections.length,
-                    (sectionIndex) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildPermissionSection(sectionIndex),
+      backgroundColor: Colors.white,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_lightGreen, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Column(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: _darkGreen,
+                        size: 20,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildCreateButton(),
-                  const SizedBox(height: 8),
-                ],
+                    const Expanded(
+                      child: Text(
+                        'Thêm Nhóm Quyền',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: _darkGreen,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
-          child: Row(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(
-                  Icons.arrow_back_ios_new,
-                  color: Color(0xFF0C1C46),
-                  size: 20,
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildFormCard(),
+                    const SizedBox(height: 24),
+                    _buildPermissionTitle(),
+                    const SizedBox(height: 12),
+                    ...List.generate(
+                      _sections.length,
+                      (sectionIndex) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildPermissionSection(sectionIndex),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildCreateButton(),
+                  ],
                 ),
               ),
-              const Expanded(
-                child: Text(
-                  'Thêm Nhóm Quyền',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0C1C46),
-                    letterSpacing: -0.4,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 40),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+      bottomNavigationBar: const CommonBottomNav(currentIndex: 1),
     );
   }
 
   Widget _buildFormCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.12)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Tên nhóm quyền',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF0C1C46),
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _nameController,
-            decoration: InputDecoration(
-              hintText: 'Ví dụ: Nhân viên kỹ thuật',
-              filled: true,
-              fillColor: const Color(0xFFFAFAFA),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: Colors.grey.withValues(alpha: 0.2),
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: Colors.grey.withValues(alpha: 0.2),
-                ),
-              ),
-              focusedBorder: const OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                borderSide: BorderSide(color: Color(0xFFFF9800)),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          const Text(
-            'Mô tả nhóm',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF0C1C46),
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _descriptionController,
-            maxLines: 2,
-            decoration: InputDecoration(
-              hintText: 'Ví dụ: Quản lý bảo trì sân',
-              filled: true,
-              fillColor: const Color(0xFFFAFAFA),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: Colors.grey.withValues(alpha: 0.2),
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: Colors.grey.withValues(alpha: 0.2),
-                ),
-              ),
-              focusedBorder: const OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                borderSide: BorderSide(color: Color(0xFFFF9800)),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPermissionTitle() {
-    return const Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(Icons.tune, color: Color(0xFFFF9800), size: 20),
-        SizedBox(width: 6),
-        Text(
-          'CHI TIẾT QUYỀN HẠN',
+        const Text(
+          'Tên nhóm quyền',
           style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF6B7280),
-            letterSpacing: 0.6,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: _onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          child: TextField(
+            controller: _nameController,
+            style: const TextStyle(color: _onSurface, fontWeight: FontWeight.w500),
+            decoration: InputDecoration(
+              hintText: 'Nhân viên kỹ thuật',
+              hintStyle: TextStyle(
+                  color: _onSurfaceVariant.withValues(alpha: 0.4)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide:
+                    BorderSide(color: Colors.black.withValues(alpha: 0.05)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide:
+                    BorderSide(color: Colors.black.withValues(alpha: 0.05)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                    color: _primary.withValues(alpha: 0.4), width: 2),
+              ),
+              contentPadding: const EdgeInsets.all(16),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Mô tả nhóm quyền',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: _onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          child: TextField(
+            controller: _descriptionController,
+            maxLines: 3,
+            style: const TextStyle(color: _onSurface, fontWeight: FontWeight.w500),
+            decoration: InputDecoration(
+              hintText: 'Quản lý bảo trì sân',
+              hintStyle: TextStyle(
+                  color: _onSurfaceVariant.withValues(alpha: 0.4)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide:
+                    BorderSide(color: Colors.black.withValues(alpha: 0.05)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide:
+                    BorderSide(color: Colors.black.withValues(alpha: 0.05)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                    color: _primary.withValues(alpha: 0.4), width: 2),
+              ),
+              contentPadding: const EdgeInsets.all(16),
+            ),
           ),
         ),
       ],
     );
   }
 
+  Widget _buildPermissionTitle() {
+    return Row(
+      children: [
+        Container(
+          width: 6,
+          height: 24,
+          decoration: BoxDecoration(
+            color: _primary,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 12),
+        const Text(
+          'Danh sách quyền hạn',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            color: _darkGreen,
+          ),
+        ),
+      ],
+    );
+  }
+
+  IconData _itemIcon(String label) {
+    switch (label) {
+      case 'Xem danh sách':
+        return Icons.visibility_outlined;
+      case 'Thêm mới':
+        return Icons.add_circle_outline;
+      case 'Chỉnh sửa':
+        return Icons.edit_outlined;
+      case 'Xóa':
+        return Icons.delete_outline;
+      case 'Duyệt đơn':
+        return Icons.check_circle_outline;
+      case 'Hủy đơn':
+        return Icons.cancel_outlined;
+      case 'Check-in khách':
+        return Icons.how_to_reg;
+      case 'Tạo mã':
+        return Icons.add_card;
+      case 'Xem lịch sử dùng':
+        return Icons.history;
+      case 'Phân quyền':
+        return Icons.manage_accounts;
+      case 'Xem doanh thu':
+        return Icons.payments_outlined;
+      case 'Xuất báo cáo':
+        return Icons.file_download_outlined;
+      case 'Xem đơn hàng':
+        return Icons.receipt_long;
+      case 'Xem cài đặt':
+        return Icons.settings_outlined;
+      case 'Cập nhật cài đặt':
+        return Icons.tune_outlined;
+      default:
+        return Icons.toggle_on_outlined;
+    }
+  }
+
   Widget _buildPermissionSection(int sectionIndex) {
     final section = _sections[sectionIndex];
     final items = section['items'] as List<dynamic>;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.12)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF3E0),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
-              ),
-              border: Border(
-                bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.12)),
-              ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(32),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
             ),
-            child: Row(
-              children: [
-                Icon(
-                  section['icon'] as IconData,
-                  color: const Color(0xFFEA7C0A),
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    section['title'] as String,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF0C1C46),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ...List.generate(items.length, (itemIndex) {
-            final item = items[itemIndex] as Map<String, dynamic>;
-            final isLast = itemIndex == items.length - 1;
-
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                border: isLast
-                    ? null
-                    : Border(
-                        bottom: BorderSide(
-                          color: Colors.grey.withValues(alpha: 0.08),
-                        ),
-                      ),
-              ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              color: _lightGreen,
               child: Row(
                 children: [
+                  Icon(
+                    section['icon'] as IconData,
+                    color: _primary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      item['label'] as String,
+                      section['title'] as String,
                       style: const TextStyle(
                         fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF4B5563),
+                        fontWeight: FontWeight.bold,
+                        color: _onSurface,
                       ),
                     ),
-                  ),
-                  Switch(
-                    value: item['enabled'] as bool,
-                    activeColor: Colors.white,
-                    activeTrackColor: const Color(0xFFFF9800),
-                    inactiveThumbColor: Colors.white,
-                    inactiveTrackColor: const Color(0xFFE5E7EB),
-                    onChanged: (value) {
-                      setState(() {
-                        (_sections[sectionIndex]['items']
-                                as List<dynamic>)[itemIndex]['enabled'] =
-                            value;
-                        _applySectionToggleToPermissions(
-                          sectionIndex,
-                          itemIndex,
-                          value,
-                        );
-                      });
-                    },
                   ),
                 ],
               ),
-            );
-          }),
-        ],
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                children: List.generate(items.length, (itemIndex) {
+                  final item = items[itemIndex] as Map<String, dynamic>;
+                  final label = item['label'] as String;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    child: Row(
+                      children: [
+                        Icon(_itemIcon(label), color: _secondary, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            label,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: _onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        Switch(
+                          value: item['enabled'] as bool,
+                          activeThumbColor: Colors.white,
+                          trackColor:
+                              WidgetStateProperty.resolveWith((states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return _primary;
+                            }
+                            return Colors.grey[200];
+                          }),
+                          onChanged: (value) {
+                            setState(() {
+                              (_sections[sectionIndex]['items']
+                                      as List<dynamic>)[itemIndex]
+                                  ['enabled'] = value;
+                              _applySectionToggleToPermissions(
+                                sectionIndex,
+                                itemIndex,
+                                value,
+                              );
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -411,47 +464,33 @@ class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
     return SizedBox(
       width: double.infinity,
       height: 56,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: const LinearGradient(
-            colors: [Color(0xFFFF9800), Color(0xFFF44336)],
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _handleCreate,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _primary,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFFF9800).withValues(alpha: 0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
-        child: ElevatedButton(
-          onPressed: _isLoading ? null : _handleCreate,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: _isLoading
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-              : const Text(
-                  'Tạo Nhóm Quyền',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
+        child: _isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
                 ),
-        ),
+              )
+            : const Text(
+                'Tạo Nhóm Quyền',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                ),
+              ),
       ),
     );
   }
@@ -536,10 +575,12 @@ class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
       case 1:
         switch (itemIndex) {
           case 0:
-            return _getPermissionValue('bookings', 'approve');
+            return _getPermissionValue('bookings', 'view');
           case 1:
-            return _getPermissionValue('bookings', 'cancel');
+            return _getPermissionValue('bookings', 'approve');
           case 2:
+            return _getPermissionValue('bookings', 'cancel');
+          case 3:
             return _getPermissionValue('bookings', 'check_in');
         }
         break;
@@ -601,6 +642,14 @@ class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
             return _getPermissionValue('accounts', 'delete');
         }
         break;
+      case 7:
+        switch (itemIndex) {
+          case 0:
+            return _getPermissionValue('settings', 'view');
+          case 1:
+            return _getPermissionValue('settings', 'update');
+        }
+        break;
     }
 
     return false;
@@ -635,12 +684,15 @@ class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
       case 1:
         switch (itemIndex) {
           case 0:
-            _setPermissionValue('bookings', 'approve', value);
+            _setPermissionValue('bookings', 'view', value);
             return;
           case 1:
-            _setPermissionValue('bookings', 'cancel', value);
+            _setPermissionValue('bookings', 'approve', value);
             return;
           case 2:
+            _setPermissionValue('bookings', 'cancel', value);
+            return;
+          case 3:
             _setPermissionValue('bookings', 'check_in', value);
             return;
         }
@@ -719,6 +771,16 @@ class _PermissionCreateScreenState extends State<PermissionCreateScreen> {
             return;
           case 3:
             _setPermissionValue('accounts', 'delete', value);
+            return;
+        }
+        return;
+      case 7:
+        switch (itemIndex) {
+          case 0:
+            _setPermissionValue('settings', 'view', value);
+            return;
+          case 1:
+            _setPermissionValue('settings', 'update', value);
             return;
         }
         return;

@@ -10,10 +10,17 @@ class CustomerListScreen extends StatefulWidget {
 }
 
 class _CustomerListScreenState extends State<CustomerListScreen> {
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF5C615A);
+  static const _outline = Color(0xFF6F7A6B);
+  static const _outlineVariant = Color(0xFFBECAB9);
+  static const _surfaceContainerLow = Color(0xFFF3F3F3);
+
   final TextEditingController _searchController = TextEditingController();
-  final int _currentNavIndex = 1;
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF9800);
+  String _selectedFilter = 'all';
 
   final List<Map<String, dynamic>> _customers = [
     {
@@ -21,7 +28,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
       'phone': '0987 654 321',
       'avatar': 'https://i.pravatar.cc/150?img=1',
       'tier': 'gold',
-      'tierLabel': 'Hạng Vàng',
+      'tierLabel': 'Vàng',
       'orders': 12,
       'totalSpent': '2.400.000đ',
     },
@@ -30,7 +37,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
       'phone': '0912 345 678',
       'avatar': 'https://i.pravatar.cc/150?img=13',
       'tier': 'silver',
-      'tierLabel': 'Hạng Bạc',
+      'tierLabel': 'Bạc',
       'orders': 5,
       'totalSpent': '850.000đ',
     },
@@ -39,16 +46,17 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
       'phone': '0909 888 777',
       'avatar': 'https://i.pravatar.cc/150?img=9',
       'tier': 'diamond',
-      'tierLabel': 'Hạng Kim Cương',
+      'tierLabel': 'Kim cương',
       'orders': 48,
       'totalSpent': '15.200.000đ',
     },
     {
       'name': 'Phạm Quốc Hưng',
       'phone': '0933 111 222',
-      'avatar': 'https://i.pravatar.cc/150?img=15',
+      'avatar': '',
+      'initials': 'PQ',
       'tier': 'bronze',
-      'tierLabel': 'Hạng Đồng',
+      'tierLabel': 'Đồng',
       'orders': 2,
       'totalSpent': '300.000đ',
     },
@@ -57,11 +65,22 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
       'phone': '0945 666 999',
       'avatar': 'https://i.pravatar.cc/150?img=5',
       'tier': 'silver',
-      'tierLabel': 'Hạng Bạc',
+      'tierLabel': 'Bạc',
       'orders': 8,
       'totalSpent': '1.250.000đ',
     },
   ];
+  List<Map<String, dynamic>> get _filtered {
+    final query = _searchController.text.toLowerCase();
+    return _customers.where((c) {
+      final matchFilter =
+          _selectedFilter == 'all' || c['tier'] == _selectedFilter;
+      final matchQuery = query.isEmpty ||
+          (c['name'] as String).toLowerCase().contains(query) ||
+          (c['phone'] as String).contains(query);
+      return matchFilter && matchQuery;
+    }).toList();
+  }
 
   @override
   void dispose() {
@@ -72,75 +91,79 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-              children: [
-                _buildSearchBar(),
-                const SizedBox(height: 24),
-                ..._customers.map((customer) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _buildCustomerCard(customer),
-                )),
-              ],
+      backgroundColor: Colors.white,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_lightGreen, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Column(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: _darkGreen,
+                        size: 20,
+                      ),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        'Danh Sách Khách Hàng',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: _darkGreen,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                children: [
+                  _buildSearchBar(),
+                  const SizedBox(height: 16),
+                  _buildFilterChips(),
+                  const SizedBox(height: 16),
+                  ..._filtered.map((c) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildCustomerCard(c),
+                      )),
+                  if (_filtered.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 48),
+                        child: Text(
+                          'Không tìm thấy khách hàng',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: _onSurfaceVariant.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Icon(
-                    Icons.arrow_back,
-                    color: _navyColor,
-                    size: 24,
-                  ),
-                ),
-              ),
-              const Expanded(
-                child: Text(
-                  'Danh Sách Khách Hàng',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0C1C46),
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 40),
-            ],
-          ),
-        ),
-      ),
+      bottomNavigationBar: const CommonBottomNav(currentIndex: 1),
     );
   }
 
@@ -148,82 +171,157 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+        borderRadius: BorderRadius.circular(50),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 4,
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       child: TextField(
         controller: _searchController,
+        onChanged: (_) => setState(() {}),
         decoration: InputDecoration(
           hintText: 'Tìm kiếm tên hoặc SĐT khách hàng...',
           hintStyle: TextStyle(
             fontSize: 14,
-            color: Colors.grey[400],
+            color: _outline.withValues(alpha: 0.7),
           ),
-          prefixIcon: Icon(
-            Icons.search,
-            color: Colors.grey[400],
-            size: 24,
-          ),
+          prefixIcon: const Icon(Icons.search, color: _outline, size: 22),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
+        style: const TextStyle(fontSize: 14, color: _onSurface),
+      ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    const filters = [
+      ('all', 'Tất cả'),
+      ('diamond', 'Kim cương'),
+      ('gold', 'Vàng'),
+      ('silver', 'Bạc'),
+      ('bronze', 'Đồng'),
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: filters.map((f) {
+          final active = _selectedFilter == f.$1;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedFilter = f.$1),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                decoration: BoxDecoration(
+                  color: active ? _primary : const Color(0xFFE8E8E8),
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: Text(
+                  f.$2,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight:
+                        active ? FontWeight.w700 : FontWeight.w500,
+                    color: active ? Colors.white : _onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
 
   Widget _buildCustomerCard(Map<String, dynamic> customer) {
-    final tierColors = _getTierColors(customer['tier'] as String);
-    
+    final tier = customer['tier'] as String;
+    final tierLabel = customer['tierLabel'] as String;
+    final avatar = customer['avatar'] as String? ?? '';
+    final initials = customer['initials'] as String? ??
+        (customer['name'] as String)
+            .split(' ')
+            .where((s) => s.isNotEmpty)
+            .take(2)
+            .map((s) => s[0])
+            .join()
+            .toUpperCase();
+
+    final tierStyle = _getTierStyle(tier);
+
     return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(context, AppRoutes.customerDetail);
-      },
+      onTap: () => Navigator.pushNamed(context, AppRoutes.customerDetail),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 24,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Row(
           children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 4,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: _primary.withValues(alpha: 0.15),
+                      width: 2,
+                    ),
                   ),
-                ],
-                image: DecorationImage(
-                  image: NetworkImage(customer['avatar'] as String),
-                  fit: BoxFit.cover,
+                  child: ClipOval(
+                    child: avatar.isNotEmpty
+                        ? Image.network(
+                            avatar,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildInitialsAvatar(initials),
+                          )
+                        : _buildInitialsAvatar(initials),
+                  ),
                 ),
-              ),
+                if (tier == 'diamond')
+                  Positioned(
+                    bottom: -2,
+                    right: -2,
+                    child: Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF994700),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(
+                        Icons.workspace_premium,
+                        size: 10,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,84 +331,67 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                       Flexible(
                         child: Text(
                           customer['name'] as String,
-                          style: TextStyle(
-                            fontSize: 16,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: _navyColor,
+                            color: _onSurface,
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: tierColors['bg'],
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: tierColors['border']!),
+                          color: tierStyle['bg'] as Color,
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          customer['tierLabel'] as String,
+                          tierLabel.toUpperCase(),
                           style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: tierColors['text'],
-                            letterSpacing: 0.5,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: tierStyle['text'] as Color,
+                            letterSpacing: 0.8,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Text(
                     customer['phone'] as String,
-                    style: TextStyle(
-                      fontSize: 14,
+                    style: const TextStyle(
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: Colors.grey[500],
+                      color: _onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          'Đơn: ${customer['orders']}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ),
+                      _buildStat('Đơn: ${customer['orders']}'),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: Text(
                           '|',
-                          style: TextStyle(color: Colors.grey[300]),
+                          style: TextStyle(
+                              color: _outlineVariant.withValues(alpha: 0.6)),
                         ),
                       ),
-                      Text(
-                        customer['totalSpent'] as String,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: _orangeColor,
-                        ),
-                      ),
+                      _buildStat(customer['totalSpent'] as String),
                     ],
                   ),
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              color: Colors.grey[300],
-              size: 24,
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: _outlineVariant,
+              size: 14,
             ),
           ],
         ),
@@ -318,39 +399,67 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     );
   }
 
-  Map<String, Color> _getTierColors(String tier) {
+  Widget _buildInitialsAvatar(String initials) {
+    return Container(
+      color: _lightGreen,
+      child: Center(
+        child: Text(
+          initials,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: _darkGreen,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStat(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: _surfaceContainerLow,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: _outline,
+        ),
+      ),
+    );
+  }
+
+  Map<String, Color> _getTierStyle(String tier) {
     switch (tier) {
+      case 'diamond':
+        return {
+          'bg': const Color(0xFFE5F1FF),
+          'text': const Color(0xFF0061A4),
+        };
       case 'gold':
         return {
-          'bg': const Color(0xFFFEF3C7),
-          'text': const Color(0xFFB45309),
-          'border': const Color(0xFFFDE68A),
+          'bg': const Color(0xFFFFF3CD),
+          'text': const Color(0xFF994700),
         };
       case 'silver':
         return {
-          'bg': const Color(0xFFF3F4F6),
-          'text': const Color(0xFF4B5563),
-          'border': const Color(0xFFE5E7EB),
-        };
-      case 'diamond':
-        return {
-          'bg': const Color(0xFFDBEAFE),
-          'text': const Color(0xFF2563EB),
-          'border': const Color(0xFFBFDBFE),
+          'bg': const Color(0xFFE2E2E2),
+          'text': _onSurfaceVariant,
         };
       case 'bronze':
         return {
-          'bg': const Color(0xFFFFEDD5),
-          'text': const Color(0xFFC2410C),
-          'border': const Color(0xFFFED7AA),
+          'bg': const Color(0xFFFFDBC8),
+          'text': const Color(0xFF753400),
         };
       default:
         return {
-          'bg': const Color(0xFFF3F4F6),
-          'text': const Color(0xFF4B5563),
-          'border': const Color(0xFFE5E7EB),
+          'bg': const Color(0xFFE2E2E2),
+          'text': _onSurfaceVariant,
         };
     }
   }
 }
-

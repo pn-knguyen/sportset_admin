@@ -8,6 +8,13 @@ import 'package:sportset_admin/services/facility_service.dart';
 import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/screens/management/facility/map_picker_screen.dart';
 
+const _primary = Color(0xFF4CAF50);
+const _secondary = Color(0xFF18A5A7);
+const _darkGreen = Color(0xFF2E7D32);
+const _lightGreen = Color(0xFFE8F5E9);
+const _onSurface = Color(0xFF1A1C1C);
+const _onSurfaceVariant = Color(0xFF5C615A);
+
 // Trang thêm mới cơ sở
 class FacilityCreateScreen extends StatefulWidget {
   const FacilityCreateScreen({super.key});
@@ -24,11 +31,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
   final _closeTimeController = TextEditingController(text: '22:00');
   final _descriptionController = TextEditingController();
 
-  final int _currentNavIndex = 1; // Active on Management tab
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF9800);
-  final Color _redColor = const Color(0xFFF44336);
-
+  final int _currentNavIndex = 1;
   final FacilityService _facilityService = FacilityService();
   final AccessControlService _accessControlService = AccessControlService();
   bool _isLoading = false;
@@ -41,7 +44,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
     {'icon': Icons.local_parking, 'label': 'Gửi xe', 'selected': true},
     {'icon': Icons.wifi, 'label': 'Wifi', 'selected': true},
     {'icon': Icons.restaurant, 'label': 'Căn tin', 'selected': false},
-    {'icon': Icons.checkroom, 'label': 'Phòng thay đồ', 'selected': true},
+    {'icon': Icons.checkroom, 'label': 'Thay đồ', 'selected': true},
     {'icon': Icons.shower, 'label': 'Phòng tắm', 'selected': false},
     {'icon': Icons.lock_open, 'label': 'Tủ đồ', 'selected': false},
     {'icon': Icons.local_drink, 'label': 'Nước uống', 'selected': true},
@@ -50,25 +53,16 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
   ];
 
   Future<void> _uploadImageToFirebase() async {
-    if (_selectedImageFile == null) {
-      return;
-    }
-
+    if (_selectedImageFile == null) return;
     try {
-      setState(() {
-        _isUploadingImage = true;
-      });
-
-      final fileName = 'facilities/${DateTime.now().millisecondsSinceEpoch}_${_selectedImageFile!.path.split('/').last}';
+      setState(() => _isUploadingImage = true);
+      final fileName =
+          'facilities/${DateTime.now().millisecondsSinceEpoch}_${_selectedImageFile!.path.split('/').last}';
       final Reference ref = FirebaseStorage.instance.ref().child(fileName);
-
       final UploadTask uploadTask = ref.putFile(_selectedImageFile!);
       final TaskSnapshot taskSnapshot = await uploadTask;
-
       final String downloadUrl = await taskSnapshot.ref.getDownloadURL();
-      setState(() {
-        _uploadedImageUrl = downloadUrl;
-      });
+      setState(() => _uploadedImageUrl = downloadUrl);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -79,11 +73,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isUploadingImage = false;
-        });
-      }
+      if (mounted) setState(() => _isUploadingImage = false);
     }
   }
 
@@ -96,11 +86,8 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
         maxWidth: 1920,
         maxHeight: 1440,
       );
-
       if (image != null) {
-        setState(() {
-          _selectedImageFile = File(image.path);
-        });
+        setState(() => _selectedImageFile = File(image.path));
       }
     } catch (e) {
       if (mounted) {
@@ -111,6 +98,27 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
           ),
         );
       }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _checkCreatePermission();
+  }
+
+  Future<void> _checkCreatePermission() async {
+    final permissionMap = await _accessControlService.getCurrentPermissionMap();
+    final hasPermission =
+        _accessControlService.can(permissionMap, 'facilities', 'create');
+    if (!hasPermission && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bạn không có quyền tạo cơ sở'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      Navigator.pop(context);
     }
   }
 
@@ -126,94 +134,68 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    _checkCreatePermission();
-  }
-  
-  Future<void> _checkCreatePermission() async {
-    final permissionMap = await _accessControlService.getCurrentPermissionMap();
-    final hasPermission = _accessControlService.can(permissionMap, 'facilities', 'create');
-    
-    if (!hasPermission && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Bạn không có quyền tạo cơ sở'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      Navigator.pop(context);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 16),
-                    _buildImageUpload(),
-                    const SizedBox(height: 32),
-                    _buildFormFields(),
-                    const SizedBox(height: 32),
-                    _buildAmenities(),
-                    const SizedBox(height: 40),
-                    _buildSaveButton(),
-                    const SizedBox(height: 24),
-                  ],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_lightGreen, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 12),
+                      _buildImageUpload(),
+                      const SizedBox(height: 28),
+                      _buildFormFields(),
+                      const SizedBox(height: 28),
+                      _buildAmenities(),
+                      const SizedBox(height: 36),
+                      _buildSaveButton(),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
       bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
     );
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            GestureDetector(
-              onTap: () {
-                Navigator.pop(context);
-              },
-              child: Container(
-                height: 40,
-                width: 40,
-                alignment: Alignment.centerLeft,
-                child: Icon(Icons.chevron_left, size: 28, color: _navyColor),
-              ),
-            ),
-            Text(
+    return SizedBox(
+      height: 56,
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back, size: 24, color: _darkGreen),
+          ),
+          const Expanded(
+            child: Text(
               'Thêm Cơ Sở Mới',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: _navyColor,
+                color: _darkGreen,
               ),
             ),
-            const SizedBox(width: 16),
-          ],
-        ),
+          ),
+          const SizedBox(width: 48),
+        ],
       ),
     );
   }
@@ -225,20 +207,31 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
         width: double.infinity,
         height: 200,
         decoration: BoxDecoration(
-          color: _selectedImageFile != null ? Colors.transparent : Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Colors.grey.withValues(alpha: 0.2),
+            color: _selectedImageFile != null
+                ? _primary
+                : const Color(0xFFBECAB9),
             width: 2,
-            style: BorderStyle.solid,
+            style: _selectedImageFile != null
+                ? BorderStyle.solid
+                : BorderStyle.solid,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: _selectedImageFile != null
             ? Stack(
                 alignment: Alignment.center,
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
+                    borderRadius: BorderRadius.circular(18),
                     child: Image.file(
                       _selectedImageFile!,
                       fit: BoxFit.cover,
@@ -249,7 +242,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(22),
+                      borderRadius: BorderRadius.circular(18),
                     ),
                   ),
                   if (_isUploadingImage)
@@ -259,13 +252,13 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          height: 56,
-                          width: 56,
+                          height: 52,
+                          width: 52,
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.9),
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(Icons.photo_camera, size: 32, color: _orangeColor),
+                          child: const Icon(Icons.photo_camera, size: 28, color: _primary),
                         ),
                         const SizedBox(height: 8),
                         const Text(
@@ -284,21 +277,30 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    height: 56,
-                    width: 56,
+                    height: 52,
+                    width: 52,
                     decoration: BoxDecoration(
-                      color: _orangeColor.withValues(alpha: 0.1),
+                      color: _lightGreen,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.photo_camera, size: 32, color: _orangeColor),
+                    child: const Icon(Icons.photo_camera, size: 28, color: _primary),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
+                  const SizedBox(height: 10),
+                  const Text(
                     'Tải ảnh thực tế',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Colors.grey[500],
+                      color: _onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'ĐỊNH DẠNG JPG, PNG TỐI ĐA 5MB',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF9CA3AF),
+                      letterSpacing: 1.2,
                     ),
                   ),
                 ],
@@ -321,12 +323,14 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
           controller: _hotlineController,
           placeholder: '0xxx xxx xxx',
           keyboardType: TextInputType.phone,
+          suffixIcon: Icons.call,
         ),
         const SizedBox(height: 20),
         _buildTextField(
           label: 'Địa chỉ chi tiết',
           controller: _addressController,
           placeholder: 'Số nhà, tên đường, phường/xã...',
+          suffixIcon: Icons.location_on,
         ),
         const SizedBox(height: 8),
         _buildMapPicker(),
@@ -337,7 +341,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
               child: _buildTextField(
                 label: 'Giờ mở cửa',
                 controller: _openTimeController,
-                prefixIcon: Icons.schedule,
+                suffixIcon: Icons.schedule,
               ),
             ),
             const SizedBox(width: 16),
@@ -345,7 +349,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
               child: _buildTextField(
                 label: 'Giờ đóng cửa',
                 controller: _closeTimeController,
-                prefixIcon: Icons.schedule,
+                suffixIcon: Icons.history_toggle_off,
               ),
             ),
           ],
@@ -390,13 +394,13 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: _pickedLocation != null
-                    ? _orangeColor.withValues(alpha: 0.6)
+                    ? _primary.withValues(alpha: 0.6)
                     : Colors.grey.withValues(alpha: 0.15),
                 width: 2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -410,7 +414,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
                       ? Icons.location_on
                       : Icons.add_location_alt_outlined,
                   size: 20,
-                  color: _pickedLocation != null ? _orangeColor : Colors.grey[400],
+                  color: _pickedLocation != null ? _primary : Colors.grey[400],
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -420,96 +424,95 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
                         : 'Chọn vị trí trên Google Maps',
                     style: TextStyle(
                       fontSize: 13,
-                      color: _pickedLocation != null ? _navyColor : Colors.grey[400],
+                      color: _pickedLocation != null
+                          ? _onSurface
+                          : Colors.grey[400],
                     ),
                   ),
                 ),
-                Icon(
-                  Icons.chevron_right,
-                  size: 20,
-                  color: Colors.grey[400],
-                ),
+                Icon(Icons.chevron_right, size: 20, color: Colors.grey[400]),
               ],
             ),
           ),
         ),
-        if (_pickedLocation != null) ...
-          [
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: SizedBox(
-                height: 160,
-                child: Stack(
-                  children: [
-                    GoogleMap(
-                      initialCameraPosition: CameraPosition(
-                        target: _pickedLocation!,
-                        zoom: 15,
-                      ),
-                      markers: {
-                        Marker(
-                          markerId: const MarkerId('preview'),
-                          position: _pickedLocation!,
-                        ),
-                      },
-                      zoomControlsEnabled: false,
-                      scrollGesturesEnabled: false,
-                      zoomGesturesEnabled: false,
-                      rotateGesturesEnabled: false,
-                      tiltGesturesEnabled: false,
-                      myLocationButtonEnabled: false,
-                      liteModeEnabled: true,
+        if (_pickedLocation != null) ...[
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(
+              height: 160,
+              child: Stack(
+                children: [
+                  GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: _pickedLocation!,
+                      zoom: 15,
                     ),
-                    Positioned.fill(
-                      child: GestureDetector(
-                        onTap: () async {
-                          final result = await Navigator.push<Map<String, dynamic>>(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => MapPickerScreen(
-                                initialLocation: _pickedLocation,
-                                initialAddress: _addressController.text,
-                              ),
+                    markers: {
+                      Marker(
+                        markerId: const MarkerId('preview'),
+                        position: _pickedLocation!,
+                      ),
+                    },
+                    zoomControlsEnabled: false,
+                    scrollGesturesEnabled: false,
+                    zoomGesturesEnabled: false,
+                    rotateGesturesEnabled: false,
+                    tiltGesturesEnabled: false,
+                    myLocationButtonEnabled: false,
+                    liteModeEnabled: true,
+                  ),
+                  Positioned.fill(
+                    child: GestureDetector(
+                      onTap: () async {
+                        final result =
+                            await Navigator.push<Map<String, dynamic>>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => MapPickerScreen(
+                              initialLocation: _pickedLocation,
+                              initialAddress: _addressController.text,
                             ),
-                          );
-                          if (result != null) {
-                            setState(() => _pickedLocation = result['location'] as LatLng);
-                            final address = result['address'] as String;
-                            if (address.isNotEmpty) {
-                              _addressController.text = address;
-                            }
-                          }
-                        },
-                        behavior: HitTestBehavior.translucent,
-                      ),
-                    ),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: GestureDetector(
-                        onTap: () => setState(() => _pickedLocation = null),
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.15),
-                                blurRadius: 4,
-                              ),
-                            ],
                           ),
-                          child: const Icon(Icons.close, size: 16),
+                        );
+                        if (result != null) {
+                          setState(() =>
+                              _pickedLocation = result['location'] as LatLng);
+                          final address = result['address'] as String;
+                          if (address.isNotEmpty) {
+                            _addressController.text = address;
+                          }
+                        }
+                      },
+                      behavior: HitTestBehavior.translucent,
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      onTap: () => setState(() => _pickedLocation = null),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 4,
+                            ),
+                          ],
                         ),
+                        child: const Icon(Icons.close, size: 16),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
+        ],
       ],
     );
   }
@@ -518,7 +521,6 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
     required String label,
     required TextEditingController controller,
     String? placeholder,
-    IconData? prefixIcon,
     IconData? suffixIcon,
     TextInputType? keyboardType,
   }) {
@@ -526,24 +528,25 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          padding: const EdgeInsets.only(left: 4, bottom: 6),
           child: Text(
             label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: _navyColor,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: _onSurfaceVariant,
+              letterSpacing: 1.2,
             ),
           ),
         ),
         Container(
-          height: 56,
+          height: 52,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -554,31 +557,28 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
             keyboardType: keyboardType,
             decoration: InputDecoration(
               hintText: placeholder,
-              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-              prefixIcon: prefixIcon != null
-                  ? Icon(prefixIcon, size: 20, color: Colors.grey[400])
-                  : null,
+              hintStyle: const TextStyle(
+                color: Color(0xFF9CA3AF),
+                fontSize: 14,
+              ),
               suffixIcon: suffixIcon != null
-                  ? Icon(suffixIcon, size: 20, color: _orangeColor)
+                  ? Icon(suffixIcon, size: 20, color: _secondary)
                   : null,
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 20,
+                horizontal: 16,
                 vertical: 16,
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(
-                  color: _orangeColor.withValues(alpha: 0.2),
-                  width: 2,
-                ),
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _primary, width: 2),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide.none,
               ),
             ),
-            style: TextStyle(color: _navyColor, fontSize: 14),
+            style: const TextStyle(color: _onSurface, fontSize: 14),
           ),
         ),
       ],
@@ -594,23 +594,24 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          padding: const EdgeInsets.only(left: 4, bottom: 6),
           child: Text(
             label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: _navyColor,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: _onSurfaceVariant,
+              letterSpacing: 1.2,
             ),
           ),
         ),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -621,22 +622,22 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
             maxLines: 4,
             decoration: InputDecoration(
               hintText: placeholder,
-              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+              hintStyle: const TextStyle(
+                color: Color(0xFF9CA3AF),
+                fontSize: 14,
+              ),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.all(20),
+              contentPadding: const EdgeInsets.all(16),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(
-                  color: _orangeColor.withValues(alpha: 0.2),
-                  width: 2,
-                ),
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _primary, width: 2),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide.none,
               ),
             ),
-            style: TextStyle(color: _navyColor, fontSize: 14),
+            style: const TextStyle(color: _onSurface, fontSize: 14),
           ),
         ),
       ],
@@ -647,31 +648,42 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 2),
-          child: Text(
-            'Tiện ích chung',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: _navyColor,
+        Row(
+          children: [
+            const Text(
+              'Tiện ích chung',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: _onSurface,
+              ),
             ),
-          ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Container(
+                height: 4,
+                decoration: BoxDecoration(
+                  color: _lightGreen,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+          ],
         ),
+        const SizedBox(height: 14),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.1,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 1.05,
           ),
           itemCount: _amenities.length,
           itemBuilder: (context, index) {
             final amenity = _amenities[index];
             final isSelected = amenity['selected'] as bool;
-
             return GestureDetector(
               onTap: () {
                 setState(() {
@@ -680,16 +692,16 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isSelected ? _lightGreen : Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isSelected ? _orangeColor : Colors.transparent,
-                    width: 2,
+                    color: isSelected ? _primary : Colors.transparent,
+                    width: 1.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 4,
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
                   ],
@@ -699,17 +711,17 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
                   children: [
                     Icon(
                       amenity['icon'] as IconData,
-                      size: 28,
-                      color: isSelected ? _orangeColor : Colors.grey[400],
+                      size: 26,
+                      color: isSelected ? _primary : _secondary,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 5),
                     Text(
                       amenity['label'] as String,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: isSelected ? _orangeColor : Colors.grey[500],
+                        color: isSelected ? _darkGreen : _onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -727,12 +739,16 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [_orangeColor, _redColor]),
+        gradient: const LinearGradient(
+          colors: [_primary, _darkGreen],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: _orangeColor.withValues(alpha: 0.2),
-            blurRadius: 12,
+            color: _primary.withValues(alpha: 0.25),
+            blurRadius: 16,
             offset: const Offset(0, 6),
           ),
         ],
@@ -741,11 +757,7 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: _isLoading
-              ? null
-              : () {
-                  _saveFacility();
-                },
+          onTap: _isLoading ? null : _saveFacility,
           child: Center(
             child: _isLoading
                 ? const SizedBox(
@@ -771,7 +783,6 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
   }
 
   void _saveFacility() {
-    // Validation
     if (_nameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -781,7 +792,6 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
       );
       return;
     }
-
     if (_hotlineController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -791,7 +801,6 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
       );
       return;
     }
-
     if (_addressController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -801,25 +810,19 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
       );
       return;
     }
-
-    // Get selected amenities
     final amenitiesList = _amenities
         .where((a) => a['selected'] as bool)
         .map((a) => a['label'] as String)
         .toList();
-
     _createFacility(amenitiesList);
   }
 
   Future<void> _createFacility(List<String> amenities) async {
     setState(() => _isLoading = true);
-
     try {
-      // Upload image if selected
       if (_selectedImageFile != null) {
         await _uploadImageToFirebase();
       }
-
       await _facilityService.createFacility(
         name: _nameController.text.trim(),
         hotline: _hotlineController.text.trim(),
@@ -832,17 +835,14 @@ class _FacilityCreateScreenState extends State<FacilityCreateScreen> {
         latitude: _pickedLocation?.latitude,
         longitude: _pickedLocation?.longitude,
       );
-
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Đã lưu cơ sở thành công!'),
-            backgroundColor: Colors.green,
+            backgroundColor: _darkGreen,
           ),
         );
-
-        // Navigate back after saving
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) Navigator.pop(context);
         });

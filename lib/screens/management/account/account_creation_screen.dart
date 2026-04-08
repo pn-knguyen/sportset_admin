@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sportset_admin/models/permission.dart';
 import 'package:sportset_admin/models/staff.dart';
@@ -25,16 +28,21 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AccessControlService _accessControlService = AccessControlService();
 
-  final int _currentNavIndex = 1;
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeColor = const Color(0xFFFF9800);
-  final Color _secondaryColor = const Color(0xFFFF4E00);
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _secondary = Color(0xFF18A5A7);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF5C615A);
 
   String? _selectedStaffId;
   String? _selectedPermissionGroupId;
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  File? _avatarFile;
+  bool _isUploadingAvatar = false;
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -48,12 +56,38 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
     
     if (!hasPermission && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Bạn không có quyền tạo tài khoản'),
-          backgroundColor: _orangeColor,
+        const SnackBar(
+          content: Text('Bạn không có quyền tạo tài khoản'),
+          backgroundColor: _primary,
         ),
       );
       Navigator.pop(context);
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picked = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 512,
+      maxHeight: 512,
+    );
+    if (picked != null && mounted) {
+      setState(() => _avatarFile = File(picked.path));
+    }
+  }
+
+  Future<String?> _uploadAvatarToStorage(String uid) async {
+    if (_avatarFile == null) return null;
+    setState(() => _isUploadingAvatar = true);
+    try {
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('avatars/$uid.jpg');
+      await ref.putFile(_avatarFile!);
+      return await ref.getDownloadURL();
+    } finally {
+      if (mounted) setState(() => _isUploadingAvatar = false);
     }
   }
 
@@ -68,162 +102,290 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
+      backgroundColor: Colors.white,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_lightGreen, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Column(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: _darkGreen,
+                        size: 20,
+                      ),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        'Thêm tài khoản',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: _darkGreen,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 children: [
-                  const SizedBox(height: 32),
-                  _buildTitle(),
-                  const SizedBox(height: 32),
-                  _buildFormFields(),
-                  const SizedBox(height: 40),
-                  _buildSubmitButton(),
+                  _buildAvatarSection(),
                   const SizedBox(height: 24),
+                  _buildStaffSelector(),
+                  const SizedBox(height: 20),
+                  _buildPermissionSelector(),
+                  const SizedBox(height: 20),
+                  _buildInput(
+                    label: 'Tên đăng nhập',
+                    controller: _usernameController,
+                    icon: Icons.account_circle,
+                    hintText: 'Ví dụ: nva_arena',
+                  ),
+                  const SizedBox(height: 20),
+                  _buildPasswordField(
+                    label: 'Mật khẩu',
+                    controller: _passwordController,
+                    obscure: _obscurePassword,
+                    onToggle: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                    hint: 'Tối thiểu 8 ký tự, bao gồm chữ và số',
+                  ),
+                  const SizedBox(height: 20),
+                  _buildPasswordField(
+                    label: 'Xác nhận mật khẩu',
+                    controller: _confirmPasswordController,
+                    obscure: _obscureConfirmPassword,
+                    onToggle: () => setState(
+                        () => _obscureConfirmPassword = !_obscureConfirmPassword),
+                  ),
+                  const SizedBox(height: 32),
+                  _buildSubmitButton(),
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: const CommonBottomNav(currentIndex: 1),
+    );
+  }
+
+  Widget _buildAvatarSection() {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _pickImage,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 128,
+                height: 128,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _primary.withValues(alpha: 0.2),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 24,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: _avatarFile != null
+                      ? Image.file(
+                          _avatarFile!,
+                          fit: BoxFit.cover,
+                          width: 128,
+                          height: 128,
+                        )
+                      : const Icon(
+                          Icons.person,
+                          size: 48,
+                          color: Color(0xFFBECAB9),
+                        ),
+                ),
+              ),
+              Positioned(
+                bottom: 4,
+                right: 0,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: _primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 4),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: _isUploadingAvatar
+                      ? const Padding(
+                          padding: EdgeInsets.all(10),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Icon(
+                          _avatarFile != null ? Icons.edit : Icons.add_a_photo,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: _pickImage,
+          child: Text(
+            _avatarFile != null ? 'ĐỔI ẢNH ĐẠI DIỆN' : 'TẢI LÊN ẢNH ĐẠI DIỆN',
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: _onSurfaceVariant,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+        if (_avatarFile != null) ...[
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: () => setState(() => _avatarFile = null),
+            child: Text(
+              'Xóa ảnh',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.red.withValues(alpha: 0.7),
               ),
             ),
           ),
         ],
-      ),
-      bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
+      ],
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
-          child: Row(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(
-                  Icons.arrow_back_ios_new,
-                  color: Color(0xFF0C1C46),
-                  size: 20,
-                ),
-              ),
-              const Expanded(
-                child: Text(
-                  'Tạo tài khoản',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0C1C46),
-                    letterSpacing: -0.4,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 40),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTitle() {
+  Widget _buildInput({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    required String hintText,
+    TextInputType? keyboardType,
+  }) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: _orangeColor.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.person_add,
-            size: 40,
-            color: _orangeColor,
-          ),
-        ),
-        const SizedBox(height: 16),
         Text(
-          'Tạo Tài Khoản Mới',
-          style: TextStyle(
-            fontSize: 24,
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 10,
             fontWeight: FontWeight.w800,
-            color: _navyColor,
+            color: _onSurfaceVariant,
+            letterSpacing: 1.2,
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          'Chọn nhân viên và thiết lập thông tin đăng nhập',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[600],
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 24,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: _onSurface,
+            ),
+            decoration: InputDecoration(
+              hintText: hintText,
+              hintStyle: TextStyle(
+                color: _onSurfaceVariant.withValues(alpha: 0.5),
+                fontWeight: FontWeight.normal,
+              ),
+              prefixIcon: Icon(icon, color: _secondary, size: 22),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide(
+                  color: _primary.withValues(alpha: 0.4),
+                  width: 2,
+                ),
+              ),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildFormFields() {
-    return Column(
-      children: [
-        _buildStaffSelector(),
-        const SizedBox(height: 20),
-        _buildPermissionSelector(),
-        const SizedBox(height: 20),
-        _buildTextField(
-          label: 'Tên đăng nhập',
-          controller: _usernameController,
-          icon: Icons.person_outline,
-          placeholder: 'ten_dang_nhap',
-          keyboardType: TextInputType.text,
-        ),
-        const SizedBox(height: 20),
-        _buildPasswordField(
-          label: 'Mật khẩu',
-          controller: _passwordController,
-          obscure: _obscurePassword,
-          onToggle: () {
-            setState(() => _obscurePassword = !_obscurePassword);
-          },
-        ),
-        const SizedBox(height: 20),
-        _buildPasswordField(
-          label: 'Xác nhận mật khẩu',
-          controller: _confirmPasswordController,
-          obscure: _obscureConfirmPassword,
-          onToggle: () {
-            setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
-          },
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildStaffSelector() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 6),
-          child: Text(
-            'Chọn Nhân Viên',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: _navyColor,
-            ),
+        const Text(
+          'CHỌN NHÂN VIÊN',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: _onSurfaceVariant,
+            letterSpacing: 1.2,
           ),
         ),
+        const SizedBox(height: 8),
         StreamBuilder<List<Staff>>(
           stream: _staffService.getAllStaffStream(),
           builder: (context, snapshot) {
@@ -231,74 +393,49 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
               return Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 4,
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 24)],
                 ),
                 height: 56,
-                child: Center(
+                child: const Center(
                   child: SizedBox(
                     height: 20,
                     width: 20,
-                    child: CircularProgressIndicator(
-                      color: _orangeColor,
-                      strokeWidth: 2,
-                    ),
+                    child: CircularProgressIndicator(color: _primary, strokeWidth: 2),
                   ),
                 ),
               );
             }
-
             if (snapshot.hasError) {
               return Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
                 padding: const EdgeInsets.all(16),
                 child: const Text('Lỗi tải dữ liệu'),
               );
             }
-
             final staffList = snapshot.data ?? [];
             return Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 4,
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 24)],
               ),
               child: DropdownButtonFormField<String>(
-                value: _selectedStaffId,
+                initialValue: _selectedStaffId,
                 isExpanded: true,
                 menuMaxHeight: 320,
                 decoration: InputDecoration(
-                  hintText: 'Chọn nhân viên',
+                  hintText: 'Chọn nhân viên từ danh sách',
                   hintStyle: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[400],
+                    color: _onSurfaceVariant.withValues(alpha: 0.5),
                   ),
-                  prefixIcon: Icon(
-                    Icons.person,
-                    color: Colors.grey[400],
-                    size: 20,
-                  ),
+                  prefixIcon: const Icon(Icons.badge, color: _secondary, size: 22),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 ),
-                icon: Icon(
-                  Icons.expand_more,
-                  color: Colors.grey[400],
-                ),
-                style: TextStyle(fontSize: 14, color: _navyColor),
+                icon: const Icon(Icons.expand_more, color: Color(0xFFBECAB9)),
+                style: const TextStyle(fontSize: 14, color: _onSurface),
                 dropdownColor: Colors.white,
                 items: staffList.map((staff) {
                   return DropdownMenuItem<String>(
@@ -317,78 +454,14 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
                   return staffList.map((staff) {
                     return Align(
                       alignment: Alignment.centerLeft,
-                      child: Text(
-                        staff.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      child: Text(staff.name, maxLines: 1, overflow: TextOverflow.ellipsis),
                     );
                   }).toList();
                 },
-                onChanged: (value) {
-                  setState(() {
-                    _selectedStaffId = value;
-                  });
-                },
+                onChanged: (value) => setState(() => _selectedStaffId = value),
               ),
             );
           },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField({
-    required String label,
-    required TextEditingController controller,
-    required IconData icon,
-    required String placeholder,
-    TextInputType? keyboardType,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 6),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: _navyColor,
-            ),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 4,
-              ),
-            ],
-          ),
-          child: TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            decoration: InputDecoration(
-              hintText: placeholder,
-              hintStyle: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[400],
-              ),
-              prefixIcon: Icon(
-                icon,
-                color: Colors.grey[400],
-                size: 20,
-              ),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            ),
-            style: const TextStyle(fontSize: 14),
-          ),
         ),
       ],
     );
@@ -398,17 +471,16 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 6),
-          child: Text(
-            'Nhóm Quyền Cho Tài Khoản',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: _navyColor,
-            ),
+        const Text(
+          'CHỌN NHÓM QUYỀN',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: _onSurfaceVariant,
+            letterSpacing: 1.2,
           ),
         ),
+        const SizedBox(height: 8),
         StreamBuilder<List<Permission>>(
           stream: _permissionService.getAllPermissionsStream(),
           builder: (context, snapshot) {
@@ -416,86 +488,56 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
               return Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 4,
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 24)],
                 ),
                 height: 56,
-                child: Center(
+                child: const Center(
                   child: SizedBox(
                     height: 20,
                     width: 20,
-                    child: CircularProgressIndicator(
-                      color: _orangeColor,
-                      strokeWidth: 2,
-                    ),
+                    child: CircularProgressIndicator(color: _primary, strokeWidth: 2),
                   ),
                 ),
               );
             }
-
             if (snapshot.hasError) {
               return Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
                 padding: const EdgeInsets.all(16),
                 child: const Text('Lỗi tải nhóm quyền'),
               );
             }
-
             final permissions = snapshot.data ?? [];
             if (permissions.isEmpty) {
               return Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
                 padding: const EdgeInsets.all(16),
                 child: const Text('Chưa có nhóm quyền. Hãy tạo nhóm quyền trước.'),
               );
             }
-
             return Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 4,
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 24)],
               ),
               child: DropdownButtonFormField<String>(
-                value: _selectedPermissionGroupId,
+                initialValue: _selectedPermissionGroupId,
                 isExpanded: true,
                 menuMaxHeight: 320,
                 decoration: InputDecoration(
                   hintText: 'Chọn nhóm quyền',
                   hintStyle: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[400],
+                    color: _onSurfaceVariant.withValues(alpha: 0.5),
                   ),
-                  prefixIcon: Icon(
-                    Icons.admin_panel_settings_outlined,
-                    color: Colors.grey[400],
-                    size: 20,
-                  ),
+                  prefixIcon: const Icon(Icons.work, color: _secondary, size: 22),
                   border: InputBorder.none,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 ),
-                icon: Icon(
-                  Icons.expand_more,
-                  color: Colors.grey[400],
-                ),
-                style: TextStyle(fontSize: 14, color: _navyColor),
+                icon: const Icon(Icons.expand_more, color: Color(0xFFBECAB9)),
+                style: const TextStyle(fontSize: 14, color: _onSurface),
                 dropdownColor: Colors.white,
                 items: permissions.map((permission) {
                   return DropdownMenuItem<String>(
@@ -510,11 +552,8 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
                     ),
                   );
                 }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedPermissionGroupId = value;
-                  });
-                },
+                onChanged: (value) =>
+                    setState(() => _selectedPermissionGroupId = value),
               ),
             );
           },
@@ -528,29 +567,29 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
     required TextEditingController controller,
     required bool obscure,
     required VoidCallback onToggle,
+    String? hint,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 6),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: _navyColor,
-            ),
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: _onSurfaceVariant,
+            letterSpacing: 1.2,
           ),
         ),
+        const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 4,
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 24,
               ),
             ],
           ),
@@ -558,63 +597,66 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
             controller: controller,
             obscureText: obscure,
             decoration: InputDecoration(
-              hintText: 'Nhập mật khẩu',
+              hintText: '••••••••',
               hintStyle: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[400],
+                color: _onSurfaceVariant.withValues(alpha: 0.5),
               ),
-              prefixIcon: Icon(
-                Icons.lock,
-                color: Colors.grey[400],
-                size: 20,
-              ),
+              prefixIcon: const Icon(Icons.lock, color: _secondary, size: 22),
               suffixIcon: GestureDetector(
                 onTap: onToggle,
                 child: Icon(
                   obscure ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.grey[400],
+                  color: const Color(0xFFBECAB9),
                   size: 20,
                 ),
               ),
-              border: InputBorder.none,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide(
+                  color: _primary.withValues(alpha: 0.4),
+                  width: 1.5,
+                ),
+              ),
+              filled: true,
+              fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
-            style: const TextStyle(fontSize: 14),
+            style: const TextStyle(fontSize: 14, color: _onSurface),
           ),
         ),
+        if (hint != null) ...[
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Text(
+              hint,
+              style: TextStyle(
+                fontSize: 11,
+                color: _onSurfaceVariant.withValues(alpha: 0.7),
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
 
   Widget _buildSubmitButton() {
-    return Container(
+    return SizedBox(
       width: double.infinity,
       height: 56,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_orangeColor, _secondaryColor],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: _orangeColor.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _handleCreateAccount,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        child: _isLoading
+      child: ElevatedButton.icon(
+        icon: _isLoading
             ? const SizedBox(
                 height: 20,
                 width: 20,
@@ -623,14 +665,27 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
                   strokeWidth: 2,
                 ),
               )
+            : const Icon(Icons.check_circle, color: Colors.white),
+        label: _isLoading
+            ? const SizedBox.shrink()
             : const Text(
-                'Tạo Tài Khoản',
+                'Tạo tài khoản',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _primary,
+          disabledBackgroundColor: _primary.withValues(alpha: 0.6),
+          shadowColor: _primary.withValues(alpha: 0.3),
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+        onPressed: _isLoading ? null : _handleCreateAccount,
       ),
     );
   }
@@ -710,7 +765,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
       } on FirebaseAuthException catch (authError) {
         if (authError.code == 'email-already-in-use') {
           // Firebase user exists but Firestore doc doesn't - try to recover
-          print('[AccountCreation] ⚠️  Email already exists, checking if we need cleanup...');
+          debugPrint('[AccountCreation] ⚠️  Email already exists, checking if we need cleanup...');
           
           // Try to sign in and see if we can delete it
           try {
@@ -721,7 +776,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
             
             // If sign in works with given password, delete the orphan user
             await existingUser.user?.delete();
-            print('[AccountCreation] ✅ Deleted orphan Firebase user: $authEmail');
+            debugPrint('[AccountCreation] ✅ Deleted orphan Firebase user: $authEmail');
             
             // Try again
             userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
@@ -732,7 +787,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
             // Sign out after delete
             await _firebaseAuth.signOut();
           } catch (signInError) {
-            print('[AccountCreation] ⚠️  Cannot auto-cleanup (password mismatch): $signInError');
+            debugPrint('[AccountCreation] ⚠️  Cannot auto-cleanup (password mismatch): $signInError');
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -750,7 +805,10 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
       }
 
       final uid = userCredential.user!.uid;
-      
+
+      // Upload avatar if selected
+      final avatarUrl = await _uploadAvatarToStorage(uid);
+
       try {
         // Save user info to Firestore
         await _firestore.collection('users').doc(uid).set({
@@ -760,6 +818,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
           'staffId': _selectedStaffId,
           'staffName': staff.name,
           'permissionGroupId': _selectedPermissionGroupId,
+          if (avatarUrl != null) 'avatarUrl': avatarUrl,
           'createdAt': FieldValue.serverTimestamp(),
           'status': 'active',
         });
@@ -775,6 +834,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
           'staffId': _selectedStaffId,
           'staffName': staff.name,
           'permissionGroupId': _selectedPermissionGroupId,
+          if (avatarUrl != null) 'avatarUrl': avatarUrl,
           'isActive': true,
           'createdAt': FieldValue.serverTimestamp(),
         });
@@ -790,13 +850,13 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
         }
       } catch (firestoreError) {
         // Rollback: Delete Firebase Auth user if Firestore save fails
-        print('[AccountCreation] ⚠️  Firestore error: $firestoreError, rolling back Firebase user...');
+        debugPrint('[AccountCreation] ⚠️  Firestore error: $firestoreError, rolling back Firebase user...');
         
         try {
           await userCredential.user?.delete();
-          print('[AccountCreation] ✅ Rolled back Firebase user $uid');
+          debugPrint('[AccountCreation] ✅ Rolled back Firebase user $uid');
         } catch (deleteError) {
-          print('[AccountCreation] ❌ Failed to rollback Firebase user: $deleteError');
+          debugPrint('[AccountCreation] ❌ Failed to rollback Firebase user: $deleteError');
         }
         
         rethrow; // Rethrow to show error message

@@ -4,7 +4,6 @@ import 'package:sportset_admin/models/permission.dart';
 import 'package:sportset_admin/routes/app_routes.dart';
 import 'package:sportset_admin/services/access_control_service.dart';
 import 'package:sportset_admin/services/permission_service.dart';
-import 'package:sportset_admin/services/setup_service.dart';
 import 'package:sportset_admin/widgets/common_bottom_nav.dart';
 
 class PermissionListScreen extends StatefulWidget {
@@ -15,7 +14,14 @@ class PermissionListScreen extends StatefulWidget {
 }
 
 class _PermissionListScreenState extends State<PermissionListScreen> {
-  final int _currentNavIndex = 1;
+  static const _primary = Color(0xFF4CAF50);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _secondary = Color(0xFF18A5A7);
+  static const _tertiary = Color(0xFF994700);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF3F4A3C);
+
   int _selectedTabIndex = 0;
   final PermissionService _permissionService = PermissionService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -59,6 +65,7 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
       });
     } finally {
       if (!mounted) {
+        // ignore: control_flow_in_finally
         return;
       }
 
@@ -71,26 +78,35 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: _selectedTabIndex == 0
-                ? _buildPermissionTab()
-                : _buildAccountTab(),
+      backgroundColor: Colors.white,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_lightGreen, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
-        ],
+        ),
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: _selectedTabIndex == 0
+                  ? _buildPermissionTab()
+                  : _buildAccountTab(),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: _buildFab(),
-      bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
+      bottomNavigationBar: const CommonBottomNav(currentIndex: 1),
     );
   }
 
   Widget _buildPermissionTab() {
     if (_isCheckingPermission) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFFF9800)),
+        child: CircularProgressIndicator(color: _primary),
       );
     }
 
@@ -98,10 +114,8 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
       stream: _permissionService.getAllPermissionsStream(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-            child: CircularProgressIndicator(
-              color: const Color(0xFFFF9800),
-            ),
+          return const Center(
+            child: CircularProgressIndicator(color: _primary),
           );
         }
 
@@ -121,12 +135,12 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
                 margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E0),
+                  color: _lightGreen,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.lock_outline, size: 16, color: Color(0xFFC26A00)),
+                    Icon(Icons.lock_outline, size: 16, color: _darkGreen),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -134,7 +148,7 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFFC26A00),
+                          color: _darkGreen,
                         ),
                       ),
                     ),
@@ -144,10 +158,12 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                children: permissions.map((permission) {
+                children: permissions.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final permission = entry.value;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 14),
-                    child: _buildGroupCard(permission),
+                    child: _buildGroupCard(permission, index),
                   );
                 }).toList(),
               ),
@@ -171,7 +187,7 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0C1C46),
+                    color: _onSurface,
                   ),
                 ),
               ),
@@ -187,7 +203,7 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFFF9800)),
+                  child: CircularProgressIndicator(color: _primary),
                 );
               }
 
@@ -215,7 +231,7 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
                     createdAt: data['createdAt'] as Timestamp?,
                   );
                 },
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) => const SizedBox(height: 12),
                 itemCount: docs.length,
               );
             },
@@ -226,68 +242,59 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6).withValues(alpha: 0.95),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Color(0xFF0C1C46),
-                      size: 20,
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: Row(
+              children: [
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new,
+                    color: _darkGreen,
+                    size: 20,
+                  ),
+                ),
+                const Expanded(
+                  child: Text(
+                    'Phân quyền Nhân viên',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: _darkGreen,
                     ),
                   ),
-                  const Expanded(
-                    child: Text(
-                      'Phân quyền nhân viên',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0C1C46),
-                        letterSpacing: -0.4,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 40),
-                ],
-              ),
+                ),
+                const SizedBox(width: 48),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildTabButton(
-                      label: 'Nhóm quyền',
-                      active: _selectedTabIndex == 0,
-                      onTap: () => setState(() => _selectedTabIndex = 0),
-                    ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildTabButton(
+                    label: 'Nhóm quyền',
+                    active: _selectedTabIndex == 0,
+                    onTap: () => setState(() => _selectedTabIndex = 0),
                   ),
-                  Expanded(
-                    child: _buildTabButton(
-                      label: 'Tài khoản',
-                      active: _selectedTabIndex == 1,
-                      onTap: () => setState(() => _selectedTabIndex = 1),
-                    ),
+                ),
+                Expanded(
+                  child: _buildTabButton(
+                    label: 'Tài khoản',
+                    active: _selectedTabIndex == 1,
+                    onTap: () => setState(() => _selectedTabIndex = 1),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -297,16 +304,16 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
     required bool active,
     required VoidCallback onTap,
   }) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: active ? const Color(0xFFFF9800) : const Color(0xFFE5E7EB),
-              width: active ? 3 : 1,
+              color: active ? _primary : Colors.transparent,
+              width: 3,
             ),
           ),
         ),
@@ -314,150 +321,202 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
           label,
           style: TextStyle(
             fontSize: 14,
-            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-            color: active ? const Color(0xFF0C1C46) : const Color(0xFF9CA3AF),
+            fontWeight: active ? FontWeight.bold : FontWeight.w500,
+            color: active ? _primary : _onSurfaceVariant,
+            letterSpacing: 0.2,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildGroupCard(Permission permission) {
+  Widget _buildGroupCard(Permission permission, int index) {
     final isAdminGroup = permission.name == 'Admin';
+    const colorPalette = [
+      _primary,
+      _tertiary,
+      _secondary,
+      Color(0xFF7C3AED),
+    ];
+    const iconPalette = [
+      Icons.shield,
+      Icons.stadium,
+      Icons.person,
+      Icons.payments,
+    ];
+    final color = colorPalette[index % colorPalette.length];
+    final icon = iconPalette[index % iconPalette.length];
 
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.12)),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _primary.withValues(alpha: 0.05)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 24,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Container(width: 6, color: color),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          permission.name,
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF0C1C46),
-                          ),
-                        ),
-                        if (isAdminGroup)
-                          Container(
-                            margin: const EdgeInsets.only(left: 8),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'Bảo vệ',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.red,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      permission.description,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[500],
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: !_canManagePermissionGroups || isAdminGroup
-                        ? null
-                        : () {
-                            Navigator.pushNamed(
-                              context,
-                              AppRoutes.permissionEdit,
-                              arguments: {'id': permission.id},
-                            );
-                          },
-                    tooltip: isAdminGroup ? 'Không thể chỉnh sửa nhóm Admin' : null,
-                    icon: const Icon(Icons.edit, size: 20),
-                    color: Colors.grey[500],
-                  ),
-                  IconButton(
-                    onPressed: !_canManagePermissionGroups || isAdminGroup
-                        ? null
-                        : () async {
-                            await _permissionService.deletePermission(
-                              permission.id,
-                            );
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Đã xóa "${permission.name}"'),
-                                  backgroundColor: Colors.green,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(icon, color: color, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 8,
+                              children: [
+                                Text(
+                                  permission.name,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: _onSurface,
+                                  ),
                                 ),
-                              );
-                            }
-                          },
-                    tooltip: isAdminGroup ? 'Không thể xóa nhóm Admin' : null,
-                    icon: const Icon(Icons.delete, size: 20),
-                    color: Colors.red[300],
+                                if (isAdminGroup)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      'Bảo vệ',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.red,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Opacity(
+                                opacity:
+                                    (!_canManagePermissionGroups || isAdminGroup)
+                                        ? 0.4
+                                        : 1.0,
+                                child: GestureDetector(
+                                  onTap: !_canManagePermissionGroups ||
+                                          isAdminGroup
+                                      ? null
+                                      : () => Navigator.pushNamed(
+                                            context,
+                                            AppRoutes.permissionEdit,
+                                            arguments: {'id': permission.id},
+                                          ),
+                                  child: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: const BoxDecoration(
+                                      color: _lightGreen,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.edit,
+                                        size: 16, color: _secondary),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Opacity(
+                                opacity:
+                                    (!_canManagePermissionGroups || isAdminGroup)
+                                        ? 0.4
+                                        : 1.0,
+                                child: GestureDetector(
+                                  onTap: !_canManagePermissionGroups ||
+                                          isAdminGroup
+                                      ? null
+                                      : () async {
+                                          await _permissionService
+                                              .deletePermission(permission.id);
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                    'Đã xóa "${permission.name}"'),
+                                                backgroundColor: Colors.green,
+                                              ),
+                                            );
+                                          }
+                                        },
+                                  child: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFDAD6)
+                                          .withValues(alpha: 0.5),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.delete,
+                                        size: 16, color: Color(0xFFBA1A1A)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        permission.description,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: _onSurfaceVariant,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                                color: color, shape: BoxShape.circle),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${permission.assignedCount} thành viên',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: color,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF3F4F6)),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF9800),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '${permission.assignedCount} thành viên',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF6B7280),
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -503,11 +562,11 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
                   height: 42,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFFFFF3E0),
+                    color: _lightGreen,
                   ),
                   child: const Icon(
                     Icons.person,
-                    color: Color(0xFFC26A00),
+                    color: _darkGreen,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -520,7 +579,7 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF0C1C46),
+                          color: _onSurface,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -602,7 +661,7 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF6B7280),
+          color: _onSurfaceVariant,
         ),
       );
     }
@@ -622,7 +681,7 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
           style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF6B7280),
+            color: _onSurfaceVariant,
           ),
         );
       },
@@ -630,47 +689,26 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
   }
 
   Widget _buildFab() {
-    return Container(
-      height: 56,
-      width: 56,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF9800), Color(0xFFFF5722)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFF9800).withValues(alpha: 0.35),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: FloatingActionButton(
-        onPressed: () {
-          if (_selectedTabIndex == 0) {
-            if (!_canManagePermissionGroups) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Bạn không có quyền tạo hoặc chỉnh sửa nhóm quyền'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-              return;
-            }
-
-            Navigator.pushNamed(context, AppRoutes.permissionCreate);
+    return FloatingActionButton(
+      onPressed: () {
+        if (_selectedTabIndex == 0) {
+          if (!_canManagePermissionGroups) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Bạn không có quyền tạo hoặc chỉnh sửa nhóm quyền'),
+                backgroundColor: Colors.orange,
+              ),
+            );
             return;
           }
-
-          Navigator.pushNamed(context, AppRoutes.accountCreate);
-        },
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: const Icon(Icons.add, size: 32, color: Colors.white),
-      ),
+          Navigator.pushNamed(context, AppRoutes.permissionCreate);
+          return;
+        }
+        Navigator.pushNamed(context, AppRoutes.accountCreate);
+      },
+      backgroundColor: _primary,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: const Icon(Icons.add, size: 32, color: Colors.white),
     );
   }
 

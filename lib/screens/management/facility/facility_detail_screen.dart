@@ -17,9 +17,14 @@ class FacilityDetailScreen extends StatefulWidget {
 
 class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
   final int _currentNavIndex = 1; // Active on Management tab
-  final Color _navyColor = const Color(0xFF0C1C46);
-  final Color _orangeLightColor = const Color(0xFFFFB366);
-  final Color _orangeBrandColor = const Color(0xFFFF5722);
+
+  static const _primary = Color(0xFF4CAF50);
+  static const _secondary = Color(0xFF18A5A7);
+  static const _darkGreen = Color(0xFF2E7D32);
+  static const _lightGreen = Color(0xFFE8F5E9);
+  static const _onSurface = Color(0xFF1A1C1C);
+  static const _onSurfaceVariant = Color(0xFF5C615A);
+
   final CourtService _courtService = CourtService();
   final FacilityService _facilityService = FacilityService();
   final AccessControlService _accessControlService = AccessControlService();
@@ -47,72 +52,81 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
     final facilityId = routeArgs is Map ? routeArgs['id'] as String? : null;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F6),
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: facilityId == null || facilityId.isEmpty
-                  ? const Center(
-                      child: Text('Không tìm thấy thông tin cơ sở'),
-                    )
-                  : StreamBuilder<Facility?>(
-                      stream: _facilityService.getFacilityByIdStream(facilityId),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
+      backgroundColor: _lightGreen,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_lightGreen, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: facilityId == null || facilityId.isEmpty
+                    ? const Center(
+                        child: Text('Kh\xf4ng t\xecm th\u1ea5y th\xf4ng tin c\u01a1 s\u1edf'),
+                      )
+                    : StreamBuilder<Facility?>(
+                        stream: _facilityService.getFacilityByIdStream(facilityId),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
 
-                        if (snapshot.hasError) {
-                          return Center(
-                            child: Text(
-                              'Không thể tải dữ liệu cơ sở',
-                              style: TextStyle(color: Colors.red[400]),
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Text(
+                                'Kh\xf4ng th\u1ec3 t\u1ea3i d\u1eef li\u1ec7u c\u01a1 s\u1edf',
+                                style: TextStyle(color: Colors.red[400]),
+                              ),
+                            );
+                          }
+
+                          final facility = snapshot.data;
+                          if (facility == null) {
+                            return const Center(
+                              child: Text('C\u01a1 s\u1edf kh\xf4ng t\u1ed3n t\u1ea1i ho\u1eb7c \u0111\xe3 b\u1ecb x\xf3a'),
+                            );
+                          }
+
+                          return SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(0, 20, 0, 32),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildImageGallery(facility),
+                                const SizedBox(height: 16),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _buildFacilityInfo(facility),
+                                      const SizedBox(height: 24),
+                                      _buildAmenities(facility),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 32),
+                                _buildCourtsList(facility.id),
+                                const SizedBox(height: 32),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  child: _buildActionButtons(facility.id, facility.name),
+                                ),
+                              ],
                             ),
                           );
-                        }
-
-                        final facility = snapshot.data;
-                        if (facility == null) {
-                          return const Center(
-                            child: Text('Cơ sở không tồn tại hoặc đã bị xóa'),
-                          );
-                        }
-
-                        return SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(0, 20, 0, 32),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildImageGallery(facility),
-                              const SizedBox(height: 16),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildFacilityInfo(facility),
-                                    const SizedBox(height: 24),
-                                    _buildAmenities(facility),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 32),
-                              _buildCourtsList(facility.id),
-                              const SizedBox(height: 32),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
-                                child: _buildActionButtons(facility.id, facility.name),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-            ),
+                        },
+                      ),
+              ),
             ],
+          ),
         ),
       ),
       bottomNavigationBar: CommonBottomNav(currentIndex: _currentNavIndex),
@@ -120,48 +134,32 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F6),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GestureDetector(
-            onTap: () {
-              Navigator.pop(context);
-            },
-            child: Container(
-              height: 40,
-              width: 40,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                  ),
-                ],
+    return SafeArea(
+      bottom: false,
+      child: SizedBox(
+        height: 56,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: _darkGreen),
+              onPressed: () => Navigator.pop(context),
+            ),
+            const Text(
+              'Chi ti\u1ebft c\u01a1 s\u1edf',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: _darkGreen,
+                letterSpacing: -0.5,
               ),
-              child: Icon(Icons.chevron_left, size: 28, color: _navyColor),
             ),
-          ),
-          Text(
-            'Chi Tiết Cơ Sở',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: _navyColor,
-              letterSpacing: -0.5,
+            IconButton(
+              icon: Icon(Icons.more_vert, color: Colors.grey[500]),
+              onPressed: null,
             ),
-          ),
-          const SizedBox(width: 40),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -180,7 +178,7 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: _orangeBrandColor.withValues(alpha: 0.05),
+                  color: _primary.withValues(alpha: 0.06),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -226,12 +224,11 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.orange.withValues(alpha: 0.05)),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: _primary.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
@@ -244,10 +241,10 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
               Expanded(
                 child: Text(
                   facility.name,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    color: _navyColor,
+                    color: _onSurface,
                   ),
                 ),
               ),
@@ -258,7 +255,7 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                 ),
                 decoration: BoxDecoration(
                   color: isOpen
-                      ? Colors.green.withValues(alpha: 0.1)
+                      ? const Color(0xFF94F990)
                       : Colors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -269,17 +266,17 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                       width: 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: isOpen ? Colors.green : Colors.red,
+                        color: isOpen ? _primary : Colors.red,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      isOpen ? 'ĐANG MỞ' : 'ĐANG ĐÓNG',
+                      isOpen ? '\u0110ANG M\u1eDE' : '\u0110ANG \u0110\xd3NG',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: isOpen ? Colors.green : Colors.red,
+                        color: isOpen ? _darkGreen : Colors.red,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -311,16 +308,26 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: _orangeLightColor, size: 20),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _lightGreen,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: _secondary, size: 20),
+        ),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: icon == Icons.location_on ? Colors.grey[700] : _navyColor,
-              height: 1.4,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: _onSurfaceVariant,
+                height: 1.4,
+              ),
             ),
           ),
         ),
@@ -335,12 +342,12 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'TIỆN ÍCH CƠ SỞ',
-          style: TextStyle(
-            fontSize: 11,
+          'TI\u1ec6N \xcdCH C\u01a0 S\u1eDE',
+          style: const TextStyle(
+            fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: _navyColor,
-            letterSpacing: 1.5,
+            color: _onSurface,
+            letterSpacing: -0.3,
           ),
         ),
         const SizedBox(height: 16),
@@ -377,13 +384,10 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Colors.grey.withValues(alpha: 0.1),
-                          ),
+                          borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.grey.withValues(alpha: 0.05),
+                              color: Colors.black.withValues(alpha: 0.04),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             ),
@@ -394,7 +398,7 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                           children: [
                             Icon(
                               _amenityIcon(amenityLabel),
-                              color: _orangeLightColor,
+                              color: _secondary,
                               size: 24,
                             ),
                             const SizedBox(height: 6),
@@ -403,10 +407,10 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.center,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.grey[500],
+                                color: _onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -430,25 +434,24 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'SÂN BÃI THUỘC CƠ SỞ',
-                style: TextStyle(
-                  fontSize: 11,
+                'S\xc2N B\xc3I THU\u1ed8C C\u01a0 S\u1eDE',
+                style: const TextStyle(
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: _navyColor,
-                  letterSpacing: 1.5,
+                  color: _onSurface,
+                  letterSpacing: -0.3,
                 ),
               ),
               GestureDetector(
                 onTap: () {
                   Navigator.pushNamed(context, AppRoutes.courts);
                 },
-                child: Text(
-                  'Xem tất cả',
+                child: const Text(
+                  'Xem t\u1ea5t c\u1ea3',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: _orangeBrandColor,
-                    decoration: TextDecoration.underline,
+                    color: _secondary,
                   ),
                 ),
               ),
@@ -532,12 +535,12 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.1),
+              color: _lightGreen,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               _courtIconForSport(court.sportType),
-              color: _orangeLightColor,
+              color: _primary,
               size: 32,
             ),
           ),
@@ -548,10 +551,10 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
               children: [
                 Text(
                   court.name,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: _navyColor,
+                    color: _onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -639,9 +642,9 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                       }
                     : null,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: _canDelete ? Colors.red : Colors.grey,
+                  foregroundColor: _canDelete ? _primary : Colors.grey,
                   side: BorderSide(
-                    color: _canDelete ? Colors.red : Colors.grey.withValues(alpha: 0.3),
+                    color: _canDelete ? _primary : Colors.grey.withValues(alpha: 0.3),
                     width: 2,
                   ),
                   backgroundColor: Colors.white,
@@ -650,13 +653,13 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                   ),
                 ),
                 child: Text(
-                  'Xóa cơ sở',
+                  'X\xf3a c\u01a1 s\u1edf',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: _canDelete ? Colors.red : Colors.grey,
+                    color: _canDelete ? _primary : Colors.grey,
                   ),
                 ),
               ),
@@ -670,14 +673,14 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: _canEdit
-                      ? [const Color(0xFFFF9500), const Color(0xFFF44336)]
+                      ? [_primary, _darkGreen]
                       : [Colors.grey.withValues(alpha: 0.5), Colors.grey.withValues(alpha: 0.5)],
                 ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
                     color: _canEdit
-                        ? Colors.orange.withValues(alpha: 0.2)
+                        ? _primary.withValues(alpha: 0.25)
                         : Colors.transparent,
                     blurRadius: 12,
                     offset: const Offset(0, 6),
@@ -762,8 +765,9 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        e.message ??
-                            'Không thể xóa cơ sở do còn sân trực thuộc',
+                        e.message.isEmpty
+                            ? 'Không thể xóa cơ sở do còn sân trực thuộc'
+                            : e.message,
                       ),
                       backgroundColor: Colors.orange,
                     ),
