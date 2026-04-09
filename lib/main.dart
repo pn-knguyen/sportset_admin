@@ -37,7 +37,6 @@ import 'package:sportset_admin/screens/management/revenue/revenue_screen.dart';
 import 'package:sportset_admin/screens/management/customer/customer_list_screen.dart';
 import 'package:sportset_admin/screens/management/customer/customer_detail_screen.dart';
 import 'package:sportset_admin/screens/management/review/review_list_screen.dart';
-import 'package:sportset_admin/screens/management/review/review_detail_screen.dart';
 import 'package:sportset_admin/screens/booking/booking_list_screen.dart';
 import 'package:sportset_admin/screens/booking/booking_detail_screen.dart';
 
@@ -121,8 +120,6 @@ class MainApp extends StatelessWidget {
 
         // Management - Reviews
         AppRoutes.reviews: (context) => const ReviewListScreen(),
-        AppRoutes.reviewDetail: (context) => const ReviewDetailScreen(),
-
         // Bookings
         AppRoutes.bookings: (context) => const BookingListScreen(),
         AppRoutes.bookingDetail: (context) => const BookingDetailScreen(),
