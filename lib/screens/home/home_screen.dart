@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:sportset_admin/routes/app_routes.dart';
 
@@ -12,30 +13,155 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentNavIndex = 0;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  final List<Map<String, dynamic>> _recentActivities = [
-    {
-      'name': 'Minh Hoàng',
-      'initials': 'MH',
-      'court': 'Sân 7A',
-      'time': '17:30 - 19:00',
-      'color': Colors.blue,
-    },
-    {
-      'name': 'Thùy Linh',
-      'initials': 'TL',
-      'court': 'Sân 5B',
-      'time': '19:00 - 20:30',
-      'color': Colors.pink,
-    },
-    {
-      'name': 'Quốc Anh',
-      'initials': 'QA',
-      'court': 'Sân 7C',
-      'time': '20:30 - 22:00',
-      'color': Colors.purple,
-    },
+  bool _loading = true;
+  int _todayRevenue = 0;
+  int _todayOrders = 0;
+  int _yesterdayOrders = 0;
+  List<Map<String, dynamic>> _recentActivities = [];
+
+  static const _activityColors = [
+    Colors.blue, Colors.pink, Colors.purple, Colors.orange, Colors.teal,
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHomeData();
+  }
+
+  int _toInt(dynamic v) {
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return int.tryParse(v?.toString() ?? '') ?? 0;
+  }
+
+  bool _isToday(Map<String, dynamic> b, DateTime now) {
+    final raw = b['selectedDate'];
+    if (raw is Map) {
+      final day = int.tryParse(raw['date']?.toString() ?? '') ?? 0;
+      final month = int.tryParse(raw['month']?.toString() ?? '') ?? 0;
+      final year = int.tryParse(raw['year']?.toString() ?? '') ?? now.year;
+      return day == now.day && month == now.month && year == now.year;
+    }
+    final ts = b['createdAt'];
+    if (ts is Timestamp) {
+      final d = ts.toDate();
+      return d.year == now.year && d.month == now.month && d.day == now.day;
+    }
+    return false;
+  }
+
+  bool _isYesterday(Map<String, dynamic> b, DateTime yesterday) =>
+      _isToday(b, yesterday);
+
+  Future<void> _loadHomeData() async {
+    try {
+      final snap = await _firestore.collection('bookings').get();
+      final all = snap.docs.map((d) => d.data()).toList();
+
+      final now = DateTime.now();
+      final yesterday = now.subtract(const Duration(days: 1));
+
+      // today's bookings
+      final todayAll = all.where((b) => _isToday(b, now)).toList();
+      final todayPaid = todayAll.where(
+          (b) => b['status'] == 'completed' || b['status'] == 'confirmed');
+      final todayRevenue =
+          todayPaid.fold<int>(0, (acc, b) => acc + _toInt(b['totalPrice']));
+
+      // yesterday count for growth badge
+      final yesterdayCount =
+          all.where((b) => _isYesterday(b, yesterday)).length;
+
+      // recent 5 by createdAt desc
+      final sorted = List<Map<String, dynamic>>.from(all)
+        ..sort((a, b) {
+          final aTs = a['createdAt'];
+          final bTs = b['createdAt'];
+          if (aTs is Timestamp && bTs is Timestamp) return bTs.compareTo(aTs);
+          return 0;
+        });
+      final recent = sorted.take(5).toList();
+
+      // fetch customer names
+      final Map<String, String> nameCache = {};
+      final Map<String, String> initialsCache = {};
+      for (final b in recent) {
+        final uid = b['userId']?.toString() ?? '';
+        if (uid.isNotEmpty && !nameCache.containsKey(uid)) {
+          try {
+            final doc =
+                await _firestore.collection('customers').doc(uid).get();
+            final name =
+                doc.data()?['fullName']?.toString() ?? 'Khách hàng';
+            nameCache[uid] = name;
+            final words = name.trim().split(RegExp(r'\s+'));
+            initialsCache[uid] = words.length >= 2
+                ? '${words.first[0]}${words.last[0]}'.toUpperCase()
+                : name.substring(0, name.length.clamp(0, 2)).toUpperCase();
+          } catch (_) {
+            nameCache[uid] = 'Khách hàng';
+            initialsCache[uid] = 'KH';
+          }
+        }
+      }
+
+      // build activity list
+      final activities = recent.asMap().entries.map((entry) {
+        final i = entry.key;
+        final b = entry.value;
+        final uid = b['userId']?.toString() ?? '';
+        final name = nameCache[uid] ?? 'Khách hàng';
+        final initials = initialsCache[uid] ?? 'KH';
+        final court = b['courtName']?.toString() ?? 'Sân thể thao';
+        final sub = b['subCourtName']?.toString() ?? '';
+        final courtLabel = sub.isNotEmpty ? '$court - $sub' : court;
+        final slot = b['selectedSlot'];
+        String timeStr = '';
+        if (slot is Map) {
+          final s = slot['startTime']?.toString() ?? '';
+          final e = slot['endTime']?.toString() ?? '';
+          if (s.isNotEmpty && e.isNotEmpty) timeStr = '$s - $e';
+        }
+        final raw = b['selectedDate'];
+        String dateStr = '';
+        if (raw is Map) {
+          final d = raw['date']?.toString() ?? '';
+          final m = raw['month']?.toString() ?? '';
+          if (d.isNotEmpty && m.isNotEmpty) dateStr = '$d/$m';
+        }
+        return {
+          'name': name,
+          'initials': initials,
+          'court': courtLabel,
+          'time': [timeStr, dateStr].where((s) => s.isNotEmpty).join(' • '),
+          'color': _activityColors[i % _activityColors.length],
+          'status': b['status']?.toString() ?? '',
+        };
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _todayRevenue = todayRevenue;
+          _todayOrders = todayAll.length;
+          _yesterdayOrders = yesterdayCount;
+          _recentActivities = activities;
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  String get _greeting {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Chào buổi sáng,';
+    if (h < 18) return 'Chào buổi chiều,';
+    return 'Chào buổi tối,';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -121,18 +247,18 @@ class _HomeScreenState extends State<HomeScreen> {
             // Profile Section
             Row(
               children: [
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'Chào buổi sáng,',
-                      style: TextStyle(
+                      _greeting,
+                      style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF5C615A),
                         fontWeight: FontWeight.w400,
                       ),
                     ),
-                    Text(
+                    const Text(
                       'Quản trị viên',
                       style: TextStyle(
                         fontSize: 14,
@@ -194,6 +320,24 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  String _formatRevenue(int amount) {
+    if (amount == 0) return '0đ';
+    final s = amount.toString();
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
+      buf.write(s[i]);
+    }
+    return '${buf}đ';
+  }
+
+  String get _growthLabel {
+    if (_yesterdayOrders == 0) return '+${_todayOrders}';
+    final pct =
+        ((_todayOrders - _yesterdayOrders) / _yesterdayOrders * 100).round();
+    return '${pct >= 0 ? '+' : ''}$pct%';
   }
 
   Widget _buildStatsCards() {
@@ -259,15 +403,22 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const Text(
-                        '4.850.000đ',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF1A1C1C),
-                          letterSpacing: -0.5,
-                        ),
-                      ),
+                      _loading
+                          ? const SizedBox(
+                              height: 22,
+                              width: 80,
+                              child: LinearProgressIndicator(
+                                  borderRadius: BorderRadius.all(Radius.circular(4))),
+                            )
+                          : Text(
+                              _formatRevenue(_todayRevenue),
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF1A1C1C),
+                                letterSpacing: -0.5,
+                              ),
+                            ),
                     ],
                   ),
                 ],
@@ -324,13 +475,19 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: const Color(0xFFE8F5E9),
                           borderRadius: BorderRadius.circular(99),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.north, size: 10, color: Color(0xFF4CAF50)),
-                            SizedBox(width: 2),
+                            Icon(
+                              _todayOrders >= _yesterdayOrders
+                                  ? Icons.north
+                                  : Icons.south,
+                              size: 10,
+                              color: const Color(0xFF4CAF50),
+                            ),
+                            const SizedBox(width: 2),
                             Text(
-                              '12%',
-                              style: TextStyle(
+                              _growthLabel,
+                              style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 color: Color(0xFF4CAF50),
@@ -345,7 +502,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Tổng số đơn đặt',
+                        'Đơn đặt hôm nay',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -356,15 +513,22 @@ class _HomeScreenState extends State<HomeScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          const Text(
-                            '24',
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF1A1C1C),
-                              letterSpacing: -0.5,
-                            ),
-                          ),
+                          _loading
+                              ? const SizedBox(
+                                  height: 26,
+                                  width: 40,
+                                  child: LinearProgressIndicator(
+                                      borderRadius: BorderRadius.all(Radius.circular(4))),
+                                )
+                              : Text(
+                                  '$_todayOrders',
+                                  style: const TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF1A1C1C),
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
                           const SizedBox(width: 6),
                           const Padding(
                             padding: EdgeInsets.only(bottom: 5),
@@ -503,7 +667,20 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         const SizedBox(height: 16),
-        ...List.generate(_recentActivities.length, (index) {
+        if (_loading)
+          const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50)))
+        else if (_recentActivities.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                'Chưa có hoạt động nào',
+                style: TextStyle(color: Color(0xFF9E9E9E)),
+              ),
+            ),
+          )
+        else
+          ...List.generate(_recentActivities.length, (index) {
           final activity = _recentActivities[index];
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
@@ -555,37 +732,64 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${activity['court']} • ${activity['time']}',
+                        [activity['court'], activity['time']]
+                            .where((s) => (s as String).isNotEmpty)
+                            .join(' • '),
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: Color(0xFF5C615A),
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF4CAF50)),
-                  ),
-                  child: const Text(
-                    'Chi tiết',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF4CAF50),
-                    ),
-                  ),
-                ),
+                _statusBadge(activity['status'] as String),
               ],
             ),
           );
         }),
       ],
+    );
+  }
+
+  Widget _statusBadge(String status) {
+    Color color;
+    String label;
+    switch (status) {
+      case 'completed':
+        color = const Color(0xFF4CAF50);
+        label = 'Hoàn thành';
+        break;
+      case 'confirmed':
+        color = const Color(0xFF2196F3);
+        label = 'Đã xác nhận';
+        break;
+      case 'cancelled':
+        color = const Color(0xFFE53935);
+        label = 'Đã hủy';
+        break;
+      default:
+        color = const Color(0xFFFF9800);
+        label = 'Chờ xác nhận';
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
     );
   }
 
