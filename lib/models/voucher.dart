@@ -9,6 +9,7 @@ class Voucher {
   final double minOrderValue;
   final int totalQuantity;
   final int usedQuantity;
+  final int maxPerUser;
   final bool isActive;
   final String facilityId;
   final String facilityName;
@@ -26,6 +27,7 @@ class Voucher {
     required this.minOrderValue,
     required this.totalQuantity,
     required this.usedQuantity,
+    this.maxPerUser = 1,
     required this.isActive,
     required this.facilityId,
     required this.facilityName,
@@ -59,6 +61,7 @@ class Voucher {
       minOrderValue: (data?['minOrderValue'] ?? 0).toDouble(),
       totalQuantity: data?['totalQuantity'] ?? 0,
       usedQuantity: data?['usedQuantity'] ?? 0,
+      maxPerUser: data?['maxPerUser'] ?? 1,
       isActive: data?['isActive'] ?? true,
       facilityId: data?['facilityId'] ?? '',
       facilityName: data?['facilityName'] ?? '',
@@ -78,6 +81,7 @@ class Voucher {
       'minOrderValue': minOrderValue,
       'totalQuantity': totalQuantity,
       'usedQuantity': usedQuantity,
+      'maxPerUser': maxPerUser,
       'isActive': isActive,
       'facilityId': facilityId,
       'facilityName': facilityName,

@@ -247,7 +247,7 @@ class _BookingListScreenState extends State<BookingListScreen> {
                         decoration: BoxDecoration(
                           color: isSelected
                               ? _primary
-                              : Colors.white.withOpacity(0.8),
+                              : Colors.white.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: isSelected
@@ -386,7 +386,7 @@ class _BookingListScreenState extends State<BookingListScreen> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.95),
+              color: Colors.white.withValues(alpha: 0.95),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
               boxShadow: [
@@ -451,7 +451,7 @@ class _BookingListScreenState extends State<BookingListScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF3F3F3).withOpacity(0.4),
+                        color: const Color(0xFFF3F3F3).withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: Colors.black.withValues(alpha: 0.05),
@@ -518,7 +518,7 @@ class _BookingListScreenState extends State<BookingListScreen> {
                               onPressed: () => _cancelBooking(docId),
                               style: OutlinedButton.styleFrom(
                                 backgroundColor:
-                                    const Color(0xFFE8E8E8).withOpacity(0.8),
+                                    const Color(0xFFE8E8E8).withValues(alpha: 0.8),
                                 foregroundColor: _onSurface,
                                 side: BorderSide.none,
                                 padding:
@@ -687,7 +687,7 @@ class _BookingListScreenState extends State<BookingListScreen> {
   Widget _buildBottomNav() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
+        color: Colors.white.withValues(alpha: 0.95),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         border: Border(
           top: BorderSide(color: Colors.grey.withValues(alpha: 0.08)),

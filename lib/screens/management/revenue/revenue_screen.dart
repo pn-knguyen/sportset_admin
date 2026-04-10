@@ -82,7 +82,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
     if (amount >= 1000) {
       return '${(amount / 1000).toStringAsFixed(0)}K';
     }
-    return '${amount}đ';
+    return '${amount}đ'; // ignore: unnecessary_brace_in_string_interps
   }
 
   String _fmtFull(int amount) {
@@ -92,7 +92,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
       if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
       buf.write(s[i]);
     }
-    return '${buf}đ';
+    return '${buf}đ'; // ignore: unnecessary_brace_in_string_interps
   }
 
   Future<Map<String, dynamic>> _loadRevenue() async {

@@ -256,7 +256,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                           width: 128,
                           height: 128,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
+                          errorBuilder: (_, _, _) =>
                               _buildInitialsWidget(name),
                         )
                       : _buildInitialsWidget(name),

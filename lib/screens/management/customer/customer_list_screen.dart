@@ -282,7 +282,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                       width: 52,
                       height: 52,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
+                      errorBuilder: (_, _, _) =>
                           _buildInitialsAvatar(customer.initials),
                     )
                   : _buildInitialsAvatar(customer.initials),

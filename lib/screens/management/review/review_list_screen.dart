@@ -368,7 +368,7 @@ class _ReviewListScreenState extends State<ReviewListScreen>
                               width: 48,
                               height: 48,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
+                              errorBuilder: (_, _, _) => Container(
                                 width: 48,
                                 height: 48,
                                 color: _lightGreen,
@@ -440,7 +440,7 @@ class _ReviewListScreenState extends State<ReviewListScreen>
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: review.images.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final url = review.images[index];
                   return GestureDetector(
@@ -452,7 +452,7 @@ class _ReviewListScreenState extends State<ReviewListScreen>
                         width: 90,
                         height: 90,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorBuilder: (_, _, _) => Container(
                           width: 90,
                           height: 90,
                           color: _lightGreen,
@@ -601,7 +601,7 @@ class _ReviewListScreenState extends State<ReviewListScreen>
               child: Image.network(
                 url,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Center(
+                errorBuilder: (_, _, _) => const Center(
                   child: Icon(Icons.broken_image,
                       color: Colors.white, size: 48),
                 ),

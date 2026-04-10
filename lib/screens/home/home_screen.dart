@@ -222,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2E7D32).withOpacity(0.10),
+                    color: const Color(0xFF2E7D32).withValues(alpha: 0.10),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -330,11 +330,11 @@ class _HomeScreenState extends State<HomeScreen> {
       if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
       buf.write(s[i]);
     }
-    return '${buf}đ';
+    return '${buf}đ'; // ignore: unnecessary_brace_in_string_interps
   }
 
   String get _growthLabel {
-    if (_yesterdayOrders == 0) return '+${_todayOrders}';
+    if (_yesterdayOrders == 0) return '+$_todayOrders';
     final pct =
         ((_todayOrders - _yesterdayOrders) / _yesterdayOrders * 100).round();
     return '${pct >= 0 ? '+' : ''}$pct%';
@@ -347,7 +347,6 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: GestureDetector(
             onTap: () {
-              // TODO: Navigate to revenue details
             },
             child: Container(
               height: 144,
@@ -796,7 +795,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBottomNav() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
+        color: Colors.white.withValues(alpha: 0.95),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         border: Border(
           top: BorderSide(color: Colors.grey.withValues(alpha: 0.08)),

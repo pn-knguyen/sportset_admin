@@ -106,7 +106,7 @@ class PermissionService {
       final snapshot = await _db
           .collection(_collectionName)
           .where('name', isGreaterThanOrEqualTo: query)
-          .where('name', isLessThan: query + 'z')
+          .where('name', isLessThan: '${query}z')
           .get();
       return snapshot.docs
           .map((doc) => Permission.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>, null))

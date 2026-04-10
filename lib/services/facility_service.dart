@@ -137,7 +137,7 @@ class FacilityService {
     final snapshot = await _firestore
         .collection(_collection)
         .where('name', isGreaterThanOrEqualTo: query)
-        .where('name', isLessThan: query + 'z')
+        .where('name', isLessThan: '${query}z')
         .get();
     return snapshot.docs.map((doc) => Facility.fromFirestore(doc)).toList();
   }

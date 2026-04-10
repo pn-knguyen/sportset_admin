@@ -130,7 +130,7 @@ class _ManagementScreenState extends State<ManagementScreen> {
                         child: Image.network(
                           'https://lh3.googleusercontent.com/aida-public/AB6AXuBPiG6-C9F_PaYJilUIHw6RkFrr1dKSspLVXSHZcs0zn7vXEPd2BCc45mr9TPBB09kDBN7up8783MIokySCVBZhz6BeBzYR-SdFeutBZ09cwdhy142rJhtpEJzW8NO9Qq0U-1krHjKroPd_gLn9iN1v-Yh_zHwGX9bqvm_ZgVERfs0XbKE7oy8eahoE9uCEA0lxP7ezICxGXSgMa6n6KILchprnDYaE-TpPWytfW8nja4YC7ZnC9StRc-OE01NmB5bMCWK6_Kw0mOo',
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_, _, _) => Container(
                             color: Colors.grey[300],
                             child: const Icon(Icons.person, color: Colors.grey),
                           ),
@@ -374,7 +374,7 @@ class _ManagementScreenState extends State<ManagementScreen> {
   Widget _buildBottomNav() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
+        color: Colors.white.withValues(alpha: 0.95),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         border: Border(
           top: BorderSide(color: Colors.grey.withValues(alpha: 0.08)),

@@ -153,7 +153,6 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
             IconButton(
               icon: const Icon(Icons.share, color: _darkGreen),
               onPressed: () {
-                // TODO: Implement share functionality
               },
             ),
           ],

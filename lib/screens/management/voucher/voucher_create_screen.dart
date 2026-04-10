@@ -170,6 +170,7 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
         minOrderValue: double.parse(_minOrderController.text),
         totalQuantity: int.parse(_quantityController.text),
         usedQuantity: 0,
+        maxPerUser: 1,
         isActive: true,
         facilityId: _selectedFacilityId!,
         facilityName: facility.name,
