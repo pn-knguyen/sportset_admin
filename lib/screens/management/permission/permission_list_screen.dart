@@ -696,7 +696,7 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Bạn không có quyền tạo hoặc chỉnh sửa nhóm quyền'),
-                backgroundColor: Colors.orange,
+                backgroundColor: Color(0xFF4CAF50),
               ),
             );
             return;

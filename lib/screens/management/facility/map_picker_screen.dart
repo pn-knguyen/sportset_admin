@@ -108,7 +108,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Không tìm thấy địa chỉ này'),
-            backgroundColor: Colors.orange,
+            backgroundColor: Color(0xFF4CAF50),
           ),
         );
       }
@@ -118,7 +118,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Không tìm thấy địa chỉ này'),
-            backgroundColor: Colors.orange,
+            backgroundColor: Color(0xFF4CAF50),
           ),
         );
       }

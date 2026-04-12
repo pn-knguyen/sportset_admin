@@ -22,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _recentActivities = [];
 
   static const _activityColors = [
-    Colors.blue, Colors.pink, Colors.purple, Colors.orange, Colors.teal,
+    Colors.blue, Colors.pink, Colors.purple, Colors.green, Colors.teal,
   ];
 
   @override

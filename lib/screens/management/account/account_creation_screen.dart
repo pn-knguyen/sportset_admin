@@ -810,20 +810,6 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
       final avatarUrl = await _uploadAvatarToStorage(uid);
 
       try {
-        // Save user info to Firestore
-        await _firestore.collection('users').doc(uid).set({
-          'uid': uid,
-          'username': username,
-          'email': authEmail,
-          'staffId': _selectedStaffId,
-          'staffName': staff.name,
-          'permissionGroupId': _selectedPermissionGroupId,
-          if (avatarUrl != null) 'avatarUrl': avatarUrl,
-          'createdAt': FieldValue.serverTimestamp(),
-          'status': 'active',
-        });
-
-        // Separate collection for admin sign-in authorization.
         await _firestore
             .collection('admin_accounts')
             .doc(uid)

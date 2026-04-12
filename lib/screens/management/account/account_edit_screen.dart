@@ -201,7 +201,7 @@ class _AccountEditScreenState extends State<AccountEditScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Không thể đổi mật khẩu tài khoản khác từ ứng dụng này'),
-              backgroundColor: Colors.orange,
+              backgroundColor: Color(0xFF4CAF50),
               duration: Duration(seconds: 3),
             ),
           );

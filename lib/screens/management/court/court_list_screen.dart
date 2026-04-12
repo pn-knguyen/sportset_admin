@@ -307,7 +307,7 @@ class _CourtListScreenState extends State<CourtListScreen> {
                     decoration: BoxDecoration(
                       color: isAvailable
                           ? _primary.withValues(alpha: 0.9)
-                          : Colors.orange.withValues(alpha: 0.9),
+                          : Colors.grey.withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(

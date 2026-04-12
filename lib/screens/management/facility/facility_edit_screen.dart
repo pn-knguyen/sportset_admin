@@ -108,7 +108,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Không tìm thấy dữ liệu cơ sở'),
-            backgroundColor: Colors.orange,
+            backgroundColor: Color(0xFF4CAF50),
           ),
         );
       }
@@ -305,7 +305,7 @@ class _FacilityEditScreenState extends State<FacilityEditScreen> {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.orange.withValues(alpha: 0.05),
+                color: const Color(0xFF4CAF50).withValues(alpha: 0.05),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),

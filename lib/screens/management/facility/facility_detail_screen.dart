@@ -769,7 +769,7 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                             ? 'Không thể xóa cơ sở do còn sân trực thuộc'
                             : e.message,
                       ),
-                      backgroundColor: Colors.orange,
+                      backgroundColor: const Color(0xFF4CAF50),
                     ),
                   );
                 } catch (e) {

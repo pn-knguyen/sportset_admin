@@ -577,7 +577,7 @@ class _FacilityListScreenState extends State<FacilityListScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.message.isEmpty ? 'Không thể xóa cơ sở do còn dữ liệu liên quan' : e.message),
-            backgroundColor: Colors.orange,
+            backgroundColor: const Color(0xFF4CAF50),
           ),
         );
       }
