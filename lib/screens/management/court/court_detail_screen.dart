@@ -710,63 +710,112 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
   }
 
   Widget _buildAmenitiesSection(Court court) {
+    // Debug: Print amenities count and list
+    print('===== AMENITIES DEBUG =====');
+    print('Total amenities count: ${court.amenities.length}');
+    print('Amenities list: ${court.amenities}');
+    print('===========================');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Tiện ích & Mô tả',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: _onSurface,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Tiện ích & Mô tả',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: _onSurface,
+              ),
+            ),
+            if (court.amenities.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${court.amenities.length} tiện ích',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: _primary,
+                  ),
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 16),
         // Amenities horizontal scroll
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: court.amenities.map((amenity) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        _amenityIcon(amenity),
-                        size: 24,
-                        color: _onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      amenity.toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                        color: _onSurfaceVariant,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
+        court.amenities.isEmpty
+            ? Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              );
-            }).toList(),
-          ),
-        ),
+                child: const Text(
+                  'Chưa có tiện ích nào',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey,
+                  ),
+                ),
+              )
+            : SizedBox(
+                height: 80,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: court.amenities.length,
+                  separatorBuilder: (context, index) => const SizedBox(width: 16),
+                  itemBuilder: (context, index) {
+                    final amenity = court.amenities[index];
+                    return Column(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            _amenityIcon(amenity),
+                            size: 24,
+                            color: _onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          width: 52,
+                          child: Text(
+                            amenity.toUpperCase(),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              color: _onSurfaceVariant,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
         const SizedBox(height: 16),
         // Description
         Container(
@@ -1015,6 +1064,14 @@ class _CourtDetailScreenState extends State<CourtDetailScreen> {
     }
     if (normalized.contains('tắm')) {
       return Icons.shower;
+    }
+    if (normalized.contains('khán đài') || normalized.contains('khan dai')) {
+      return Icons.stadium;
+    }
+    if (normalized.contains('y tế') ||
+        normalized.contains('y te') ||
+        normalized.contains('first aid')) {
+      return Icons.medical_services;
     }
     return Icons.check_circle_outline;
   }

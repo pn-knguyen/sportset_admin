@@ -76,10 +76,12 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
     {'startTime': '05:00', 'endTime': '16:00', 'price': 150000},
     {'startTime': '17:00', 'endTime': '22:00', 'price': 250000},
   ];
+  final List<TextEditingController> _weekdayPriceControllers = [];
 
   final List<Map<String, dynamic>> _weekendPricing = [
     {'startTime': '05:00', 'endTime': '22:00', 'price': 300000},
   ];
+  final List<TextEditingController> _weekendPriceControllers = [];
 
   @override
   void initState() {
@@ -87,6 +89,18 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
     _checkEditPermission();
     _loadFacilities();
     _loadSports();
+    
+    // Initialize price controllers for default pricing data
+    for (final item in _weekdayPricing) {
+      _weekdayPriceControllers.add(
+        TextEditingController(text: item['price'].toString()),
+      );
+    }
+    for (final item in _weekendPricing) {
+      _weekendPriceControllers.add(
+        TextEditingController(text: item['price'].toString()),
+      );
+    }
   }
   
   Future<void> _checkEditPermission() async {
@@ -159,6 +173,16 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
             ),
           );
 
+        // Clear old controllers
+        for (final c in _weekdayPriceControllers) {
+          c.dispose();
+        }
+        for (final c in _weekendPriceControllers) {
+          c.dispose();
+        }
+        _weekdayPriceControllers.clear();
+        _weekendPriceControllers.clear();
+
         _weekdayPricing
           ..clear()
           ..addAll(court.weekdayPricing);
@@ -166,6 +190,18 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
         _weekendPricing
           ..clear()
           ..addAll(court.weekendPricing);
+
+        // Initialize controllers for pricing
+        for (final item in _weekdayPricing) {
+          _weekdayPriceControllers.add(
+            TextEditingController(text: item['price'].toString()),
+          );
+        }
+        for (final item in _weekendPricing) {
+          _weekendPriceControllers.add(
+            TextEditingController(text: item['price'].toString()),
+          );
+        }
       });
 
       _syncSelectedFacilityFromList();
@@ -382,6 +418,12 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
     _courtNameController.dispose();
     _descriptionController.dispose();
     _subCourtNameController.dispose();
+    for (final c in _weekdayPriceControllers) {
+      c.dispose();
+    }
+    for (final c in _weekendPriceControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -940,20 +982,30 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
 
   Widget _buildPricingSection() {
     final pricingList = _selectedPricingTab == 0 ? _weekdayPricing : _weekendPricing;
+    final priceControllers = _selectedPricingTab == 0 ? _weekdayPriceControllers : _weekendPriceControllers;
+
+    // Ensure controllers match pricing list
+    while (priceControllers.length < pricingList.length) {
+      priceControllers.add(
+        TextEditingController(text: pricingList[priceControllers.length]['price'].toString()),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Bảng giá theo khung giờ',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _onSurface),
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 12),
+          child: Text(
+            'Bảng giá theo khung giờ',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _onSurface),
+          ),
         ),
-        const SizedBox(height: 12),
         // Tab switcher
         Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: Color(0xFFF4F4F4),
+            color: const Color(0xFFF4F4F4),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
@@ -968,11 +1020,12 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
         ...List.generate(pricingList.length, (index) {
           final pricing = pricingList[index];
           final timeText = '${pricing['startTime']} - ${pricing['endTime']}';
+
           return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: 10),
             child: Row(
               children: [
-                // Time field (flex 5) - tappable
+                // Time card (flex 5) - tappable
                 Expanded(
                   flex: 5,
                   child: GestureDetector(
@@ -982,7 +1035,7 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: const Color(0xFFF5F5F5)),
                         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
                       ),
@@ -991,7 +1044,7 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                           Expanded(
                             child: Text(
                               timeText,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: _onSurface),
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _onSurfaceVariant),
                             ),
                           ),
                           const Icon(Icons.edit, size: 16, color: _primary),
@@ -1001,51 +1054,52 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Price field (flex 5)
+                // Price card (flex 5) - editable
                 Expanded(
                   flex: 5,
-                  child: Stack(
-                    alignment: Alignment.centerRight,
-                    children: [
-                      Container(
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Color(0xFFF5F5F5)),
-                          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-                        ),
-                        child: TextField(
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _onSurface),
-                          decoration: const InputDecoration(
-                            contentPadding: EdgeInsets.fromLTRB(12, 0, 48, 0),
-                            border: InputBorder.none,
+                  child: Container(
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFF5F5F5)),
+                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _weekdayPriceControllers[index],
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _onSurface),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                              hintText: '0',
+                            ),
+                            onChanged: (v) {
+                              pricing['price'] = int.tryParse(v) ?? 0;
+                            },
                           ),
-                          controller: TextEditingController(
-                            text: pricing['price'].toString(),
-                          ),
-                          onChanged: (value) {
-                            final price = int.tryParse(value.replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
-                            pricingList[index]['price'] = price;
-                          },
                         ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.only(right: 12),
-                        child: Text('d/h', style: TextStyle(fontSize: 11, color: _onSurfaceVariant)),
-                      ),
-                    ],
+                        const Icon(Icons.payments, size: 16, color: _primary),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Delete
+                // Delete (flex 2)
                 SizedBox(
-                  width: 40,
+                  width: 36,
                   child: IconButton(
-                    onPressed: () => setState(() => pricingList.removeAt(index)),
-                    icon: Icon(Icons.remove_circle_outline, color: Colors.red[600]),
+                    onPressed: () => setState(() {
+                      priceControllers[index].dispose();
+                      priceControllers.removeAt(index);
+                      pricingList.removeAt(index);
+                    }),
+                    icon: const Icon(Icons.close, color: Color(0xFF6F7A6B)),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
@@ -1063,22 +1117,36 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
             final endTime = facility?.closeTime ?? '22:00';
             setState(() {
               pricingList.add({'startTime': startTime, 'endTime': endTime, 'price': 0});
+              priceControllers.add(TextEditingController(text: '0'));
             });
           },
           child: Container(
             width: double.infinity,
-            height: 60,
+            height: 56,
             decoration: BoxDecoration(
               border: Border.all(color: _primary.withValues(alpha: 0.3), width: 2),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.add_circle, color: _primary),
+                Icon(Icons.add, color: _primary),
                 SizedBox(width: 8),
                 Text('Thêm khung giờ', style: TextStyle(fontWeight: FontWeight.bold, color: _primary)),
               ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Add pricing group text button
+        SizedBox(
+          width: double.infinity,
+          child: TextButton.icon(
+            onPressed: () {},
+            icon: const Icon(Icons.library_add, color: _primary, size: 20),
+            label: const Text(
+              'THÊM NHÓM BẢNG GIÁ MỚI',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _primary, letterSpacing: 1),
             ),
           ),
         ),
@@ -1118,27 +1186,36 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 4, bottom: 8),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
             'Mô tả chi tiết',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _onSurfaceVariant),
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: _onSurfaceVariant,
+              letterSpacing: 0.5,
+            ),
           ),
         ),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey[200]!),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2)),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
             ],
           ),
           child: TextField(
             controller: _descriptionController,
             maxLines: 4,
             decoration: InputDecoration(
-              hintText: 'Nhập quy định sân, lưu ý khi đặt chỗ...',
+              hintText: 'Nhập mô tả về tiện ích, mặt sân, lưu ý...',
               hintStyle: TextStyle(color: Colors.grey[400]),
               contentPadding: const EdgeInsets.all(16),
               border: InputBorder.none,
@@ -1156,13 +1233,13 @@ class _CourtEditScreenState extends State<CourtEditScreen> {
   Widget _buildAmenitiesSection() {
     final amenities = [
       {'icon': Icons.wifi, 'name': 'Wifi'},
-      {'icon': Icons.local_parking, 'name': 'G\u1eedi xe'},
-      {'icon': Icons.water_drop, 'name': 'N\u01b0\u1edbc'},
-      {'icon': Icons.shower, 'name': 'T\u1eafm'},
-      {'icon': Icons.restaurant, 'name': 'C\u0103n tin'},
-      {'icon': Icons.lightbulb, 'name': '\u0110\u00e8n \u0111\u00eam'},
-      {'icon': Icons.chair, 'name': 'Kh\u00e1n \u0111\u00e0i'},
-      {'icon': Icons.medical_services, 'name': 'Y t\u1ebf'},
+      {'icon': Icons.local_parking, 'name': 'Gửi xe'},
+      {'icon': Icons.water_drop, 'name': 'Nước'},
+      {'icon': Icons.shower, 'name': 'Tắm rửa'},
+      {'icon': Icons.lightbulb, 'name': 'Đèn đêm'},
+      {'icon': Icons.stadium, 'name': 'Khán đài'},
+      {'icon': Icons.restaurant, 'name': 'Canteen'},
+      {'icon': Icons.medical_services, 'name': 'Y tế'},
     ];
 
     return Column(
