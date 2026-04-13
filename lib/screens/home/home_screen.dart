@@ -576,58 +576,64 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         const SizedBox(height: 20),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 20,
-            childAspectRatio: 0.80,
-          ),
-          itemCount: shortcuts.length,
-          itemBuilder: (context, index) {
-            final shortcut = shortcuts[index];
-            return GestureDetector(
-              onTap: () {
-                Navigator.pushNamed(context, shortcut['route'] as String);
-              },
-              child: Column(
-                children: [
-                  Container(
-                    height: 56,
-                    width: 56,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withValues(alpha: 0.05),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const int crossAxisCount = 4;
+            const double spacing = 8;
+            final double itemWidth =
+                (constraints.maxWidth - spacing * (crossAxisCount - 1)) /
+                crossAxisCount;
+            return Wrap(
+              spacing: spacing,
+              runSpacing: 16,
+              children: shortcuts.map((shortcut) {
+                return SizedBox(
+                  width: itemWidth,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, shortcut['route'] as String);
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          height: 56,
+                          width: 56,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: Colors.grey.withValues(alpha: 0.1)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withValues(alpha: 0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            shortcut['icon'] as IconData,
+                            size: 26,
+                            color: const Color(0xFF18A5A7),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          shortcut['label'] as String,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF5C615A),
+                            height: 1.3,
+                          ),
                         ),
                       ],
                     ),
-                    child: Icon(
-                      shortcut['icon'] as IconData,
-                      size: 26,
-                      color: const Color(0xFF18A5A7),
-                    ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    shortcut['label'] as String,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF5C615A),
-                      height: 1.3,
-                    ),
-                  ),
-                ],
-              ),
+                );
+              }).toList(),
             );
           },
         ),

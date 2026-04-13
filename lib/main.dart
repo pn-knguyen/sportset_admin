@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sportset_admin/routes/app_routes.dart';
 import 'package:sportset_admin/firebase_options.dart';
 import 'package:sportset_admin/services/setup_service.dart';
@@ -49,12 +50,15 @@ Future<void> main() async {
   
   // Debug: Show all accounts
   await SetupService.debugShowAllAccounts();
+
+  final bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
   
-  runApp(const MainApp());
+  runApp(MainApp(isLoggedIn: isLoggedIn));
 }
 
 class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+  final bool isLoggedIn;
+  const MainApp({super.key, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +69,7 @@ class MainApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      initialRoute: AppRoutes.login,
+      initialRoute: isLoggedIn ? AppRoutes.home : AppRoutes.login,
       routes: {
         // Auth
         AppRoutes.login: (context) => const LoginScreen(),

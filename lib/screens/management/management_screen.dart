@@ -185,35 +185,51 @@ class _ManagementScreenState extends State<ManagementScreen> {
   }
 
   Widget _buildFacilityGrid() {
-    return GridView.count(
-      shrinkWrap: true,
-      crossAxisCount: 2,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      childAspectRatio: 1.05,
-      children: [
-        _buildGridTile(
-          icon: Icons.apartment,
-          label: 'Danh sách\ncơ sở',
-          onTap: () => Navigator.pushNamed(context, AppRoutes.facilities),
-        ),
-        _buildGridTile(
-          icon: Icons.add_circle,
-          label: 'Thêm\ncơ sở mới',
-          onTap: () => Navigator.pushNamed(context, AppRoutes.facilityCreate),
-        ),
-        _buildGridTile(
-          icon: Icons.stadium,
-          label: 'Danh sách\nsân',
-          onTap: () => Navigator.pushNamed(context, AppRoutes.courts),
-        ),
-        _buildGridTile(
-          icon: Icons.add_circle,
-          label: 'Thêm\nsân mới',
-          onTap: () => Navigator.pushNamed(context, AppRoutes.courtCreate),
-        ),
-      ],
+    final tiles = [
+      _FacilityTileData(
+        icon: Icons.apartment,
+        label: 'Danh sách\ncơ sở',
+        route: AppRoutes.facilities,
+      ),
+      _FacilityTileData(
+        icon: Icons.add_circle,
+        label: 'Thêm\ncơ sở mới',
+        route: AppRoutes.facilityCreate,
+      ),
+      _FacilityTileData(
+        icon: Icons.stadium,
+        label: 'Danh sách\nsân',
+        route: AppRoutes.courts,
+      ),
+      _FacilityTileData(
+        icon: Icons.add_circle,
+        label: 'Thêm\nsân mới',
+        route: AppRoutes.courtCreate,
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const int crossAxisCount = 2;
+        const double spacing = 16;
+        final double itemWidth =
+            (constraints.maxWidth - spacing * (crossAxisCount - 1)) /
+            crossAxisCount;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: tiles.map((t) {
+            return SizedBox(
+              width: itemWidth,
+              child: _buildGridTile(
+                icon: t.icon,
+                label: t.label,
+                onTap: () => Navigator.pushNamed(context, t.route),
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 
@@ -433,4 +449,15 @@ class _ManagementScreenState extends State<ManagementScreen> {
       ),
     );
   }
+}
+
+class _FacilityTileData {
+  final IconData icon;
+  final String label;
+  final String route;
+  const _FacilityTileData({
+    required this.icon,
+    required this.label,
+    required this.route,
+  });
 }
